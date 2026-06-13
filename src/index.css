@@ -50,3 +50,7 @@ a {
 ::selection {
   background: rgba(107, 76, 59, 0.15);
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

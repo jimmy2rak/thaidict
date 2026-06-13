@@ -1,5 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSignIn, useSignUp, useClerk } from "@clerk/clerk-react";
+import {
+  isSupabaseConfigured,
+  searchWords, getWordByThai, getDailyWord, getRecentWords,
+  submitWord, transformWordData, transformSearchResult,
+} from "./lib/supabase.js";
 import {
   Search, BookOpen,
   Mic, Play, Pause,
@@ -366,6 +371,35 @@ const PageHeader = ({ title, subtitle }) => (
    ──────────────────────────────────────────── */
 const HomePage = ({ onNavigate, onWordTap }) => {
   const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [dailyData, setDailyData] = useState(null);
+  const [recentData, setRecentData] = useState([]);
+
+  /* ── Fetch daily word + recent words from Supabase ── */
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    getDailyWord().then(d => { if (d) setDailyData(transformWordData(d)); });
+    getRecentWords(8).then(rows => { setRecentData(rows.map(transformSearchResult).filter(Boolean)); });
+  }, []);
+
+  /* ── Debounced search (internal state) ── */
+  useEffect(() => {
+    if (!query.trim() || !isSupabaseConfigured) { setSearchResults([]); return; }
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      const results = await searchWords(query.trim(), 15);
+      setSearchResults(results.map(transformSearchResult).filter(Boolean));
+      setSearchLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  /* ── Display helpers ── */
+  const dw = dailyData;
+  const dwSense = dw?.senses?.[0];
+  const dwExample = dwSense?.examples?.[0];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "0 16px 16px" }}>
       {/* Search bar */}
@@ -373,7 +407,7 @@ const HomePage = ({ onNavigate, onWordTap }) => {
         <Search size={18} strokeWidth={IW} color={C.s300} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
         <input
           value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="\u8F93\u5165\u4E2D\u6587\u67E5\u6CF0\u8BED\u91CA\u4E49..."
+          placeholder={"\u8F93\u5165\u4E2D\u6587\u6216\u6CF0\u6587\u641C\u7D22..."}
           style={{
             width: "100%", padding: "14px 44px 14px 44px", borderRadius: 14,
             border: `1.5px solid ${C.p200}`, background: C.surface, fontSize: 15,
@@ -383,58 +417,96 @@ const HomePage = ({ onNavigate, onWordTap }) => {
           onFocus={e => e.target.style.borderColor = C.p500}
           onBlur={e => e.target.style.borderColor = C.p200}
         />
-        <Mic size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} />
+        {query && <X size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} onClick={() => { setQuery(""); setSearchResults([]); }} />}
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <StatCard icon={BookOpen} label="\u4ECA\u65E5\u5DF2\u5B66" value="12" sub="/30\u8BCD" color={C.teal} />
-        <StatCard icon={Flame} label="\u8FDE\u7EED\u6253\u5361" value="25" sub="\u5929" color={C.gold} />
-      </div>
-
-      {/* Daily Word */}
-      <Card>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <Badge bg={C.goldL} fg={C.gold}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
-          <span style={{ fontSize: 11, color: C.s300 }}>{new Date().toLocaleDateString("zh-CN")}</span>
-        </div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: C.p900, fontFamily: "'Noto Serif SC', serif", letterSpacing: "0.04em" }}>{dailyWord.zh}</div>
-        <div style={{ fontSize: 20, color: C.teal, fontFamily: "'Noto Serif Thai', serif", marginTop: 4, fontWeight: 500 }}>{dailyWord.th}</div>
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-          <AudioBtn label={`${dailyWord.phonetic} \u6CF0\u8BED\u53D1\u97F3`} color={C.teal} />
-        </div>
-        <div style={{ fontSize: 14, color: C.p700, lineHeight: 1.6, marginTop: 14 }}>{dailyWord.def}</div>
-        <div style={{ borderTop: `1px solid ${C.p100}`, marginTop: 14, paddingTop: 14 }}>
-          <div style={{ fontSize: 13, color: C.p700, fontWeight: 500 }}>{dailyWord.exZh}</div>
-          <div style={{ fontSize: 13, color: C.teal, marginTop: 4 }}>{dailyWord.exTh}</div>
-        </div>
-      </Card>
-
-      {/* Recent words */}
-      <div>
-        <SectionTitle action={"\u66F4\u591A"}>{"\u6700\u8FD1\u67E5\u8BCD"}</SectionTitle>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {recentWords.map((w, i) => (
-            <div key={i} onClick={() => onWordTap()} style={{
+      {/* Search results overlay */}
+      {query.trim() && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {searchLoading && <div style={{ textAlign: "center", padding: 16, color: C.s500, fontSize: 13 }}>{"\u641C\u7D22\u4E2D..."}</div>}
+          {!searchLoading && searchResults.length === 0 && <div style={{ textAlign: "center", padding: 16, color: C.s500, fontSize: 13 }}>{"\u672A\u627E\u5230\u7ED3\u679C"}</div>}
+          {searchResults.map((r, i) => (
+            <div key={r.word + i} onClick={() => onWordTap(r.word)} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "14px 16px", borderRadius: 14, background: C.surface,
+              padding: "12px 16px", borderRadius: 14, background: C.surface,
               border: `1px solid ${C.p100}`, cursor: "pointer",
             }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: C.p800 }}>{w.zh}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
-                  <span style={{ fontSize: 14, color: C.teal, fontWeight: 500 }}>{w.th}</span>
-                  <span style={{ fontSize: 11, color: C.s300, fontFamily: "monospace" }}>{w.phonetic}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{r.word}</span>
+                  {r.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{r.pos}</Badge>}
+                  {r.sense_count > 1 && <span style={{ fontSize: 10, color: C.s400 }}>{r.sense_count}{"\u4E49"}</span>}
                 </div>
+                {r.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.meaning}</div>}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 10, color: C.s300 }}>{w.time}</span>
-                <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
-              </div>
+              <ChevronRight size={14} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0 }} />
             </div>
           ))}
         </div>
-      </div>
+      )}
+
+      {/* When not searching, show dashboard */}
+      {!query.trim() && <>
+        {/* Stats row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <StatCard icon={BookOpen} label={"\u8BCD\u5E93\u8BCD\u6761"} value={isSupabaseConfigured ? "\u221E" : "0"} sub={""} color={C.teal} />
+          <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value="25" sub={"\u5929"} color={C.gold} />
+        </div>
+
+        {/* Daily Word */}
+        {dw && (
+          <Card onClick={() => onWordTap(dw.word)}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <Badge bg={C.goldL} fg={C.gold}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
+              <span style={{ fontSize: 11, color: C.s300 }}>{new Date().toLocaleDateString("zh-CN")}</span>
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: C.p900, fontFamily: "'Noto Serif Thai', serif", letterSpacing: "0.04em" }}>{dw.word}</div>
+            {dw.romanization && <div style={{ fontSize: 13, color: C.teal, fontFamily: "monospace", fontStyle: "italic", marginTop: 2 }}>{dw.romanization}</div>}
+            {dwSense && (
+              <>
+                <div style={{ fontSize: 14, color: C.p700, lineHeight: 1.6, marginTop: 10 }}>
+                  {dwSense.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 10, marginRight: 6 }}>{dwSense.pos}</Badge>}
+                  {dwSense.meaning}
+                </div>
+                {dwExample && (
+                  <div style={{ borderTop: `1px solid ${C.p100}`, marginTop: 12, paddingTop: 12 }}>
+                    <div style={{ fontSize: 13, color: C.teal }}>{dwExample.th}</div>
+                    <div style={{ fontSize: 13, color: C.p700, marginTop: 3 }}>{dwExample.zh}</div>
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        )}
+
+        {/* Recent words from Supabase */}
+        {recentData.length > 0 && (
+          <div>
+            <SectionTitle action={"\u66F4\u591A"}>{"\u6700\u8FD1\u5BCC\u5316\u8BCD\u6761"}</SectionTitle>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {recentData.map((w, i) => (
+                <div key={w.word + i} onClick={() => onWordTap(w.word)} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 16px", borderRadius: 14, background: C.surface,
+                  border: `1px solid ${C.p100}`, cursor: "pointer",
+                }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{w.word}</span>
+                      {w.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{w.pos}</Badge>}
+                    </div>
+                    {w.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {w.romanization && <span style={{ fontSize: 10, color: C.s300, fontFamily: "monospace" }}>{w.romanization}</span>}
+                    <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>}
     </div>
   );
 };
@@ -444,6 +516,7 @@ const HomePage = ({ onNavigate, onWordTap }) => {
    ──────────────────────────────────────────── */
 const WordBookPage = ({ onWordTap }) => {
   const [tab, setTab] = useState("recent");
+  const [recentData, setRecentData] = useState([]);
   const [folders, setFolders] = useState([
     { id: 1, name: "\u65C5\u884C\u5E38\u7528", count: 45, color: C.teal },
     { id: 2, name: "\u7F8E\u98DF\u8BCD\u6C47", count: 28, color: C.rose },
@@ -452,6 +525,14 @@ const WordBookPage = ({ onWordTap }) => {
   const [editName, setEditName] = useState("");
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+
+  /* ── Fetch recent enriched words from Supabase ── */
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    getRecentWords(20).then(rows => {
+      setRecentData(rows.map(transformSearchResult).filter(Boolean));
+    });
+  }, []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
@@ -488,22 +569,28 @@ const WordBookPage = ({ onWordTap }) => {
 
           {/* Word list */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {recentWords.map((w, i) => (
-              <div key={i} onClick={() => onWordTap()} style={{
+            {recentData.length === 0 && (
+              <div style={{ textAlign: "center", padding: 24, color: C.s400, fontSize: 13 }}>
+                {isSupabaseConfigured ? "暂无记录" : "未连接数据库"}
+              </div>
+            )}
+            {recentData.map((w, i) => (
+              <div key={w.word + i} onClick={() => onWordTap(w.word)} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "14px 16px", borderRadius: 14, background: C.surface,
                 border: `1px solid ${C.p100}`, cursor: "pointer",
               }}>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: C.p800 }}>{w.zh}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
-                    <span style={{ fontSize: 14, color: C.teal, fontWeight: 500 }}>{w.th}</span>
-                    <span style={{ fontSize: 11, color: C.s300, fontFamily: "monospace" }}>{w.phonetic}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{w.word}</span>
+                    {w.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{w.pos}</Badge>}
+                    {w.sense_count > 1 && <span style={{ fontSize: 10, color: C.s400 }}>{w.sense_count}{"义"}</span>}
                   </div>
+                  {w.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {tab === "starred" && <Star size={14} strokeWidth={IW} color={C.gold} fill={C.gold} />}
-                  <span style={{ fontSize: 10, color: C.s300 }}>{w.time}</span>
+                  {w.romanization && <span style={{ fontSize: 10, color: C.s300, fontFamily: "monospace" }}>{w.romanization}</span>}
                   <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
                 </div>
               </div>
@@ -686,7 +773,7 @@ const WordBookPage = ({ onWordTap }) => {
    error report popovers, clickable synonyms/associations
    ──────────────────────────────────────────── */
 const WordDetailPage = ({ onBack, onWordTap, wordData }) => {
-  const wd = wordData || wordDetail;
+  const wd = wordData || wordDetail; // wordDetail mock kept as dev fallback
   const [bookmarked, setBookmarked] = useState(false);
   const [expandedSenses, setExpandedSenses] = useState([true, true, true]);
   const [freqTab, setFreqTab] = useState("ttc");
@@ -1112,9 +1199,13 @@ const WordDetailPage = ({ onBack, onWordTap, wordData }) => {
 const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
   const [generating, setGenerating] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerating(true);
     console.log("[AI generate] requesting entry for:", word);
+    // Submit to Supabase user_submissions table
+    if (isSupabaseConfigured) {
+      await submitWord(word).catch(err => console.error("[submitWord]", err));
+    }
     setTimeout(() => {
       setGenerating(false);
       onGenerated(word);
@@ -2942,13 +3033,35 @@ export default function App() {
   const [detailWord, setDetailWord] = useState(null);
   const [unknownWord, setUnknownWord] = useState(null);
   const [generatedWords, setGeneratedWords] = useState({});
+  const [dbWordData, setDbWordData] = useState({});
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const handleWordTap = (word) => {
-    if (word === "\u0E01\u0E34\u0E19" || generatedWords[word]) {
+  const handleWordTap = async (word) => {
+    if (!word) return;
+    // Check cache first (DB or generated)
+    if (dbWordData[word] || generatedWords[word]) {
       setDetailWord(word);
-    } else {
-      setUnknownWord(word);
+      return;
     }
+    // Try Supabase lookup
+    if (isSupabaseConfigured) {
+      setDetailLoading(true);
+      try {
+        const row = await getWordByThai(word);
+        if (row) {
+          const transformed = transformWordData(row);
+          setDbWordData(prev => ({ ...prev, [word]: transformed }));
+          setDetailLoading(false);
+          setDetailWord(word);
+          return;
+        }
+      } catch (err) {
+        console.error("[handleWordTap]", err);
+      }
+      setDetailLoading(false);
+    }
+    // Not found → unknown word page
+    setUnknownWord(word);
   };
 
   const handleGenerated = (word) => {
@@ -3063,7 +3176,7 @@ export default function App() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
-          <WordDetailPage onBack={() => setDetailWord(null)} onWordTap={handleWordTap} wordData={generatedWords[detailWord]} />
+          <WordDetailPage onBack={() => setDetailWord(null)} onWordTap={handleWordTap} wordData={dbWordData[detailWord] || generatedWords[detailWord] || null} />
         </div>
       </div>
     );
@@ -3092,10 +3205,17 @@ export default function App() {
       </div>
 
       {/* Page content */}
-      <div style={{ flex: 1, overflow: "auto" }}>
-        {page === "home" && <HomePage onNavigate={setPage} onWordTap={() => setDetailWord(wordDetail.word)} />}
-        {page === "words" && <WordBookPage onWordTap={() => setDetailWord(wordDetail.word)} />}
-        {page === "learn" && <LearnPage onWordTap={(w) => setDetailWord(w)} />}
+      <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
+        {/* Loading overlay for word lookup */}
+        {detailLoading && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(250,247,244,0.85)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+            <div style={{ width: 32, height: 32, border: `3px solid ${C.p200}`, borderTopColor: C.teal, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            <span style={{ fontSize: 13, color: C.s500 }}>{"查询词库中..."}</span>
+          </div>
+        )}
+        {page === "home" && <HomePage onNavigate={setPage} onWordTap={handleWordTap} />}
+        {page === "words" && <WordBookPage onWordTap={handleWordTap} />}
+        {page === "learn" && <LearnPage onWordTap={handleWordTap} />}
         {page === "me" && <ProfilePage onLogout={() => setIsLoggedIn(false)} />}
       </div>
 

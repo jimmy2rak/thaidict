@@ -12,29 +12,65 @@ if (isSupabaseConfigured) {
 
 export default supabase
 
+/* ────────────────────────────────────────────
+   QUERY FUNCTIONS
+   ──────────────────────────────────────────── */
+
 /**
- * Search words in the dictionary
- * @param {string} query - Chinese or Thai word to search
- * @param {number} limit - Max results (default 20)
+ * Search words — matches Thai word field + JSONB senses meaning
+ * @param {string} query - Chinese or Thai search term
+ * @param {number} limit - Max results
  */
 export async function searchWords(query, limit = 20) {
   if (!supabase) return []
-  const { data, error } = await supabase
+
+  // Exact match first
+  const { data: exact } = await supabase
     .from('dictionary_full')
     .select('*')
-    .or(`word.ilike.%${query}%,zh_gloss.ilike.%${query}%`)
-    .eq('is_active', true)
+    .eq('word', query)
+    .limit(5)
+
+  // Fuzzy match on Thai word
+  const { data: fuzzy } = await supabase
+    .from('dictionary_full')
+    .select('*')
+    .ilike('word', `%${query}%`)
     .limit(limit)
-  if (error) {
-    console.error('[supabase] searchWords error:', error)
-    return []
+
+  // Search Chinese meaning inside senses JSONB
+  const { data: meaning } = await supabase
+    .from('dictionary_full')
+    .select('*')
+    .filter('senses', 'cs', JSON.stringify([{ meaning: query }]))
+    .limit(limit)
+
+  // Also try raw JSONB text search for broader matching
+  const { data: textSearch } = await supabase
+    .rpc('search_words', { search_term: query, max_results: limit }).then(r => r).catch(() => ({ data: null }))
+
+  // Merge and deduplicate
+  const map = new Map()
+  for (const list of [exact, fuzzy, meaning, textSearch].filter(Boolean)) {
+    for (const row of (Array.isArray(list) ? list : [])) {
+      if (row && row.id && !map.has(row.id)) {
+        map.set(row.id, row)
+      }
+    }
   }
-  return data || []
+
+  // Prioritize: exact match > enriched > by sense_count
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.word === query) return -1
+    if (b.word === query) return 1
+    if (a.enrichment_status === 'enriched' && b.enrichment_status !== 'enriched') return -1
+    if (b.enrichment_status === 'enriched' && a.enrichment_status !== 'enriched') return 1
+    return (b.sense_count || 0) - (a.sense_count || 0)
+  }).slice(0, limit)
 }
 
 /**
- * Get a single word by its Thai spelling
- * @param {string} word - Exact Thai word
+ * Get a single word by exact Thai spelling
  */
 export async function getWordByThai(word) {
   if (!supabase) return null
@@ -42,10 +78,9 @@ export async function getWordByThai(word) {
     .from('dictionary_full')
     .select('*')
     .eq('word', word)
-    .eq('is_active', true)
     .single()
   if (error) {
-    console.error('[supabase] getWordByThai error:', error)
+    console.error('[supabase] getWordByThai:', error.message)
     return null
   }
   return data
@@ -60,31 +95,117 @@ export async function getDailyWord() {
     .from('dictionary_full')
     .select('*')
     .eq('enrichment_status', 'enriched')
-    .eq('is_active', true)
+    .gt('sense_count', 0)
     .limit(1)
     .single()
   if (error) {
-    console.error('[supabase] getDailyWord error:', error)
+    console.error('[supabase] getDailyWord:', error.message)
     return null
   }
   return data
 }
 
 /**
- * Submit a new word for AI enrichment
- * @param {string} word - Thai word to add
- * @param {string} zhGloss - Chinese meaning
+ * Get recently enriched words (for "最近查词" display)
  */
-export async function submitWord(word, zhGloss) {
+export async function getRecentWords(limit = 10) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('dictionary_full')
+    .select('*')
+    .eq('enrichment_status', 'enriched')
+    .gt('sense_count', 0)
+    .order('enriched_at', { ascending: false })
+    .limit(limit)
+  if (error) {
+    console.error('[supabase] getRecentWords:', error.message)
+    return []
+  }
+  return data || []
+}
+
+/**
+ * Submit a new word for AI enrichment
+ */
+export async function submitWord(word, zhGloss = '') {
   if (!supabase) return null
   const { data, error } = await supabase
-    .from('submissions')
-    .insert({ word, zh_gloss: zhGloss, status: 'pending' })
+    .from('user_submissions')
+    .insert({
+      word,
+      submission_type: 'new_word',
+      content: { zh_gloss: zhGloss, source: 'frontend' },
+      status: 'pending',
+    })
     .select()
     .single()
   if (error) {
-    console.error('[supabase] submitWord error:', error)
+    console.error('[supabase] submitWord:', error.message)
     return null
   }
   return data
+}
+
+/* ────────────────────────────────────────────
+   DATA TRANSFORMATION: DB row → Frontend format
+   ──────────────────────────────────────────── */
+
+/**
+ * Convert a dictionary_full DB row into the wordDetail format
+ * expected by WordDetailPage component
+ */
+export function transformWordData(row) {
+  if (!row) return null
+
+  const senses = Array.isArray(row.senses) ? row.senses : []
+  const synonyms = Array.isArray(row.synonyms)
+    ? row.synonyms.map(w => ({ word: w, zh: '' }))
+    : []
+  const antonyms = Array.isArray(row.antonyms)
+    ? row.antonyms.map(w => ({ word: w, zh: '' }))
+    : []
+  const learnerAssociations = Array.isArray(row.learner_associations)
+    ? row.learner_associations
+    : []
+
+  return {
+    word: row.word || '',
+    romanization: row.romanization || '',
+    romanization_source: row.romanization_source || 'pending',
+    sources: Array.isArray(row.sources) ? row.sources : [],
+    sense_count: row.sense_count || senses.length,
+    senses: senses.map((s, i) => ({
+      sense_id: s.sense_id || (i + 1),
+      pos: s.pos || '未标注',
+      meaning: s.meaning || '',
+      register: s.register || '通用',
+      examples: Array.isArray(s.examples) ? s.examples : [],
+      segmented: Array.isArray(s.segmented) ? s.segmented : null,
+      source: s.source || 'ai',
+    })),
+    freq_tnc: row.freq_tnc || null,
+    freq_ttc: row.freq_ttc || null,
+    freq_phupha: row.freq_phupha || null,
+    synonyms,
+    antonyms,
+    learner_associations: learnerAssociations,
+    user_sentence_count: row.user_sentence_count || 0,
+  }
+}
+
+/**
+ * Convert a DB row into a compact display format for search results list
+ */
+export function transformSearchResult(row) {
+  if (!row) return null
+  const senses = Array.isArray(row.senses) ? row.senses : []
+  const firstSense = senses[0]
+  return {
+    word: row.word || '',
+    romanization: row.romanization || '',
+    meaning: firstSense?.meaning || '',
+    pos: firstSense?.pos || '',
+    sense_count: row.sense_count || senses.length,
+    enriched: row.enrichment_status === 'enriched',
+  }
 }
