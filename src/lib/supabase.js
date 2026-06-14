@@ -209,3 +209,391 @@ export function transformSearchResult(row) {
     enriched: row.enrichment_status === 'enriched',
   }
 }
+
+/* ────────────────────────────────────────────
+   USER DATA QUERY FUNCTIONS
+   All functions accept Clerk userId as first param
+   ──────────────────────────────────────────── */
+
+// ── Bookmarks ──
+
+export async function getBookmarks(userId) {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('user_bookmarks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) { console.error('[supabase] getBookmarks:', error.message); return [] }
+  return data || []
+}
+
+export async function addBookmark(userId, word) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_bookmarks')
+    .upsert({ user_id: userId, word }, { onConflict: 'user_id,word' })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] addBookmark:', error.message); return null }
+  return data
+}
+
+export async function removeBookmark(userId, word) {
+  if (!supabase || !userId) return false
+  const { error } = await supabase
+    .from('user_bookmarks')
+    .delete()
+    .eq('user_id', userId)
+    .eq('word', word)
+  if (error) { console.error('[supabase] removeBookmark:', error.message); return false }
+  return true
+}
+
+export async function isBookmarked(userId, word) {
+  if (!supabase || !userId) return false
+  const { data, error } = await supabase
+    .from('user_bookmarks')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('word', word)
+    .single()
+  if (error) return false
+  return !!data
+}
+
+// ── Recent Words ──
+
+export async function getUserRecentWords(userId, limit = 20) {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('user_recent_words')
+    .select('*')
+    .eq('user_id', userId)
+    .order('looked_up_at', { ascending: false })
+    .limit(limit)
+  if (error) { console.error('[supabase] getUserRecentWords:', error.message); return [] }
+  // Enrich with dictionary data
+  const words = (data || []).map(r => r.word)
+  if (words.length === 0) return []
+  const { data: dictRows } = await supabase
+    .from('dictionary_full')
+    .select('*')
+    .in('word', words)
+  const dictMap = new Map((dictRows || []).map(r => [r.word, r]))
+  return words.map(w => {
+    const row = dictMap.get(w)
+    return row ? transformSearchResult(row) : { word: w, meaning: '', pos: '', sense_count: 0, enriched: false }
+  })
+}
+
+export async function recordWordLookup(userId, word) {
+  if (!supabase || !userId || !word) return null
+  const { data, error } = await supabase
+    .from('user_recent_words')
+    .upsert(
+      { user_id: userId, word, looked_up_at: new Date().toISOString(), lookup_count: 1 },
+      { onConflict: 'user_id,word' }
+    )
+    .select()
+    .single()
+  if (error) {
+    // If upsert fails, try incrementing lookup_count
+    const { error: updErr } = await supabase
+      .from('user_recent_words')
+      .update({ looked_up_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('word', word)
+    if (updErr) console.error('[supabase] recordWordLookup update:', updErr.message)
+    return null
+  }
+  return data
+}
+
+// ── Folders ──
+
+export async function getFolders(userId) {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('user_folders')
+    .select('*, word_count:user_folder_words(count)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+  if (error) { console.error('[supabase] getFolders:', error.message); return [] }
+  return (data || []).map(f => ({
+    ...f,
+    word_count: f.word_count?.[0]?.count || 0
+  }))
+}
+
+export async function createFolder(userId, name, color = '#5B8C7E') {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_folders')
+    .insert({ user_id: userId, name, color })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] createFolder:', error.message); return null }
+  return data
+}
+
+export async function renameFolder(folderId, name) {
+  if (!supabase || !folderId) return null
+  const { data, error } = await supabase
+    .from('user_folders')
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq('id', folderId)
+    .select()
+    .single()
+  if (error) { console.error('[supabase] renameFolder:', error.message); return null }
+  return data
+}
+
+export async function deleteFolder(folderId) {
+  if (!supabase || !folderId) return false
+  const { error } = await supabase
+    .from('user_folders')
+    .delete()
+    .eq('id', folderId)
+  if (error) { console.error('[supabase] deleteFolder:', error.message); return false }
+  return true
+}
+
+export async function getFolderWords(folderId) {
+  if (!supabase || !folderId) return []
+  const { data, error } = await supabase
+    .from('user_folder_words')
+    .select('*')
+    .eq('folder_id', folderId)
+    .order('added_at', { ascending: false })
+  if (error) { console.error('[supabase] getFolderWords:', error.message); return [] }
+  return data || []
+}
+
+export async function addWordToFolder(folderId, word) {
+  if (!supabase || !folderId) return null
+  const { data, error } = await supabase
+    .from('user_folder_words')
+    .upsert({ folder_id: folderId, word }, { onConflict: 'folder_id,word' })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] addWordToFolder:', error.message); return null }
+  return data
+}
+
+export async function removeWordFromFolder(folderId, word) {
+  if (!supabase || !folderId) return false
+  const { error } = await supabase
+    .from('user_folder_words')
+    .delete()
+    .eq('folder_id', folderId)
+    .eq('word', word)
+  if (error) { console.error('[supabase] removeWordFromFolder:', error.message); return false }
+  return true
+}
+
+// ── Learning Plans ──
+
+export async function getLearningPlan(userId) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_learning_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+  if (error) {
+    if (error.code === 'PGRST116') return null // not found
+    console.error('[supabase] getLearningPlan:', error.message)
+    return null
+  }
+  return data
+}
+
+export async function saveLearningPlan(userId, goals, schedule) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_learning_plans')
+    .upsert({
+      user_id: userId,
+      goals: goals || { words: 30, grammar: 20, reading: 5 },
+      schedule: schedule || {},
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] saveLearningPlan:', error.message); return null }
+  return data
+}
+
+// ── Learning Progress ──
+
+export async function getLearningProgress(userId, days = 30) {
+  if (!supabase || !userId) return []
+  const since = new Date()
+  since.setDate(since.getDate() - days)
+  const { data, error } = await supabase
+    .from('user_learning_progress')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', since.toISOString().split('T')[0])
+    .order('date', { ascending: false })
+  if (error) { console.error('[supabase] getLearningProgress:', error.message); return [] }
+  return data || []
+}
+
+export async function updateDailyProgress(userId, date, updates) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_learning_progress')
+    .upsert({
+      user_id: userId,
+      date,
+      ...updates,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,date' })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] updateDailyProgress:', error.message); return null }
+  return data
+}
+
+export async function getStreak(userId) {
+  if (!supabase || !userId) return 0
+  const { data, error } = await supabase
+    .from('user_learning_progress')
+    .select('streak_days')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(1)
+    .single()
+  if (error) return 0
+  return data?.streak_days || 0
+}
+
+// ── Notes ──
+
+export async function getNotes(userId) {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('user_notes')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) { console.error('[supabase] getNotes:', error.message); return [] }
+  return data || []
+}
+
+export async function createNote(userId, title, content = '', color = '#5B7E9E') {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_notes')
+    .insert({ user_id: userId, title, content, color })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] createNote:', error.message); return null }
+  return data
+}
+
+export async function updateNote(noteId, updates) {
+  if (!supabase || !noteId) return null
+  const { data, error } = await supabase
+    .from('user_notes')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', noteId)
+    .select()
+    .single()
+  if (error) { console.error('[supabase] updateNote:', error.message); return null }
+  return data
+}
+
+export async function deleteNote(noteId) {
+  if (!supabase || !noteId) return false
+  const { error } = await supabase
+    .from('user_notes')
+    .delete()
+    .eq('id', noteId)
+  if (error) { console.error('[supabase] deleteNote:', error.message); return false }
+  return true
+}
+
+// ── Settings ──
+
+export async function getUserSettings(userId) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+  if (error) {
+    if (error.code === 'PGRST116') return null // not found
+    console.error('[supabase] getUserSettings:', error.message)
+    return null
+  }
+  return data
+}
+
+export async function saveUserSettings(userId, settings) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_settings')
+    .upsert({
+      user_id: userId,
+      ...settings,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] saveUserSettings:', error.message); return null }
+  return data
+}
+
+// ── API Keys ──
+
+export async function getApiKeys(userId) {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('user_api_keys')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+  if (error) { console.error('[supabase] getApiKeys:', error.message); return [] }
+  return data || []
+}
+
+export async function saveApiKey(userId, keyData) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_api_keys')
+    .insert({
+      user_id: userId,
+      ...keyData,
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] saveApiKey:', error.message); return null }
+  return data
+}
+
+export async function deleteApiKey(keyId) {
+  if (!supabase || !keyId) return false
+  const { error } = await supabase
+    .from('user_api_keys')
+    .delete()
+    .eq('id', keyId)
+  if (error) { console.error('[supabase] deleteApiKey:', error.message); return false }
+  return true
+}
+
+// ── Utility: Get total dictionary count ──
+
+export async function getDictionaryCount() {
+  if (!supabase) return 0
+  const { count, error } = await supabase
+    .from('dictionary')
+    .select('*', { count: 'exact', head: true })
+    .eq('enrichment_status', 'enriched')
+  if (error) return 0
+  return count || 0
+}

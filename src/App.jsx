@@ -1,9 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
-import { useSignIn, useSignUp, useClerk } from "@clerk/clerk-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSignIn, useSignUp, useClerk, useAuth, useUser } from "@clerk/clerk-react";
 import {
   isSupabaseConfigured,
   searchWords, getWordByThai, getDailyWord, getRecentWords,
   submitWord, transformWordData, transformSearchResult,
+  getBookmarks, addBookmark, removeBookmark, isBookmarked,
+  getUserRecentWords, recordWordLookup,
+  getFolders, createFolder, renameFolder, deleteFolder,
+  getFolderWords, addWordToFolder, removeWordFromFolder,
+  getLearningPlan, saveLearningPlan,
+  getLearningProgress, updateDailyProgress, getStreak,
+  getNotes, createNote, updateNote, deleteNote,
+  getUserSettings, saveUserSettings,
+  getApiKeys, saveApiKey, deleteApiKey,
+  getDictionaryCount,
 } from "./lib/supabase.js";
 import {
   Search, BookOpen,
@@ -369,19 +379,25 @@ const PageHeader = ({ title, subtitle }) => (
 /* ────────────────────────────────────────────
    PAGE: HOME (Mobile-first)
    ──────────────────────────────────────────── */
-const HomePage = ({ onNavigate, onWordTap }) => {
+const HomePage = ({ userId, onNavigate, onWordTap }) => {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [dailyData, setDailyData] = useState(null);
   const [recentData, setRecentData] = useState([]);
+  const [streak, setStreak] = useState(0);
+  const [dictCount, setDictCount] = useState(null);
 
-  /* ── Fetch daily word + recent words from Supabase ── */
+  /* ── Fetch daily word + recent words + streak + dict count from Supabase ── */
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     getDailyWord().then(d => { if (d) setDailyData(transformWordData(d)); });
     getRecentWords(8).then(rows => { setRecentData(rows.map(transformSearchResult).filter(Boolean)); });
-  }, []);
+    if (userId && userId !== 'anonymous') {
+      getStreak(userId).then(setStreak);
+    }
+    getDictionaryCount().then(setDictCount);
+  }, [userId]);
 
   /* ── Debounced search (internal state) ── */
   useEffect(() => {
@@ -417,7 +433,7 @@ const HomePage = ({ onNavigate, onWordTap }) => {
           onFocus={e => e.target.style.borderColor = C.p500}
           onBlur={e => e.target.style.borderColor = C.p200}
         />
-        {query && <X size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} onClick={() => { setQuery(""); setSearchResults([]); }} />}
+        {query ? <X size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} onClick={() => { setQuery(""); setSearchResults([]); }} /> : <Mic size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} />}
       </div>
 
       {/* Search results overlay */}
@@ -449,8 +465,8 @@ const HomePage = ({ onNavigate, onWordTap }) => {
       {!query.trim() && <>
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <StatCard icon={BookOpen} label={"\u8BCD\u5E93\u8BCD\u6761"} value={isSupabaseConfigured ? "\u221E" : "0"} sub={""} color={C.teal} />
-          <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value="25" sub={"\u5929"} color={C.gold} />
+          <StatCard icon={BookOpen} label={"\u8BCD\u5E93\u8BCD\u6761"} value={dictCount != null ? dictCount.toLocaleString() : (isSupabaseConfigured ? "\u2014" : "0")} sub={""} color={C.teal} />
+          <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value={streak > 0 ? String(streak) : "\u2014"} sub={"\u5929"} color={C.gold} />
         </div>
 
         {/* Daily Word */}
@@ -514,25 +530,69 @@ const HomePage = ({ onNavigate, onWordTap }) => {
 /* ────────────────────────────────────────────
    PAGE: WORD BOOK (单词本)
    ──────────────────────────────────────────── */
-const WordBookPage = ({ onWordTap }) => {
+const WordBookPage = ({ userId, onWordTap }) => {
   const [tab, setTab] = useState("recent");
   const [recentData, setRecentData] = useState([]);
-  const [folders, setFolders] = useState([
-    { id: 1, name: "\u65C5\u884C\u5E38\u7528", count: 45, color: C.teal },
-    { id: 2, name: "\u7F8E\u98DF\u8BCD\u6C47", count: 28, color: C.rose },
-  ]);
+  const [bookmarksData, setBookmarksData] = useState([]);
+  const [foldersData, setFoldersData] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
-  /* ── Fetch recent enriched words from Supabase ── */
+  /* ── Fetch recent words, bookmarks, and folders from Supabase ── */
   useEffect(() => {
+    if (!userId || userId === 'anonymous') return;
     if (!isSupabaseConfigured) return;
-    getRecentWords(20).then(rows => {
-      setRecentData(rows.map(transformSearchResult).filter(Boolean));
+    getUserRecentWords(userId, 20).then(rows => {
+      setRecentData((rows || []).map(transformSearchResult).filter(Boolean));
     });
-  }, []);
+    getBookmarks(userId).then(rows => {
+      setBookmarksData(rows || []);
+    });
+    getFolders(userId).then(rows => {
+      const mapped = (rows || []).map(f => ({
+        id: f.id, name: f.name, color: f.color, count: f.word_count || 0,
+      }));
+      setFoldersData(mapped);
+      setFolders(mapped);
+    });
+  }, [userId]);
+
+  /* ── Folder CRUD helpers ── */
+  const handleCreateFolder = (name) => {
+    const colors = [C.teal, C.rose, C.gold, C.amber, C.info];
+    const color = colors[folders.length % colors.length];
+    // Optimistic update
+    const tempFolder = { id: `temp-${Date.now()}`, name, count: 0, color };
+    setFolders(prev => [...prev, tempFolder]);
+    if (isSupabaseConfigured && userId && userId !== 'anonymous') {
+      createFolder(userId, name, color).then(folder => {
+        if (folder) {
+          setFolders(prev => prev.map(f =>
+            f.id === tempFolder.id ? { id: folder.id, name: folder.name, color: folder.color, count: folder.word_count || 0 } : f
+          ));
+        }
+      }).catch(() => {
+        setFolders(prev => prev.filter(f => f.id !== tempFolder.id));
+      });
+    }
+  };
+
+  const handleRenameFolder = (folderId, newName) => {
+    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, name: newName } : f));
+    if (isSupabaseConfigured) {
+      renameFolder(folderId, newName).catch(() => {});
+    }
+  };
+
+  const handleDeleteFolder = (folderId) => {
+    setFolders(prev => prev.filter(f => f.id !== folderId));
+    if (isSupabaseConfigured) {
+      deleteFolder(folderId).catch(() => {});
+    }
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
@@ -567,35 +627,64 @@ const WordBookPage = ({ onWordTap }) => {
             }} />
           </div>
 
-          {/* Word list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {recentData.length === 0 && (
-              <div style={{ textAlign: "center", padding: 24, color: C.s400, fontSize: 13 }}>
-                {isSupabaseConfigured ? "暂无记录" : "未连接数据库"}
-              </div>
-            )}
-            {recentData.map((w, i) => (
-              <div key={w.word + i} onClick={() => onWordTap(w.word)} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "14px 16px", borderRadius: 14, background: C.surface,
-                border: `1px solid ${C.p100}`, cursor: "pointer",
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{w.word}</span>
-                    {w.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{w.pos}</Badge>}
-                    {w.sense_count > 1 && <span style={{ fontSize: 10, color: C.s400 }}>{w.sense_count}{"义"}</span>}
+          {/* Word list — recent tab */}
+          {tab === "recent" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {recentData.length === 0 && (
+                <div style={{ textAlign: "center", padding: 24, color: C.s400, fontSize: 13 }}>
+                  {isSupabaseConfigured ? "暂无记录" : "未连接数据库"}
+                </div>
+              )}
+              {recentData.map((w, i) => (
+                <div key={w.word + i} onClick={() => onWordTap(w.word)} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 16px", borderRadius: 14, background: C.surface,
+                  border: `1px solid ${C.p100}`, cursor: "pointer",
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{w.word}</span>
+                      {w.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{w.pos}</Badge>}
+                      {w.sense_count > 1 && <span style={{ fontSize: 10, color: C.s400 }}>{w.sense_count}{"义"}</span>}
+                    </div>
+                    {w.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
                   </div>
-                  {w.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {w.romanization && <span style={{ fontSize: 10, color: C.s300, fontFamily: "monospace" }}>{w.romanization}</span>}
+                    <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {tab === "starred" && <Star size={14} strokeWidth={IW} color={C.gold} fill={C.gold} />}
-                  {w.romanization && <span style={{ fontSize: 10, color: C.s300, fontFamily: "monospace" }}>{w.romanization}</span>}
-                  <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+              ))}
+            </div>
+          )}
+
+          {/* Word list — starred / bookmarks tab */}
+          {tab === "starred" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {bookmarksData.length === 0 && (
+                <div style={{ textAlign: "center", padding: 24, color: C.s400, fontSize: 13 }}>
+                  {isSupabaseConfigured ? "暂无收藏" : "未连接数据库"}
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+              {bookmarksData.map((item, i) => (
+                <div key={item.word + i} onClick={() => onWordTap(item.word)} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 16px", borderRadius: 14, background: C.surface,
+                  border: `1px solid ${C.p100}`, cursor: "pointer",
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{item.word}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Star size={14} strokeWidth={IW} color={C.gold} fill={C.gold} />
+                    <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -652,8 +741,7 @@ const WordBookPage = ({ onWordTap }) => {
                   }}
                   onKeyDown={e => {
                     if (e.key === "Enter" && newFolderName.trim()) {
-                      const colors = [C.teal, C.rose, C.gold, C.amber, C.info];
-                      setFolders(prev => [...prev, { id: Date.now(), name: newFolderName.trim(), count: 0, color: colors[prev.length % colors.length] }]);
+                      handleCreateFolder(newFolderName.trim());
                       setNewFolderName("");
                       setShowAddFolder(false);
                     }
@@ -662,8 +750,7 @@ const WordBookPage = ({ onWordTap }) => {
                 />
                 <div onClick={() => {
                   if (newFolderName.trim()) {
-                    const colors = [C.teal, C.rose, C.gold, C.amber, C.info];
-                    setFolders(prev => [...prev, { id: Date.now(), name: newFolderName.trim(), count: 0, color: colors[prev.length % colors.length] }]);
+                    handleCreateFolder(newFolderName.trim());
                     setNewFolderName("");
                     setShowAddFolder(false);
                   }
@@ -700,7 +787,7 @@ const WordBookPage = ({ onWordTap }) => {
                     }}
                     onKeyDown={e => {
                       if (e.key === "Enter" && editName.trim()) {
-                        setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, name: editName.trim() } : f));
+                        handleRenameFolder(folder.id, editName.trim());
                         setEditingId(null); setEditName("");
                       }
                       if (e.key === "Escape") { setEditingId(null); setEditName(""); }
@@ -708,7 +795,7 @@ const WordBookPage = ({ onWordTap }) => {
                   />
                   <div onClick={() => {
                     if (editName.trim()) {
-                      setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, name: editName.trim() } : f));
+                      handleRenameFolder(folder.id, editName.trim());
                       setEditingId(null); setEditName("");
                     }
                   }} style={{
@@ -745,7 +832,7 @@ const WordBookPage = ({ onWordTap }) => {
                     }}>
                       <Pencil size={12} strokeWidth={IW} color={C.s500} />
                     </div>
-                    <div onClick={() => setFolders(prev => prev.filter(f => f.id !== folder.id))} style={{
+                    <div onClick={() => handleDeleteFolder(folder.id)} style={{
                       width: 28, height: 28, borderRadius: 7, background: C.surfaceAlt,
                       display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                     }}>
@@ -772,11 +859,18 @@ const WordBookPage = ({ onWordTap }) => {
    PAGE: WORD DETAIL — compact cards, segmented examples,
    error report popovers, clickable synonyms/associations
    ──────────────────────────────────────────── */
-const WordDetailPage = ({ onBack, onWordTap, wordData }) => {
+const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
   const wd = wordData || wordDetail; // wordDetail mock kept as dev fallback
   const [bookmarked, setBookmarked] = useState(false);
   const [expandedSenses, setExpandedSenses] = useState([true, true, true]);
   const [freqTab, setFreqTab] = useState("ttc");
+
+  // Check bookmark status and record lookup on mount
+  useEffect(() => {
+    if (!wd?.word || !userId || userId === 'anonymous') return;
+    isBookmarked(userId, wd.word).then(setBookmarked);
+    recordWordLookup(userId, wd.word);
+  }, [wd?.word, userId]);
 
   /* ── error report state ── */
   const [reportSection, setReportSection] = useState(null);
@@ -913,7 +1007,13 @@ const WordDetailPage = ({ onBack, onWordTap, wordData }) => {
           </div>
           {/* 右侧：来源标签 + 收藏 */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0, marginLeft: 10 }}>
-            <div onClick={() => setBookmarked(!bookmarked)} style={{
+            <div onClick={() => {
+              const next = !bookmarked;
+              setBookmarked(next);
+              if (userId && userId !== 'anonymous') {
+                next ? addBookmark(userId, wd.word) : removeBookmark(userId, wd.word);
+              }
+            }} style={{
               width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
               background: bookmarked ? C.goldL : C.p50, cursor: "pointer",
             }}>
@@ -1241,11 +1341,19 @@ const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
 /* ────────────────────────────────────────────
    PAGE: LEARN (学习 - includes study plan, exercises, notes, morphology, stats)
    ──────────────────────────────────────────── */
-const LearnPage = ({ onWordTap }) => {
+const LearnPage = ({ userId, onWordTap }) => {
   const [section, setSection] = useState("main");
   const [showAiInfo, setShowAiInfo] = useState(false);
   const [noteEditorFrom, setNoteEditorFrom] = useState("main");
   const [selectedPhrase, setSelectedPhrase] = useState(null);
+  const [planData, setPlanData] = useState(null);
+  const [notesData, setNotesData] = useState([]);
+
+  useEffect(() => {
+    if (!userId || userId === 'anonymous') return;
+    getLearningPlan(userId).then(setPlanData);
+    getNotes(userId).then(setNotesData);
+  }, [userId]);
 
   /* ── Sub-page fixed header config ── */
   const subPageInfo = {
@@ -1268,9 +1376,9 @@ const LearnPage = ({ onWordTap }) => {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{info.title}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
-          {section === "adjustPlan" && <AdjustPlanSection onBack={info.onBack} />}
-          {section === "notesDetail" && <NotesDetailSection onBack={info.onBack} onEditNote={() => { setNoteEditorFrom("notesDetail"); setSection("noteEditor"); }} />}
-          {section === "noteEditor" && <NoteEditorSection onBack={info.onBack} />}
+          {section === "adjustPlan" && <AdjustPlanSection onBack={info.onBack} userId={userId} />}
+          {section === "notesDetail" && <NotesDetailSection onBack={info.onBack} onEditNote={() => { setNoteEditorFrom("notesDetail"); setSection("noteEditor"); }} notes={notesData} />}
+          {section === "noteEditor" && <NoteEditorSection onBack={info.onBack} userId={userId} />}
           {section === "morphology" && <MorphologySection onBack={info.onBack} />}
           {section === "stats" && <StatsSection onBack={info.onBack} />}
           {section === "phrases" && <PhrasesSection onBack={info.onBack} onWordTap={onWordTap} onSelectPhrase={(p) => { setSelectedPhrase(p); setSection("phraseDetail"); }} />}
@@ -1399,23 +1507,34 @@ const LearnPage = ({ onWordTap }) => {
         {/* Note entries - scrollable with fade */}
         <div style={{ position: "relative" }}>
           <div style={{ maxHeight: 280, overflow: "hidden", display: "flex", flexDirection: "column", gap: 8 }}>
-            {[
-              { title: "\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0", date: "2\u5929\u524D", preview: "\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u901A\u8FC7\u52A9\u8BCD\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5...", color: C.info },
-              { title: "\u98DF\u7269\u7C7B\u8BCD\u6C47\u6574\u7406", date: "5\u5929\u524D", preview: "\u6CF0\u56FD\u5E38\u89C1\u98DF\u7269\u8BCD\u6C47\u6C47\u603B\uFF0C\u5305\u62EC\u6C34\u679C\u3001\u5C0F\u5403\u3001\u4E3B\u98DF\u7B49\u5206\u7C7B...", color: C.amber },
-              { title: "\u65E5\u5E38\u95EE\u5019\u8BED\u5BF9\u6BD4", date: "1\u5468\u524D", preview: "\u6CF0\u8BED\u95EE\u5019\u8BED\u4E0E\u4E2D\u6587\u7684\u5BF9\u6BD4\u5206\u6790\uFF0C\u6CE8\u610F\u6587\u5316\u5DEE\u5F02\u548C\u8BED\u5883\u7528\u6CD5...", color: C.teal },
-            ].map((note, i) => (
-              <Card key={i} style={{ padding: 16 }} onClick={() => { setNoteEditorFrom("main"); setSection("noteEditor"); }}>
+            {(notesData.length > 0 ? notesData : [
+              { title: "\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0", created_at: null, content: "\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u901A\u8FC7\u52A9\u8BCD\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5...", color: C.info },
+              { title: "\u98DF\u7269\u7C7B\u8BCD\u6C47\u6574\u7406", created_at: null, content: "\u6CF0\u56FD\u5E38\u89C1\u98DF\u7269\u8BCD\u6C47\u6C47\u603B\uFF0C\u5305\u62EC\u6C34\u679C\u3001\u5C0F\u5403\u3001\u4E3B\u98DF\u7B49\u5206\u7C7B...", color: C.amber },
+              { title: "\u65E5\u5E38\u95EE\u5019\u8BED\u5BF9\u6BD4", created_at: null, content: "\u6CF0\u8BED\u95EE\u5019\u8BED\u4E0E\u4E2D\u6587\u7684\u5BF9\u6BD4\u5206\u6790\uFF0C\u6CE8\u610F\u6587\u5316\u5DEE\u5F02\u548C\u8BED\u5883\u7528\u6CD5...", color: C.teal },
+            ]).map((note, i) => {
+              const noteColor = note.color && note.color.startsWith("#") ? note.color : (note.color || [C.info, C.amber, C.teal, C.rose, C.gold][i % 5]);
+              const dateStr = note.created_at ? (() => {
+                const diff = Math.floor((Date.now() - new Date(note.created_at).getTime()) / 86400000);
+                if (diff === 0) return "\u4ECA\u5929";
+                if (diff === 1) return "\u6628\u5929";
+                if (diff < 7) return `${diff}\u5929\u524D`;
+                if (diff < 30) return `${Math.floor(diff / 7)}\u5468\u524D`;
+                return new Date(note.created_at).toLocaleDateString();
+              })() : "";
+              return (
+              <Card key={note.id || i} style={{ padding: 16 }} onClick={() => { setNoteEditorFrom("main"); setSection("noteEditor"); }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <div style={{ width: 4, height: 48, borderRadius: 2, background: note.color, flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ width: 4, height: 48, borderRadius: 2, background: noteColor, flexShrink: 0, marginTop: 2 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{note.title}</div>
-                    <div style={{ fontSize: 11, color: C.s300, marginTop: 2 }}>{note.date}</div>
-                    <div style={{ fontSize: 12, color: C.s500, marginTop: 6, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.preview}</div>
+                    {dateStr && <div style={{ fontSize: 11, color: C.s300, marginTop: 2 }}>{dateStr}</div>}
+                    <div style={{ fontSize: 12, color: C.s500, marginTop: 6, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.content}</div>
                   </div>
                   <ChevronRight size={14} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0, marginTop: 4 }} />
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
           {/* Gradient fade overlay */}
           <div style={{
@@ -1492,13 +1611,27 @@ const LearnPage = ({ onWordTap }) => {
 };
 
 /* ─── Adjust Plan Sub-section ─── */
-const AdjustPlanSection = ({ onBack }) => {
+const AdjustPlanSection = ({ onBack, userId }) => {
   const [goals, setGoals] = useState({ words: 30, grammar: 20, reading: 5 });
   const [times, setTimes] = useState({ words: "30", grammar: "30", reading: "30" });
   const [customFor, setCustomFor] = useState(null);
   const [customMin, setCustomMin] = useState("");
   const [activeDays, setActiveDays] = useState([true, true, false, true, true, false, true]);
+  const [savingPlan, setSavingPlan] = useState(false);
   const dayLabels = ["\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D", "\u65E5"];
+
+  const handleSavePlan = async () => {
+    if (!userId || userId === 'anonymous') { onBack && onBack(); return; }
+    setSavingPlan(true);
+    const schedule = { times, activeDays };
+    try {
+      await saveLearningPlan(userId, goals, schedule);
+    } catch (e) {
+      console.error("[saveLearningPlan]", e);
+    }
+    setSavingPlan(false);
+    onBack && onBack();
+  };
 
   const toggleDay = (i) => {
     const next = [...activeDays];
@@ -1606,8 +1739,8 @@ const AdjustPlanSection = ({ onBack }) => {
       </Card>
 
       {/* AI regenerate button */}
-      <Btn variant="primary" icon={Sparkles} style={{ width: "100%", padding: "12px 0", borderRadius: 12, marginTop: 4 }}>
-        {"\u91CD\u65B0\u751F\u6210\u8BA1\u5212"}
+      <Btn variant="primary" icon={Sparkles} onClick={handleSavePlan} style={{ width: "100%", padding: "12px 0", borderRadius: 12, marginTop: 4, opacity: savingPlan ? 0.6 : 1 }}>
+        {savingPlan ? "\u4FDD\u5B58\u4E2D..." : "\u91CD\u65B0\u751F\u6210\u8BA1\u5212"}
       </Btn>
 
       {/* Custom minutes modal */}
@@ -1662,10 +1795,10 @@ const AdjustPlanSection = ({ onBack }) => {
 };
 
 /* ─── Notes Detail Sub-section (Timeline) ─── */
-const NotesDetailSection = ({ onBack, onEditNote }) => {
+const NotesDetailSection = ({ onBack, onEditNote, notes = [] }) => {
   const [monthIdx, setMonthIdx] = useState(0);
   const months = ["2025\u5E746\u6708", "2025\u5E745\u6708", "2025\u5E744\u6708"];
-  const noteEntries = [
+  const fallbackNotes = [
     { date: "6\u670812\u65E5", title: "\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0", preview: "\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u901A\u8FC7\u52A9\u8BCD\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5...", color: C.info },
     { date: "6\u670810\u65E5", title: "\u98DF\u7269\u7C7B\u8BCD\u6C47\u6574\u7406", preview: "\u6CF0\u56FD\u5E38\u89C1\u98DF\u7269\u8BCD\u6C47\u6C47\u603B\uFF0C\u5305\u62EC\u6C34\u679C\u3001\u5C0F\u5403\u3001\u4E3B\u98DF\u7B49\u5206\u7C7B...", color: C.amber },
     { date: "6\u67087\u65E5", title: "\u65E5\u5E38\u95EE\u5019\u8BED\u5BF9\u6BD4", preview: "\u6CF0\u8BED\u95EE\u5019\u8BED\u4E0E\u4E2D\u6587\u7684\u5BF9\u6BD4\u5206\u6790\uFF0C\u6CE8\u610F\u6587\u5316\u5DEE\u5F02\u548C\u8BED\u5883\u7528\u6CD5...", color: C.teal },
@@ -1673,6 +1806,14 @@ const NotesDetailSection = ({ onBack, onEditNote }) => {
     { date: "6\u67081\u65E5", title: "\u6CF0\u8BED\u58F0\u8C03\u7EC3\u4E60\u7B14\u8BB0", preview: "\u6CF0\u8BED\u6709\u4E94\u4E2A\u58F0\u8C03\uFF0C\u5206\u522B\u662F\u4E2D\u5E73\u3001\u4F4E\u3001\u4E0B\u964D\u3001\u9AD8\u3001\u4E0A\u5347...", color: C.gold },
     { date: "5\u670828\u65E5", title: "\u5BB6\u5EAD\u79F0\u8C13\u8BCD\u6C47", preview: "\u6CF0\u8BED\u5BB6\u5EAD\u6210\u5458\u79F0\u8C13\u6C47\u603B\uFF0C\u5305\u62EC\u7236\u6BCD\u3001\u5144\u5F1F\u59D0\u59B9\u3001\u7956\u7236\u6BCD\u7B49...", color: C.ok },
   ];
+  const noteEntries = notes.length > 0 ? notes.map((note, i) => {
+    const noteColor = note.color && note.color.startsWith("#") ? note.color : (note.color || [C.info, C.amber, C.teal, C.rose, C.gold, C.ok][i % 6]);
+    const dateStr = note.created_at ? (() => {
+      const d = new Date(note.created_at);
+      return `${d.getMonth() + 1}\u6708${d.getDate()}\u65E5`;
+    })() : "";
+    return { date: dateStr, title: note.title, preview: note.content || "", color: noteColor };
+  }) : fallbackNotes;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
@@ -1723,13 +1864,37 @@ const NotesDetailSection = ({ onBack, onEditNote }) => {
 };
 
 /* ─── Note Editor Sub-section (Markdown style) ─── */
-const NoteEditorSection = ({ onBack }) => {
+const NoteEditorSection = ({ onBack, userId }) => {
+  const [noteTitle, setNoteTitle] = useState("\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0");
+  const [noteContent, setNoteContent] = useState("\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u800C\u662F\u901A\u8FC7\u52A9\u8BCD\u6765\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5\u3002\n\n\u73B0\u5728\u65F6\uFF1A\u57FA\u672C\u5F62\u5F0F\n\u8FC7\u53BB\u65F6\uFF1A\u4F7F\u7528\u52A9\u8BCD \u0E44\u0E14\u0E49 (dai) \u8868\u793A\u52A8\u4F5C\u5DF2\u5B8C\u6210\u3002\n\n\u5E38\u7528\u65F6\u6001\u52A9\u8BCD\uFF1A\n- \u0E44\u0E14\u0E49 (dai) \u2014 \u8FC7\u53BB/\u5B8C\u6210\n- \u0E01\u0E33\u0E25\u0E31\u0E07 (gam-lang) \u2014 \u6B63\u5728\u8FDB\u884C\n- \u0E08\u0E30 (ja) \u2014 \u5C06\u6765/\u5C06\u8981\n- \u0E41\u0E25\u0E49\u0E27 (laew) \u2014 \u5DF2\u7ECF\u5B8C\u6210");
+  const [noteColor, setNoteColor] = useState(C.info);
+  const [savingNote, setSavingNote] = useState(false);
+
+  const handleSaveNote = async () => {
+    if (!userId || userId === 'anonymous') { onBack && onBack(); return; }
+    if (!noteTitle.trim()) return;
+    setSavingNote(true);
+    try {
+      await createNote(userId, noteTitle, noteContent, noteColor);
+    } catch (e) {
+      console.error("[createNote]", e);
+    }
+    setSavingNote(false);
+    onBack && onBack();
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 16px" }}>
       {/* Title */}
-      <div style={{ fontSize: 22, fontWeight: 700, color: C.p800, fontFamily: "'Noto Serif SC', serif", padding: "4px 0" }}>
-        {"\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0"}
-      </div>
+      <input
+        value={noteTitle}
+        onChange={e => setNoteTitle(e.target.value)}
+        style={{
+          fontSize: 22, fontWeight: 700, color: C.p800, fontFamily: "'Noto Serif SC', serif",
+          padding: "4px 0", border: "none", background: "transparent", outline: "none",
+          width: "100%",
+        }}
+      />
 
       {/* Toolbar */}
       <div style={{
@@ -1754,51 +1919,25 @@ const NoteEditorSection = ({ onBack }) => {
         ))}
       </div>
 
-      {/* Editor area - rendered markdown content */}
+      {/* Editor area - editable content */}
       <Card style={{ padding: 18, flex: 1, minHeight: 320 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: C.p800, marginBottom: 12, fontFamily: "'Noto Serif SC', serif" }}>
-          {"\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0"}
-        </div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: C.p700, marginBottom: 10, marginTop: 16 }}>
-          {"\u73B0\u5728\u65F6"}
-        </div>
-        <div style={{ fontSize: 14, color: C.p700, lineHeight: 1.8, marginBottom: 12 }}>
-          {"\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684"}
-          <span style={{ fontWeight: 700 }}>{"\u65F6\u6001\u53D8\u5316"}</span>
-          {"\uFF0C\u800C\u662F\u901A\u8FC7"}
-          <span style={{ fontWeight: 700 }}>{"\u52A9\u8BCD"}</span>
-          {"\u6765\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5\u3002\u8FD9\u4E0E\u4E2D\u6587\u7C7B\u4F3C\uFF0C\u4F46\u7528\u6CD5\u6709\u6240\u4E0D\u540C\u3002"}
-        </div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: C.p700, marginBottom: 10, marginTop: 16 }}>
-          {"\u8FC7\u53BB\u65F6"}
-        </div>
-        <div style={{ fontSize: 14, color: C.p700, lineHeight: 1.8, marginBottom: 12 }}>
-          {"\u4F7F\u7528\u52A9\u8BCD "}
-          <span style={{ fontWeight: 700, color: C.teal }}>{"\u0E44\u0E14\u0E49 (dai)"}</span>
-          {" \u8868\u793A\u52A8\u4F5C\u5DF2\u5B8C\u6210\u3002"}
-        </div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: C.p700, marginBottom: 10, marginTop: 16 }}>
-          {"\u5E38\u7528\u65F6\u6001\u52A9\u8BCD"}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 4 }}>
-          {[
-            "\u0E44\u0E14\u0E49 (dai) \u2014 \u8FC7\u53BB/\u5B8C\u6210",
-            "\u0E01\u0E33\u0E25\u0E31\u0E07 (gam-lang) \u2014 \u6B63\u5728\u8FDB\u884C",
-            "\u0E08\u0E30 (ja) \u2014 \u5C06\u6765/\u5C06\u8981",
-            "\u0E41\u0E25\u0E49\u0E27 (laew) \u2014 \u5DF2\u7ECF\u5B8C\u6210",
-          ].map((item, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.p700, lineHeight: 1.6 }}>
-              <span style={{ color: C.p500 }}>{"\u2022"}</span>
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
+        <textarea
+          value={noteContent}
+          onChange={e => setNoteContent(e.target.value)}
+          placeholder={"\u5728\u8FD9\u91CC\u8F93\u5165\u7B14\u8BB0\u5185\u5BB9..."}
+          style={{
+            width: "100%", minHeight: 280, border: "none", outline: "none",
+            background: "transparent", resize: "none",
+            fontSize: 14, color: C.p700, lineHeight: 1.8,
+            fontFamily: "'Noto Sans SC', sans-serif",
+          }}
+        />
       </Card>
 
       {/* Bottom bar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Btn variant="primary" onClick={() => {}} style={{ flex: 1 }}>
-          {"\u4FDD\u5B58"}
+        <Btn variant="primary" onClick={handleSaveNote} style={{ flex: 1, opacity: savingNote ? 0.6 : 1 }}>
+          {savingNote ? "\u4FDD\u5B58\u4E2D..." : "\u4FDD\u5B58"}
         </Btn>
         <span style={{ fontSize: 11, color: C.s300, marginLeft: 12 }}>Markdown {"\u683C\u5F0F"}</span>
       </div>
@@ -2296,22 +2435,70 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
 /* ────────────────────────────────────────────
    PAGE: MY PROFILE (我的)
    ──────────────────────────────────────────── */
-const ProfilePage = ({ onLogout }) => {
+const ProfilePage = ({ userId, onLogout }) => {
   const [dictDir, setDictDir] = useState("zh-th");
   const [webdavConnected, setWebdavConnected] = useState(false);
   const [colorMode, setColorMode] = useState("light");
   const [showColorDropdown, setShowColorDropdown] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
 
   /* ── API management state ── */
   const [showApiMgmt, setShowApiMgmt] = useState(false);
   const [showAddApi, setShowAddApi] = useState(false);
-  const [apiKeys, setApiKeys] = useState([
-    { id: 1, name: "OpenAI", provider: "openai", key: "sk-xxxx...xxxx4a2F", baseUrl: "https://api.openai.com/v1", model: "gpt-4o", added: "2025-05-10" },
-    { id: 2, name: "DeepSeek", provider: "deepseek", key: "sk-xxxx...xxxx8b1C", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat", added: "2025-06-01" },
-  ]);
+  const [apiKeys, setApiKeys] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState("openai");
   const [customApi, setCustomApi] = useState({ name: "", key: "", baseUrl: "", model: "" });
   const [editingApiId, setEditingApiId] = useState(null);
+
+  /* ── Load settings and API keys from Supabase ── */
+  useEffect(() => {
+    if (!userId || userId === 'anonymous') return;
+    getUserSettings(userId).then(s => {
+      if (s) {
+        if (s.dict_direction) setDictDir(s.dict_direction);
+        if (s.color_mode) setColorMode(s.color_mode);
+        if (s.reminder_enabled !== undefined) setReminderEnabled(s.reminder_enabled);
+      }
+    });
+    getApiKeys(userId).then(keys => {
+      if (keys.length > 0) setApiKeys(keys.map(k => ({
+        id: k.id,
+        name: k.name || k.provider,
+        provider: k.provider,
+        key: k.key_masked || '****',
+        baseUrl: k.base_url || '',
+        model: k.model || '',
+      })));
+    });
+  }, [userId]);
+
+  /* ── Save settings to Supabase on change ── */
+  const prevDictDir = useRef(dictDir);
+  useEffect(() => {
+    if (prevDictDir.current === dictDir) return;
+    prevDictDir.current = dictDir;
+    if (userId && userId !== 'anonymous') {
+      saveUserSettings(userId, { dict_direction: dictDir });
+    }
+  }, [dictDir, userId]);
+
+  const prevColorMode = useRef(colorMode);
+  useEffect(() => {
+    if (prevColorMode.current === colorMode) return;
+    prevColorMode.current = colorMode;
+    if (userId && userId !== 'anonymous') {
+      saveUserSettings(userId, { color_mode: colorMode });
+    }
+  }, [colorMode, userId]);
+
+  const prevReminder = useRef(reminderEnabled);
+  useEffect(() => {
+    if (prevReminder.current === reminderEnabled) return;
+    prevReminder.current = reminderEnabled;
+    if (userId && userId !== 'anonymous') {
+      saveUserSettings(userId, { reminder_enabled: reminderEnabled });
+    }
+  }, [reminderEnabled, userId]);
 
   const apiTemplates = [
     { id: "openai", name: "OpenAI", color: C.p700, baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
@@ -2403,7 +2590,10 @@ const ProfilePage = ({ onLogout }) => {
                         }}>
                           <Pencil size={12} strokeWidth={IW} color={C.s500} />
                         </div>
-                        <div onClick={() => setApiKeys(prev => prev.filter(k => k.id !== ak.id))} style={{
+                        <div onClick={() => {
+                          deleteApiKey(ak.id).catch(e => console.error("[deleteApiKey]", e));
+                          setApiKeys(prev => prev.filter(k => k.id !== ak.id));
+                        }} style={{
                           width: 28, height: 28, borderRadius: 7, background: C.surfaceAlt,
                           display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                         }}>
@@ -2553,17 +2743,28 @@ const ProfilePage = ({ onLogout }) => {
                   </div>
 
                   {/* Submit */}
-                  <div onClick={() => {
+                  <div onClick={async () => {
                     const name = customApi.name || (tpl.id !== "custom" ? tpl.name : "\u81EA\u5B9A\u4E49 API");
                     const key = customApi.key;
                     if (!key.trim()) return;
                     const masked = key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : "****";
-                    setApiKeys(prev => [...prev, {
+                    const newKey = {
                       id: Date.now(), name, provider: selectedProvider,
                       key: masked, baseUrl: customApi.baseUrl || tpl.baseUrl,
                       model: customApi.model || tpl.model,
                       added: new Date().toISOString().slice(0, 10),
-                    }]);
+                    };
+                    if (userId && userId !== 'anonymous') {
+                      try {
+                        const saved = await saveApiKey(userId, {
+                          name, key, base_url: newKey.baseUrl, model: newKey.model, provider: selectedProvider,
+                        });
+                        if (saved && saved.id) newKey.id = saved.id;
+                      } catch (e) {
+                        console.error("[saveApiKey]", e);
+                      }
+                    }
+                    setApiKeys(prev => [...prev, newKey]);
                     setShowAddApi(false);
                     setCustomApi({ name: "", key: "", baseUrl: "", model: "" });
                   }} style={{
@@ -2591,10 +2792,10 @@ const ProfilePage = ({ onLogout }) => {
             width: 56, height: 56, borderRadius: "50%", background: C.p100,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 22, fontWeight: 700, color: C.p600, flexShrink: 0,
-          }}>L</div>
+          }}>{(userId || "U").charAt(0).toUpperCase()}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {/* Nickname */}
-            <div style={{ fontSize: 17, fontWeight: 700, color: C.p800 }}>{"\u5C0F\u660E\u540C\u5B66"}</div>
+            {/* User ID display */}
+            <div style={{ fontSize: 17, fontWeight: 700, color: C.p800 }}>{userId ? (userId.length > 12 ? userId.slice(0, 12) + "..." : userId) : "User"}</div>
             {/* Stats horizontal */}
             <div style={{ display: "flex", gap: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
@@ -2684,7 +2885,7 @@ const ProfilePage = ({ onLogout }) => {
             </div>
           </SettingRow>
           <SettingRow icon={Bell} label={"\u590D\u4E60\u63D0\u9192"} desc={"\u6BCF\u65E5\u5B9A\u65F6\u63D0\u9192"}>
-            <Toggle on={true} onToggle={() => {}} />
+            <Toggle on={reminderEnabled} onToggle={() => setReminderEnabled(!reminderEnabled)} />
           </SettingRow>
         </div>
       </Card>
@@ -3028,7 +3229,12 @@ const LoginPage = ({ onLogin }) => {
    MAIN APP: Mobile-first with bottom nav
    ──────────────────────────────────────────── */
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Clerk session management — ClerkProvider is always present (see main.jsx)
+  const { isSignedIn, isLoaded, signOut: clerkSignOut } = useAuth();
+  const { user: clerkUser } = useUser();
+  const userId = clerkUser?.id || 'anonymous';
+  const isLoggedIn = !!isSignedIn;
+
   const [page, setPage] = useState("home");
   const [detailWord, setDetailWord] = useState(null);
   const [unknownWord, setUnknownWord] = useState(null);
@@ -3141,9 +3347,19 @@ export default function App() {
   const pageIcons = { home: Logo, words: PalmLeafBook, learn: LotusLamp, me: BuddhaHead };
   const PageIcon = pageIcons[page];
 
+  /* ── Loading screen while Clerk initializes ── */
+  if (!isLoaded) {
+    return (
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+        <div style={{ width: 32, height: 32, border: `3px solid ${C.p200}`, borderTopColor: C.teal, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <span style={{ fontSize: 13, color: C.s500 }}>{"\u52A0\u8F7D\u4E2D..."}</span>
+      </div>
+    );
+  }
+
   /* ── Login gate ── */
   if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+    return <LoginPage onLogin={() => {}} />;
   }
 
   /* ── Unknown word page takes priority ── */
@@ -3176,7 +3392,7 @@ export default function App() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
-          <WordDetailPage onBack={() => setDetailWord(null)} onWordTap={handleWordTap} wordData={dbWordData[detailWord] || generatedWords[detailWord] || null} />
+          <WordDetailPage userId={userId} onBack={() => setDetailWord(null)} onWordTap={handleWordTap} wordData={dbWordData[detailWord] || generatedWords[detailWord] || null} />
         </div>
       </div>
     );
@@ -3213,10 +3429,10 @@ export default function App() {
             <span style={{ fontSize: 13, color: C.s500 }}>{"查询词库中..."}</span>
           </div>
         )}
-        {page === "home" && <HomePage onNavigate={setPage} onWordTap={handleWordTap} />}
-        {page === "words" && <WordBookPage onWordTap={handleWordTap} />}
-        {page === "learn" && <LearnPage onWordTap={handleWordTap} />}
-        {page === "me" && <ProfilePage onLogout={() => setIsLoggedIn(false)} />}
+        {page === "home" && <HomePage userId={userId} onNavigate={setPage} onWordTap={handleWordTap} />}
+        {page === "words" && <WordBookPage userId={userId} onWordTap={handleWordTap} />}
+        {page === "learn" && <LearnPage userId={userId} onWordTap={handleWordTap} />}
+        {page === "me" && <ProfilePage userId={userId} onLogout={() => clerkSignOut()} />}
       </div>
 
       {/* Bottom Navigation Bar */}
