@@ -3969,13 +3969,23 @@ const LoginPage = ({ onLogin }) => {
         if (result.status === "complete") {
           await clerk?.setActive?.({ session: result.createdSessionId });
           onLogin?.();
+        } else if (result.status === "needs_first_factor") {
+          // MFA required - for now just inform the user
+          setError("需要额外验证，请联系管理员");
         }
       } else {
         await new Promise(r => setTimeout(r, 800));
         onLogin?.();
       }
     } catch (err) {
-      setError(err?.errors?.[0]?.message || "登录失败，请检查账号和密码");
+      const msg = err?.errors?.[0]?.message || "";
+      if (msg.toLowerCase().includes("not found") || msg.includes("找不到") || err?.errors?.[0]?.code === "form_identifier_not_found") {
+        setError("账号不存在，请先注册");
+      } else if (msg.toLowerCase().includes("password") || msg.includes("密码") || err?.errors?.[0]?.code === "form_password_incorrect") {
+        setError("密码错误，请重试");
+      } else {
+        setError(msg || "登录失败，请检查账号和密码");
+      }
     }
     setLoading(false);
   };
@@ -3988,10 +3998,13 @@ const LoginPage = ({ onLogin }) => {
     setLoading(true);
     try {
       if (clerkSignUp?.signUp) {
-        const result = await clerkSignUp.signUp.create({
-          emailAddress: email.trim(),
-          password,
-        });
+        const signUpParams = { emailAddress: email.trim(), password };
+        if (username.trim()) {
+          signUpParams.username = username.trim();
+        }
+        console.log("[Register] Creating account with:", { email: email.trim(), hasUsername: !!username.trim() });
+        const result = await clerkSignUp.signUp.create(signUpParams);
+        console.log("[Register] Result status:", result.status);
         if (result.status === "complete") {
           await clerk?.setActive?.({ session: result.createdSessionId });
           onLogin?.();
@@ -4001,11 +4014,18 @@ const LoginPage = ({ onLogin }) => {
           setVerifyMessage("验证码已发送到您的邮箱，请查收并输入");
         }
       } else {
+        console.warn("[Register] clerkSignUp not available");
         await new Promise(r => setTimeout(r, 800));
         onLogin?.();
       }
     } catch (err) {
-      setError(err?.errors?.[0]?.message || "注册失败，请重试");
+      console.error("[Register] Error:", err);
+      const msg = err?.errors?.[0]?.message || "";
+      if (msg.toLowerCase().includes("already") || msg.includes("已存在") || err?.errors?.[0]?.code === "form_identifier_exists") {
+        setError("该邮箱已注册，请直接登录");
+      } else {
+        setError(msg || "注册失败，请重试");
+      }
     }
     setLoading(false);
   };
@@ -4034,40 +4054,50 @@ const LoginPage = ({ onLogin }) => {
 
   const handleOAuth = async (provider) => {
     setError(""); setVerifyMessage("");
+    setLoading(true);
     try {
       if (clerkSignIn?.signIn) {
+        // If there's an existing abandoned/needs_identifier signIn, create a fresh one
+        if (clerkSignIn.signIn.status && clerkSignIn.signIn.status !== 'needs_identifier') {
+          try { await clerkSignIn.signIn.create({}); } catch (_) { /* ignore */ }
+        }
         await clerkSignIn.signIn.authenticateWithRedirect({
           strategy: `oauth_${provider}`,
-          redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
+          redirectUrl: window.location.origin + "/sso-callback",
+          redirectUrlComplete: window.location.origin + "/",
         });
+      } else if (clerk?.openSignIn) {
+        // Fallback: open Clerk's built-in sign-in UI
+        clerk.openSignIn({ strategy: `oauth_${provider}` });
       } else {
-        console.log(`[OAuth] ${provider} sign-in (Clerk not configured)`);
+        setError("第三方登录不可用，请稍后重试");
       }
     } catch (err) {
-      setError(`第三方登录失败`);
+      console.error(`[OAuth ${provider}] error:`, err);
+      setError(err?.errors?.[0]?.message || "第三方登录失败，请重试");
     }
+    setLoading(false);
   };
 
-  /* ── Custom SVG line icons for OAuth providers ── */
-  const AppleLineIcon = ({ size = 24, color = "var(--c-p600)" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.07-.5-2.05-.52-3.18 0-1.42.66-2.17.49-3.05-.4C3.79 16.17 4.36 9.53 8.9 9.28c1.26.06 2.14.72 2.88.76.99-.2 1.94-.77 3-.7 1.27.1 2.23.6 2.86 1.5-2.63 1.58-2.01 5.04.37 5.99-.47 1.25-.68 1.82-1.4 3.02l.44.43zM12.04 9.2c-.14-2.25 1.74-4.2 3.96-4.2.29 2.5-2.34 4.38-3.96 4.2z"/>
+  /* ── Brand-colored SVG icons for OAuth providers ── */
+  const AppleBrandIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 384 512" fill="#000">
+      <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
     </svg>
   );
 
-  const GitHubLineIcon = ({ size = 24, color = "var(--c-p600)" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.4.4-.7 1-.9 1.5-.2.6-.2 1.2 0 2V22" />
-      <path d="M9 18c-4.5 2-5-2-7-2" />
+  const GitHubBrandIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#24292F">
+      <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
     </svg>
   );
 
-  const GoogleLineIcon = ({ size = 24, color = "var(--c-p600)" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 8c-2.2 0-4 1.8-4 4s1.8 4 4 4c1.5 0 2.8-.8 3.5-2" />
-      <path d="M13 12h8" />
+  const GoogleBrandIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
     </svg>
   );
 
@@ -4078,9 +4108,9 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const oauthProviders = [
-    { key: "apple", label: "Apple", Icon: AppleLineIcon },
-    { key: "github", label: "GitHub", Icon: GitHubLineIcon },
-    { key: "google", label: "Google", Icon: GoogleLineIcon },
+    { key: "apple", label: "Apple", Icon: AppleBrandIcon },
+    { key: "google", label: "Google", Icon: GoogleBrandIcon },
+    { key: "github", label: "GitHub", Icon: GitHubBrandIcon },
   ];
 
   const inputStyle = {
@@ -4112,14 +4142,17 @@ const LoginPage = ({ onLogin }) => {
           {oauthProviders.map(({ key, label, Icon: OIcon }) => (
             <div key={key} onClick={() => handleOAuth(key)} style={{
               width: 56, height: 56, borderRadius: "50%",
-              border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+              border: `1.5px solid ${key === "google" ? "var(--c-p100)" : "var(--c-p200)"}`,
+              background: key === "google" ? "#fff" : "var(--c-surface)",
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", transition: "all 0.2s",
+              boxShadow: key === "google" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = "var(--c-p50)"; e.currentTarget.style.borderColor = "var(--c-p300)"; e.currentTarget.style.transform = "scale(1.05)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "var(--c-surface)"; e.currentTarget.style.borderColor = "var(--c-p200)"; e.currentTarget.style.transform = "scale(1)"; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = key === "google" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"; }}
+            title={`${label} 登录 / 注册`}
             >
-              <OIcon size={24} color={"var(--c-p600)"} />
+              <OIcon size={22} />
             </div>
           ))}
         </div>
@@ -4127,7 +4160,7 @@ const LoginPage = ({ onLogin }) => {
         {/* Divider */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 20px 0" }}>
           <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
-          <span style={{ fontSize: 12, color: "var(--c-s300)" }}>或使用邮箱登录</span>
+          <span style={{ fontSize: 12, color: "var(--c-s300)" }}>或使用邮箱</span>
           <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
         </div>
 
@@ -4220,11 +4253,27 @@ const LoginPage = ({ onLogin }) => {
                 value={isRegister ? email : (loginTab === "email" ? email : username)}
                 onChange={e => isRegister ? setEmail(e.target.value) : (loginTab === "email" ? setEmail(e.target.value) : setUsername(e.target.value))}
                 placeholder={isRegister ? "邮箱地址" : (loginTab === "email" ? "邮箱地址" : "用户名")}
+                onKeyDown={e => e.key === "Enter" && !isRegister && handleCredentialLogin()}
                 style={inputStyle}
                 onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
                 onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
               />
             </div>
+
+            {/* Username field (register mode only, optional) */}
+            {isRegister && (
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  placeholder="用户名（可选）"
+                  style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                  onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+                />
+              </div>
+            )}
 
             {/* Password field */}
             <div style={{ marginBottom: 12, position: "relative" }}>
