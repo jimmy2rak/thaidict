@@ -4255,68 +4255,70 @@ export default function App() {
     setUnknownWord(word);
   };
 
-  const handleGenerated = (word) => {
-    const genData = {
-      word: word,
-      romanization: "sa-wat-dii",
-      romanization_source: "deepseek",
-      sources: ["src_ai_generated"],
-      sense_count: 2,
-      senses: [
-        {
-          sense_id: 1, pos: "\u611F\u53F9\u8BCD", meaning: "\u4F60\u597D\uFF1B\u95EE\u5019\u8BED",
-          register: "\u901A\u7528",
-          examples: [
-            { th: "\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35\u0E04\u0E23\u0E31\u0E1A", zh: "\u4F60\u597D\uFF08\u7537\u6027\u7528\uFF09" },
-            { th: "\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35\u0E04\u0E48\u0E30", zh: "\u4F60\u597D\uFF08\u5973\u6027\u7528\uFF09" },
-          ],
-          segmented: [
-            [
-              { text: "\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35", pos: "\u611F\u53F9\u8BCD", meaning: "\u4F60\u597D" },
-              { text: "\u0E04\u0E23\u0E31\u0E1A", pos: "\u52A9\u8BCD", meaning: "\u7537\u6027\u793C\u8C8C\u8BCD" },
-            ],
-            [
-              { text: "\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35", pos: "\u611F\u53F9\u8BCD", meaning: "\u4F60\u597D" },
-              { text: "\u0E04\u0E48\u0E30", pos: "\u52A9\u8BCD", meaning: "\u5973\u6027\u793C\u8C8C\u8BCD" },
-            ],
-          ],
-          source: "ai_generated",
-        },
-        {
-          sense_id: 2, pos: "\u611F\u53F9\u8BCD", meaning: "\u518D\u89C1\uFF1B\u544A\u522B",
-          register: "\u53E3\u8BED",
-          examples: [
-            { th: "\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35\u0E04\u0E23\u0E31\u0E1A \u0E1E\u0E23\u0E38\u0E48\u0E07\u0E19\u0E35\u0E49\u0E08\u0E30\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27", zh: "\u518D\u89C1\uFF0C\u6211\u8981\u8D70\u4E86" },
-          ],
-          segmented: [
-            [
-              { text: "\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35", pos: "\u611F\u53F9\u8BCD", meaning: "\u518D\u89C1" },
-              { text: "\u0E04\u0E23\u0E31\u0E1A", pos: "\u52A9\u8BCD", meaning: "\u7537\u6027\u793C\u8C8C\u8BCD" },
-              { text: "\u0E1E\u0E23\u0E38\u0E48\u0E07\u0E19\u0E35\u0E49", pos: "\u540D\u8BCD", meaning: "\u4ECA\u5929" },
-              { text: "\u0E08\u0E30", pos: "\u52A9\u8BCD", meaning: "\u5C06\u8981" },
-              { text: "\u0E44\u0E1B", pos: "\u52A8\u8BCD", meaning: "\u53BB" },
-              { text: "\u0E41\u0E25\u0E49\u0E27", pos: "\u52A9\u8BCD", meaning: "\u4E86" },
-            ],
-          ],
-          source: "ai_generated",
-        },
-      ],
-      freq_ttc: 15230,
-      freq_tnc: 89420,
-      freq_phupha: 245000000,
-      synonyms: [
-        { word: "\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35", zh: "\u4F60\u597D" },
-        { word: "\u0E2A\u0E31\u0E1A\u0E32\u0E22\u0E14\u0E35", zh: "\u8212\u670D/\u5B89\u597D" },
-      ],
-      antonyms: [],
-      learner_associations: [
-        { word: "\u0E04\u0E23\u0E31\u0E1A", note: "\u7537\u6027\u793C\u8C8C\u52A9\u8BCD\uFF0C\u53D1\u97F3 khrap\uFF0C\u7528\u4E8E\u53E5\u672B\u8868\u793A\u5C0A\u656C" },
-        { word: "\u0E04\u0E48\u0E30", note: "\u5973\u6027\u793C\u8C8C\u52A9\u8BCD\uFF0C\u53D1\u97F3 kha\uFF0C\u7528\u4E8E\u53E5\u672B\u8868\u793A\u5C0A\u656C" },
-        { word: "\u0E44\u0E14\u0E49", note: "\u8FC7\u53BB\u65F6\u52A9\u8BCD\uFF0C\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35\u0E44\u0E14\u0E49 = \u66FE\u7ECF\u95EE\u5019\u8FC7" },
-      ],
-      user_sentence_count: 3,
-    };
-    setGeneratedWords(prev => ({ ...prev, [word]: genData }));
+  const handleGenerated = async (word, zhHint = "") => {
+    if (!isSupabaseConfigured) {
+      console.error("[handleGenerated] Supabase not configured");
+      return;
+    }
+
+    try {
+      // Get user's default API preference
+      let userApi = null;
+      if (userId && userId !== 'anonymous') {
+        const settings = await getUserSettings(userId);
+        if (settings?.default_api_id && settings.default_api_id !== 'system') {
+          const keys = await getApiKeys(userId);
+          const defaultKey = keys.find(k => k.id === settings.default_api_id || String(k.id) === String(settings.default_api_id));
+          if (defaultKey) {
+            // Fetch the actual key from user_api_keys table (key_masked won't work)
+            userApi = { key: defaultKey.key, base_url: defaultKey.base_url, model: defaultKey.model };
+          }
+        }
+      }
+
+      const prompt = `请为泰语词语"${word}"生成完整的词条数据。${zhHint ? `中文提示：${zhHint}` : ''}`;
+      const result = await callAiProxy(prompt, userApi);
+
+      if (result.error) {
+        console.error("[handleGenerated] AI error:", result.error);
+        // Fallback: still navigate to detail page with empty data
+        setUnknownWord(null);
+        setDetailWord(word);
+        return;
+      }
+
+      const aiData = result.data;
+      if (aiData && aiData.word) {
+        // Transform AI response to match our word detail format
+        const genData = {
+          word: aiData.word || word,
+          romanization: aiData.romanization || "",
+          romanization_source: "deepseek",
+          sources: ["src_ai_generated"],
+          sense_count: (aiData.senses || []).length || 1,
+          senses: (aiData.senses || []).map((s, i) => ({
+            sense_id: s.sense_id || (i + 1),
+            pos: s.pos || "未标注",
+            meaning: s.meaning || "",
+            register: s.register || "通用",
+            examples: Array.isArray(s.examples) ? s.examples : [],
+            segmented: Array.isArray(s.segmented) ? s.segmented : null,
+            source: "ai_generated",
+          })),
+          freq_ttc: aiData.freq_ttc || null,
+          freq_tnc: aiData.freq_tnc || null,
+          freq_phupha: aiData.freq_phupha || null,
+          synonyms: Array.isArray(aiData.synonyms) ? aiData.synonyms : [],
+          antonyms: Array.isArray(aiData.antonyms) ? aiData.antonyms : [],
+          learner_associations: Array.isArray(aiData.learner_associations) ? aiData.learner_associations : [],
+          user_sentence_count: aiData.user_sentence_count || 0,
+        };
+        setGeneratedWords(prev => ({ ...prev, [word]: genData }));
+      }
+    } catch (err) {
+      console.error("[handleGenerated]", err);
+    }
+
     setUnknownWord(null);
     setDetailWord(word);
   };
