@@ -11,13 +11,100 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Theme color tokens (light = default) ── */
+:root {
+  --zh-font: 'Noto Serif SC';
+  --th-font: 'Sarabun';
+  --c-p900: #3D2B1F;
+  --c-p800: #4E3829;
+  --c-p700: #5C4033;
+  --c-p600: #6B4C3B;
+  --c-p500: #7A5C4F;
+  --c-p400: #9B8074;
+  --c-p300: #B8A196;
+  --c-p200: #D4C4BA;
+  --c-p100: #E8DDD6;
+  --c-p50: #F3EDE8;
+  --c-s700: #6E6155;
+  --c-s500: #8C7E72;
+  --c-s400: #9E9186;
+  --c-s300: #B5A99D;
+  --c-s200: #D1C8BE;
+  --c-s100: #E6DED6;
+  --c-s50: #F5F0EB;
+  --c-gold: #C4993D;
+  --c-goldL: #E8D5A3;
+  --c-amber: #D4845A;
+  --c-amberL: #F0D5C4;
+  --c-teal: #5B8C7E;
+  --c-tealL: #D0E4DE;
+  --c-rose: #B56576;
+  --c-roseL: #F0D5DC;
+  --c-ok: #6B8F5E;
+  --c-okL: #D8E8D0;
+  --c-warn: #C4993D;
+  --c-warnL: #FDF3DC;
+  --c-err: #B85450;
+  --c-errL: #F5D5D3;
+  --c-info: #5B7E9E;
+  --c-infoL: #D4E2F0;
+  --c-bg: #FAF7F4;
+  --c-surface: #FFFFFF;
+  --c-surfaceAlt: #F5F0EB;
+  --c-sidebar: #F0EAE3;
+  --c-input: #F8F4F0;
+}
+
+/* ── Dark theme tokens (warm brown dark) ── */
+[data-theme="dark"] {
+  --c-p900: #E8DDD6;
+  --c-p800: #D4C4BA;
+  --c-p700: #B8A196;
+  --c-p600: #9B8074;
+  --c-p500: #8A7063;
+  --c-p400: #7A5C4F;
+  --c-p300: #5C4A3D;
+  --c-p200: #3D3129;
+  --c-p100: #332A23;
+  --c-p50: #2A221C;
+  --c-s700: #B8A196;
+  --c-s500: #9E9186;
+  --c-s400: #8C7E72;
+  --c-s300: #6E6155;
+  --c-s200: #3D3129;
+  --c-s100: #332A23;
+  --c-s50: #2A221C;
+  --c-gold: #D4AA4E;
+  --c-goldL: #3D3528;
+  --c-amber: #E09568;
+  --c-amberL: #3D2E24;
+  --c-teal: #6FA08E;
+  --c-tealL: #253830;
+  --c-rose: #C87888;
+  --c-roseL: #3D2830;
+  --c-ok: #7DA06E;
+  --c-okL: #283828;
+  --c-warn: #D4AA4E;
+  --c-warnL: #3D3528;
+  --c-err: #C86862;
+  --c-errL: #3D2828;
+  --c-info: #6E96B5;
+  --c-infoL: #283440;
+  --c-bg: #1A1614;
+  --c-surface: #241F1B;
+  --c-surfaceAlt: #2E2823;
+  --c-sidebar: #201B17;
+  --c-input: #2A2420;
+}
+
 body {
-  font-family: 'Noto Sans SC', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #FAF7F4;
-  color: #3D2B1F;
+  font-family: var(--zh-font), var(--th-font), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--c-bg);
+  color: var(--c-p900);
   overflow: hidden;
   min-height: 100vh;
   min-height: 100dvh;
+  transition: background 0.3s, color 0.3s;
 }
 
 #root {
@@ -42,13 +129,28 @@ a {
   color: inherit;
 }
 
+/* ── Scrollbar ── */
 ::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c-p200);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-p300);
 }
 
 ::selection {
   background: rgba(107, 76, 59, 0.15);
+}
+
+[data-theme="dark"] ::selection {
+  background: rgba(180, 150, 120, 0.25);
 }
 
 @keyframes spin {

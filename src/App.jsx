@@ -36,25 +36,10 @@ import {
 } from "recharts";
 
 /* ────────────────────────────────────────────
-   COLOR TOKENS (warm beige/brown system)
+   COLOR TOKENS — managed via CSS variables in index.css
+   Light: :root  |  Dark: [data-theme="dark"]
+   Inline styles use var(--c-xxx) which auto-switches.
    ──────────────────────────────────────────── */
-const C = {
-  p900: "#3D2B1F", p800: "#4E3829", p700: "#5C4033", p600: "#6B4C3B",
-  p500: "#7A5C4F", p400: "#9B8074", p300: "#B8A196", p200: "#D4C4BA",
-  p100: "#E8DDD6", p50: "#F3EDE8",
-  s700: "#6E6155", s500: "#8C7E72", s400: "#9E9186", s300: "#B5A99D", s200: "#D1C8BE",
-  s100: "#E6DED6", s50: "#F5F0EB",
-  gold: "#C4993D", goldL: "#E8D5A3",
-  amber: "#D4845A", amberL: "#F0D5C4",
-  teal: "#5B8C7E", tealL: "#D0E4DE",
-  rose: "#B56576", roseL: "#F0D5DC",
-  ok: "#6B8F5E", okL: "#D8E8D0",
-  warn: "#C4993D", warnL: "#FDF3DC",
-  err: "#B85450", errL: "#F5D5D3",
-  info: "#5B7E9E", infoL: "#D4E2F0",
-  bg: "#FAF7F4", surface: "#FFFFFF", surfaceAlt: "#F5F0EB",
-  sidebar: "#F0EAE3", input: "#F8F4F0",
-};
 
 const IW = 1.5; // icon stroke width constant
 
@@ -64,7 +49,7 @@ const IW = 1.5; // icon stroke width constant
    ──────────────────────────────────────────── */
 
 // 首页 — 黎明寺 Wat Arun (主塔 + 左右小塔 + 多层内部线)
-const Logo = ({ size = 28, color = C.p600 }) => (
+const Logo = ({ size = 28, color = "var(--c-p600)" }) => (
   <svg width={size} height={size} viewBox="0 0 40 40" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
     {/* 主塔轮廓 */}
     <path d="M20 3 L18 9 L17 15 L15.5 21 L13.5 26 L11 30 L9 34.5 L31 34.5 L29 30 L26.5 26 L24.5 21 L23 15 L22 9 Z" />
@@ -84,7 +69,7 @@ const Logo = ({ size = 28, color = C.p600 }) => (
 );
 
 // 单词本 — 贝叶经 Palm Leaf Manuscript (展开扇形 + 叶脉线)
-const PalmLeafBook = ({ size = 22, color = C.p600 }) => (
+const PalmLeafBook = ({ size = 22, color = "var(--c-p600)" }) => (
   <svg width={size} height={size} viewBox="0 0 40 40" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
     {/* 外轮廓：扇形展开 */}
     <path d="M7 9 Q20 3 33 9 L20 36 Z" />
@@ -96,7 +81,7 @@ const PalmLeafBook = ({ size = 22, color = C.p600 }) => (
 );
 
 // 学习 — 莲花油灯 Lotus Oil Lamp (火焰 + 灯碗 + 莲瓣弧)
-const LotusLamp = ({ size = 22, color = C.p600 }) => (
+const LotusLamp = ({ size = 22, color = "var(--c-p600)" }) => (
   <svg width={size} height={size} viewBox="0 0 40 40" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
     {/* 火焰 */}
     <path d="M20 3 Q18 8 18.5 12 L21.5 12 Q22 8 20 3 Z" />
@@ -108,7 +93,7 @@ const LotusLamp = ({ size = 22, color = C.p600 }) => (
 );
 
 // 我的 — 佛头 Buddha Head (圆润轮廓 + 宽眼距 + 小肉髻)
-const BuddhaHead = ({ size = 22, color = C.p600 }) => (
+const BuddhaHead = ({ size = 22, color = "var(--c-p600)" }) => (
   <svg width={size} height={size} viewBox="0 0 40 40" fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
     {/* 外轮廓：小肉髻 → 圆润额 → 耳 → 圆颊 → 下巴 */}
     <path d="M20 5 C22 5 22.5 6.5 22 8.5 C25 9.5 28 13 28.5 17 C29.5 21 28.5 25 26.5 28 C24.5 31 22 33 20 34 C18 33 15.5 31 13.5 28 C11.5 25 10.5 21 11.5 17 C12 13 15 9.5 18 8.5 C17.5 6.5 18 5 20 5 Z" />
@@ -223,15 +208,15 @@ const wordDetail = {
 };
 
 const wordBooks = [
-  { name: "\u6CF0\u8BED\u521D\u7EA7 500\u8BCD", count: 500, learned: 287, color: C.teal },
-  { name: "\u65E5\u5E38\u4F1A\u8BDD 300\u53E5", count: 300, learned: 124, color: C.rose },
-  { name: "\u65C5\u884C\u6CF0\u8BED\u5FC5\u5907", count: 80, learned: 62, color: C.amber },
-  { name: "\u5546\u52A1\u6CF0\u8BED\u6838\u5FC3", count: 200, learned: 45, color: C.gold },
+  { name: "\u6CF0\u8BED\u521D\u7EA7 500\u8BCD", count: 500, learned: 287, color: "var(--c-teal)" },
+  { name: "\u65E5\u5E38\u4F1A\u8BDD 300\u53E5", count: 300, learned: 124, color: "var(--c-rose)" },
+  { name: "\u65C5\u884C\u6CF0\u8BED\u5FC5\u5907", count: 80, learned: 62, color: "var(--c-amber)" },
+  { name: "\u5546\u52A1\u6CF0\u8BED\u6838\u5FC3", count: 200, learned: 45, color: "var(--c-gold)" },
 ];
 
 const exercises = [
-  { name: "\u9605\u8BFB\u7406\u89E3", desc: "\u6CF0\u6587\u9605\u8BFB", count: 18, icon: BookOpen, color: C.rose },
-  { name: "\u5199\u4F5C\u7EC3\u4E60", desc: "\u9020\u53E5\u586B\u7A7A", count: 12, icon: PenTool, color: C.gold },
+  { name: "\u9605\u8BFB\u7406\u89E3", desc: "\u6CF0\u6587\u9605\u8BFB", count: 18, icon: BookOpen, color: "var(--c-rose)" },
+  { name: "\u5199\u4F5C\u7EC3\u4E60", desc: "\u9020\u53E5\u586B\u7A7A", count: 12, icon: PenTool, color: "var(--c-gold)" },
 ];
 
 const weekDays = ["\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D", "\u65E5"];
@@ -254,9 +239,9 @@ const studyTimeData = [
 ];
 
 const pieData = [
-  { name: "\u5DF2\u638C\u63E1", value: 342, color: C.ok },
-  { name: "\u5B66\u4E60\u4E2D", value: 198, color: C.gold },
-  { name: "\u672A\u5B66", value: 140, color: C.p200 },
+  { name: "\u5DF2\u638C\u63E1", value: 342, color: "var(--c-ok)" },
+  { name: "\u5B66\u4E60\u4E2D", value: 198, color: "var(--c-gold)" },
+  { name: "\u672A\u5B66", value: 140, color: "var(--c-p200)" },
 ];
 
 const morphExamples = [
@@ -278,8 +263,8 @@ const heatmapLevels = [0,1,2,3,4,2,1,0,3,4,2,1,3,0,4,2,3,1,0,2,4,3,1,2,0,3,4,2,1
    ──────────────────────────────────────────── */
 const Card = ({ children, style, onClick }) => (
   <div onClick={onClick} style={{
-    background: C.surface, borderRadius: 16, padding: 20,
-    border: `1px solid ${C.p100}`, transition: "all 0.2s ease",
+    background: "var(--c-surface)", borderRadius: 16, padding: 20,
+    border: `1px solid ${"var(--c-p100)"}`, transition: "all 0.2s ease",
     cursor: onClick ? "pointer" : "default", ...style,
   }}>
     {children}
@@ -290,7 +275,7 @@ const Badge = ({ children, bg, fg, style }) => (
   <span style={{
     display: "inline-flex", alignItems: "center", padding: "2px 10px",
     borderRadius: 20, fontSize: 11, fontWeight: 500,
-    background: bg || C.p100, color: fg || C.p700, letterSpacing: "0.04em", ...style,
+    background: bg || "var(--c-p100)", color: fg || "var(--c-p700)", letterSpacing: "0.04em", ...style,
   }}>{children}</span>
 );
 
@@ -299,15 +284,15 @@ const Btn = ({ children, variant = "primary", icon: Icon, onClick, style }) => {
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     padding: "10px 18px", borderRadius: 12, fontSize: 14, fontWeight: 500,
     cursor: "pointer", transition: "all 0.2s ease", border: "none",
-    fontFamily: "'Noto Sans SC', sans-serif",
+    fontFamily: "'Noto Serif SC', sans-serif",
   };
   const variants = {
-    primary: { background: C.p600, color: "#fff" },
-    secondary: { background: C.p50, color: C.p700, border: `1px solid ${C.p200}` },
-    ghost: { background: "transparent", color: C.p600 },
-    gold: { background: C.gold, color: "#fff" },
-    amber: { background: C.amber, color: "#fff" },
-    teal: { background: C.teal, color: "#fff" },
+    primary: { background: "var(--c-p600)", color: "#fff" },
+    secondary: { background: "var(--c-p50)", color: "var(--c-p700)", border: `1px solid ${"var(--c-p200)"}` },
+    ghost: { background: "transparent", color: "var(--c-p600)" },
+    gold: { background: "var(--c-gold)", color: "#fff" },
+    amber: { background: "var(--c-amber)", color: "#fff" },
+    teal: { background: "var(--c-teal)", color: "#fff" },
   };
   return (
     <button onClick={onClick} style={{ ...base, ...variants[variant], ...style }}>
@@ -319,9 +304,9 @@ const Btn = ({ children, variant = "primary", icon: Icon, onClick, style }) => {
 
 const SectionTitle = ({ children, action, onAction }) => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-    <h2 style={{ fontSize: 17, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{children}</h2>
+    <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{children}</h2>
     {action && (
-      <span onClick={onAction} style={{ fontSize: 12, color: C.p500, cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
+      <span onClick={onAction} style={{ fontSize: 12, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
         {action} <ChevronRight size={14} strokeWidth={IW} />
       </span>
     )}
@@ -329,50 +314,103 @@ const SectionTitle = ({ children, action, onAction }) => (
 );
 
 const ProgressBar = ({ value, max, color, height = 5 }) => (
-  <div style={{ width: "100%", height, borderRadius: height, background: C.p100, overflow: "hidden" }}>
-    <div style={{ width: `${(value / max) * 100}%`, height: "100%", borderRadius: height, background: color || C.p500, transition: "width 0.5s ease" }} />
+  <div style={{ width: "100%", height, borderRadius: height, background: "var(--c-p100)", overflow: "hidden" }}>
+    <div style={{ width: `${(value / max) * 100}%`, height: "100%", borderRadius: height, background: color || "var(--c-p500)", transition: "width 0.5s ease" }} />
   </div>
 );
 
 const StatCard = ({ icon: Icon, label, value, sub, color }) => (
   <div style={{
-    background: C.surface, borderRadius: 12, padding: 12, flex: 1,
-    border: `1px solid ${C.p100}`, display: "flex", flexDirection: "column", gap: 5,
+    background: "var(--c-surface)", borderRadius: 12, padding: 12, flex: 1,
+    border: `1px solid ${"var(--c-p100)"}`, display: "flex", flexDirection: "column", gap: 5,
     minWidth: 0,
   }}>
     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
       <div style={{ width: 28, height: 28, borderRadius: 7, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <Icon size={14} strokeWidth={IW} color={color} />
       </div>
-      <span style={{ fontSize: 10, color: C.s500, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      <span style={{ fontSize: 10, color: "var(--c-s500)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
     </div>
     <div>
-      <span style={{ fontSize: 20, fontWeight: 700, color: C.p800 }}>{value}</span>
-      {sub && <span style={{ fontSize: 10, color: C.s300, marginLeft: 3 }}>{sub}</span>}
+      <span style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)" }}>{value}</span>
+      {sub && <span style={{ fontSize: 10, color: "var(--c-s300)", marginLeft: 3 }}>{sub}</span>}
     </div>
   </div>
 );
 
-const AudioBtn = ({ label, color }) => {
-  const [playing, setPlaying] = useState(false);
+/* ── Global TTS utility using Web Speech API ── */
+let _currentUtterance = null;
+const speak = (text, lang = "th-TH", rate = 0.9) => {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang;
+  utt.rate = rate;
+  _currentUtterance = utt;
+  window.speechSynthesis.speak(utt);
+};
+const stopSpeak = () => {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  _currentUtterance = null;
+};
+
+const AudioBtn = ({ text, lang, label, color, rate }) => {
+  const [speaking, setSpeaking] = useState(false);
+  const handleClick = () => {
+    if (speaking) { stopSpeak(); setSpeaking(false); return; }
+    if (!text) return;
+    const uttLang = lang || "th-TH";
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = uttLang;
+    utt.rate = rate || 0.9;
+    utt.onend = () => setSpeaking(false);
+    utt.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utt);
+  };
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20, background: C.p50, border: `1px solid ${C.p100}`, cursor: "pointer" }}
-      onClick={() => setPlaying(!playing)}>
-      {playing ? <Pause size={13} strokeWidth={IW} color={color || C.p600} /> : <Play size={13} strokeWidth={IW} color={color || C.p600} />}
-      <span style={{ fontSize: 12, color: color || C.p600, fontWeight: 500 }}>{label}</span>
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20, background: "var(--c-p50)", border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer" }}
+      onClick={handleClick}>
+      {speaking ? <Pause size={13} strokeWidth={IW} color={color || "var(--c-p600)"} /> : <Play size={13} strokeWidth={IW} color={color || "var(--c-p600)"} />}
+      {label && <span style={{ fontSize: 12, color: color || "var(--c-p600)", fontWeight: 500 }}>{label}</span>}
+    </div>
+  );
+};
+
+/* Small inline TTS play button for examples */
+const TtsPlay = ({ text, lang = "th-TH", size = 12 }) => {
+  const [speaking, setSpeaking] = useState(false);
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (speaking) { stopSpeak(); setSpeaking(false); return; }
+    if (!text || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = lang;
+    utt.rate = 0.9;
+    utt.onend = () => setSpeaking(false);
+    utt.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utt);
+  };
+  return (
+    <div onClick={handleClick} style={{ cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center" }}>
+      {speaking ? <Pause size={size} strokeWidth={IW} color={"var(--c-p500)"} /> : <Play size={size} strokeWidth={IW} color={"var(--c-p500)"} />}
     </div>
   );
 };
 
 const HeatCell = ({ level, size = 12 }) => {
-  const colors = [C.p100, C.tealL, C.teal, C.ok, C.gold];
-  return <div style={{ width: size, height: size, borderRadius: 3, background: colors[level] || C.p100 }} />;
+  const colors = ["var(--c-p100)", "var(--c-tealL)", "var(--c-teal)", "var(--c-ok)", "var(--c-gold)"];
+  return <div style={{ width: size, height: size, borderRadius: 3, background: colors[level] || "var(--c-p100)" }} />;
 };
 
 const PageHeader = ({ title, subtitle }) => (
   <div style={{ padding: "16px 20px 12px" }}>
-    <h1 style={{ fontSize: 22, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{title}</h1>
-    {subtitle && <p style={{ fontSize: 13, color: C.s500, margin: "4px 0 0" }}>{subtitle}</p>}
+    <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{title}</h1>
+    {subtitle && <p style={{ fontSize: 13, color: "var(--c-s500)", margin: "4px 0 0" }}>{subtitle}</p>}
   </div>
 );
 
@@ -420,42 +458,42 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "0 16px 16px" }}>
       {/* Search bar */}
       <div style={{ position: "relative" }}>
-        <Search size={18} strokeWidth={IW} color={C.s300} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
+        <Search size={18} strokeWidth={IW} color={"var(--c-s300)"} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
         <input
           value={query} onChange={e => setQuery(e.target.value)}
           placeholder={"\u8F93\u5165\u4E2D\u6587\u6216\u6CF0\u6587\u641C\u7D22..."}
           style={{
             width: "100%", padding: "14px 44px 14px 44px", borderRadius: 14,
-            border: `1.5px solid ${C.p200}`, background: C.surface, fontSize: 15,
-            color: C.p800, outline: "none", transition: "border-color 0.2s",
-            fontFamily: "'Noto Sans SC', sans-serif", boxSizing: "border-box",
+            border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)", fontSize: 15,
+            color: "var(--c-p800)", outline: "none", transition: "border-color 0.2s",
+            fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
           }}
-          onFocus={e => e.target.style.borderColor = C.p500}
-          onBlur={e => e.target.style.borderColor = C.p200}
+          onFocus={e => e.target.style.borderColor = "var(--c-p500)"}
+          onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
         />
-        {query ? <X size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} onClick={() => { setQuery(""); setSearchResults([]); }} /> : <Mic size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} />}
+        {query ? <X size={16} strokeWidth={IW} color={"var(--c-s300)"} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} onClick={() => { setQuery(""); setSearchResults([]); }} /> : <Mic size={16} strokeWidth={IW} color={"var(--c-s300)"} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", cursor: "pointer" }} />}
       </div>
 
       {/* Search results overlay */}
       {query.trim() && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {searchLoading && <div style={{ textAlign: "center", padding: 16, color: C.s500, fontSize: 13 }}>{"\u641C\u7D22\u4E2D..."}</div>}
-          {!searchLoading && searchResults.length === 0 && <div style={{ textAlign: "center", padding: 16, color: C.s500, fontSize: 13 }}>{"\u672A\u627E\u5230\u7ED3\u679C"}</div>}
+          {searchLoading && <div style={{ textAlign: "center", padding: 16, color: "var(--c-s500)", fontSize: 13 }}>{"\u641C\u7D22\u4E2D..."}</div>}
+          {!searchLoading && searchResults.length === 0 && <div style={{ textAlign: "center", padding: 16, color: "var(--c-s500)", fontSize: 13 }}>{"\u672A\u627E\u5230\u7ED3\u679C"}</div>}
           {searchResults.map((r, i) => (
             <div key={r.word + i} onClick={() => onWordTap(r.word)} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "12px 16px", borderRadius: 14, background: C.surface,
-              border: `1px solid ${C.p100}`, cursor: "pointer",
+              padding: "12px 16px", borderRadius: 14, background: "var(--c-surface)",
+              border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{r.word}</span>
-                  {r.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{r.pos}</Badge>}
-                  {r.sense_count > 1 && <span style={{ fontSize: 10, color: C.s400 }}>{r.sense_count}{"\u4E49"}</span>}
+                  <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{r.word}</span>
+                  {r.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{r.pos}</Badge>}
+                  {r.sense_count > 1 && <span style={{ fontSize: 10, color: "var(--c-s400)" }}>{r.sense_count}{"\u4E49"}</span>}
                 </div>
-                {r.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.meaning}</div>}
+                {r.meaning && <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.meaning}</div>}
               </div>
-              <ChevronRight size={14} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0 }} />
+              <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0 }} />
             </div>
           ))}
         </div>
@@ -465,29 +503,29 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
       {!query.trim() && <>
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <StatCard icon={BookOpen} label={"\u8BCD\u5E93\u8BCD\u6761"} value={dictCount != null ? dictCount.toLocaleString() : (isSupabaseConfigured ? "\u2014" : "0")} sub={""} color={C.teal} />
-          <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value={streak > 0 ? String(streak) : "\u2014"} sub={"\u5929"} color={C.gold} />
+          <StatCard icon={BookOpen} label={"\u8BCD\u5E93\u8BCD\u6761"} value={dictCount != null ? dictCount.toLocaleString() : (isSupabaseConfigured ? "\u2014" : "0")} sub={""} color={"var(--c-teal)"} />
+          <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value={streak > 0 ? String(streak) : "\u2014"} sub={"\u5929"} color={"var(--c-gold)"} />
         </div>
 
         {/* Daily Word */}
         {dw && (
           <Card onClick={() => onWordTap(dw.word)}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <Badge bg={C.goldL} fg={C.gold}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
-              <span style={{ fontSize: 11, color: C.s300 }}>{new Date().toLocaleDateString("zh-CN")}</span>
+              <Badge bg={"var(--c-goldL)"} fg={"var(--c-gold)"}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
+              <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{new Date().toLocaleDateString("zh-CN")}</span>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: C.p900, fontFamily: "'Noto Serif Thai', serif", letterSpacing: "0.04em" }}>{dw.word}</div>
-            {dw.romanization && <div style={{ fontSize: 13, color: C.teal, fontFamily: "monospace", fontStyle: "italic", marginTop: 2 }}>{dw.romanization}</div>}
+            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--c-p900)", fontFamily: "'Sarabun', serif", letterSpacing: "0.04em" }}>{dw.word}</div>
+            {dw.romanization && <div style={{ fontSize: 13, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", marginTop: 2 }}>{dw.romanization}</div>}
             {dwSense && (
               <>
-                <div style={{ fontSize: 14, color: C.p700, lineHeight: 1.6, marginTop: 10 }}>
-                  {dwSense.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 10, marginRight: 6 }}>{dwSense.pos}</Badge>}
+                <div style={{ fontSize: 14, color: "var(--c-p700)", lineHeight: 1.6, marginTop: 10 }}>
+                  {dwSense.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 10, marginRight: 6 }}>{dwSense.pos}</Badge>}
                   {dwSense.meaning}
                 </div>
                 {dwExample && (
-                  <div style={{ borderTop: `1px solid ${C.p100}`, marginTop: 12, paddingTop: 12 }}>
-                    <div style={{ fontSize: 13, color: C.teal }}>{dwExample.th}</div>
-                    <div style={{ fontSize: 13, color: C.p700, marginTop: 3 }}>{dwExample.zh}</div>
+                  <div style={{ borderTop: `1px solid ${"var(--c-p100)"}`, marginTop: 12, paddingTop: 12 }}>
+                    <div style={{ fontSize: 13, color: "var(--c-teal)" }}>{dwExample.th}</div>
+                    <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3 }}>{dwExample.zh}</div>
                   </div>
                 )}
               </>
@@ -503,19 +541,19 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
               {recentData.map((w, i) => (
                 <div key={w.word + i} onClick={() => onWordTap(w.word)} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", borderRadius: 14, background: C.surface,
-                  border: `1px solid ${C.p100}`, cursor: "pointer",
+                  padding: "14px 16px", borderRadius: 14, background: "var(--c-surface)",
+                  border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
                 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{w.word}</span>
-                      {w.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{w.pos}</Badge>}
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{w.word}</span>
+                      {w.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{w.pos}</Badge>}
                     </div>
-                    {w.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
+                    {w.meaning && <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {w.romanization && <span style={{ fontSize: 10, color: C.s300, fontFamily: "monospace" }}>{w.romanization}</span>}
-                    <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+                    {w.romanization && <span style={{ fontSize: 10, color: "var(--c-s300)", fontFamily: "monospace" }}>{w.romanization}</span>}
+                    <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} />
                   </div>
                 </div>
               ))}
@@ -562,7 +600,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
 
   /* ── Folder CRUD helpers ── */
   const handleCreateFolder = (name) => {
-    const colors = [C.teal, C.rose, C.gold, C.amber, C.info];
+    const colors = ["var(--c-teal)", "var(--c-rose)", "var(--c-gold)", "var(--c-amber)", "var(--c-info)"];
     const color = colors[folders.length % colors.length];
     // Optimistic update
     const tempFolder = { id: `temp-${Date.now()}`, name, count: 0, color };
@@ -597,7 +635,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
       {/* Tab switcher */}
-      <div style={{ display: "flex", gap: 6, background: C.surfaceAlt, borderRadius: 12, padding: 4 }}>
+      <div style={{ display: "flex", gap: 6, background: "var(--c-surfaceAlt)", borderRadius: 12, padding: 4 }}>
         {[
           { key: "recent", label: "\u6700\u8FD1\u67E5\u8BCD" },
           { key: "starred", label: "\u6211\u7684\u6536\u85CF" },
@@ -605,11 +643,11 @@ const WordBookPage = ({ userId, onWordTap }) => {
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer",
-            background: tab === t.key ? C.surface : "transparent",
-            color: tab === t.key ? C.p800 : C.s500,
+            background: tab === t.key ? "var(--c-surface)" : "transparent",
+            color: tab === t.key ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 13, fontWeight: tab === t.key ? 600 : 400,
             boxShadow: tab === t.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-            fontFamily: "'Noto Sans SC', sans-serif", transition: "all 0.2s",
+            fontFamily: "'Noto Serif SC', sans-serif", transition: "all 0.2s",
           }}>{t.label}</button>
         ))}
       </div>
@@ -618,11 +656,11 @@ const WordBookPage = ({ userId, onWordTap }) => {
         <>
           {/* Search */}
           <div style={{ position: "relative" }}>
-            <Search size={16} strokeWidth={IW} color={C.s300} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+            <Search size={16} strokeWidth={IW} color={"var(--c-s300)"} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
             <input placeholder={tab === "recent" ? "\u641C\u7D22\u5386\u53F2\u67E5\u8BCD..." : "\u641C\u7D22\u6536\u85CF\u8BCD\u6C47..."} style={{
               width: "100%", padding: "12px 16px 12px 38px", borderRadius: 12,
-              border: `1px solid ${C.p100}`, background: C.input, fontSize: 14,
-              color: C.p800, outline: "none", fontFamily: "'Noto Sans SC', sans-serif",
+              border: `1px solid ${"var(--c-p100)"}`, background: "var(--c-input)", fontSize: 14,
+              color: "var(--c-p800)", outline: "none", fontFamily: "'Noto Serif SC', sans-serif",
               boxSizing: "border-box",
             }} />
           </div>
@@ -631,27 +669,27 @@ const WordBookPage = ({ userId, onWordTap }) => {
           {tab === "recent" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {recentData.length === 0 && (
-                <div style={{ textAlign: "center", padding: 24, color: C.s400, fontSize: 13 }}>
+                <div style={{ textAlign: "center", padding: 24, color: "var(--c-s400)", fontSize: 13 }}>
                   {isSupabaseConfigured ? "暂无记录" : "未连接数据库"}
                 </div>
               )}
               {recentData.map((w, i) => (
                 <div key={w.word + i} onClick={() => onWordTap(w.word)} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", borderRadius: 14, background: C.surface,
-                  border: `1px solid ${C.p100}`, cursor: "pointer",
+                  padding: "14px 16px", borderRadius: 14, background: "var(--c-surface)",
+                  border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{w.word}</span>
-                      {w.pos && <Badge bg={C.p100} fg={C.p700} style={{ fontSize: 9 }}>{w.pos}</Badge>}
-                      {w.sense_count > 1 && <span style={{ fontSize: 10, color: C.s400 }}>{w.sense_count}{"义"}</span>}
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{w.word}</span>
+                      {w.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{w.pos}</Badge>}
+                      {w.sense_count > 1 && <span style={{ fontSize: 10, color: "var(--c-s400)" }}>{w.sense_count}{"义"}</span>}
                     </div>
-                    {w.meaning && <div style={{ fontSize: 13, color: C.p700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
+                    {w.meaning && <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {w.romanization && <span style={{ fontSize: 10, color: C.s300, fontFamily: "monospace" }}>{w.romanization}</span>}
-                    <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+                    {w.romanization && <span style={{ fontSize: 10, color: "var(--c-s300)", fontFamily: "monospace" }}>{w.romanization}</span>}
+                    <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} />
                   </div>
                 </div>
               ))}
@@ -662,24 +700,24 @@ const WordBookPage = ({ userId, onWordTap }) => {
           {tab === "starred" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {bookmarksData.length === 0 && (
-                <div style={{ textAlign: "center", padding: 24, color: C.s400, fontSize: 13 }}>
+                <div style={{ textAlign: "center", padding: 24, color: "var(--c-s400)", fontSize: 13 }}>
                   {isSupabaseConfigured ? "暂无收藏" : "未连接数据库"}
                 </div>
               )}
               {bookmarksData.map((item, i) => (
                 <div key={item.word + i} onClick={() => onWordTap(item.word)} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", borderRadius: 14, background: C.surface,
-                  border: `1px solid ${C.p100}`, cursor: "pointer",
+                  padding: "14px 16px", borderRadius: 14, background: "var(--c-surface)",
+                  border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif" }}>{item.word}</span>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{item.word}</span>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Star size={14} strokeWidth={IW} color={C.gold} fill={C.gold} />
-                    <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+                    <Star size={14} strokeWidth={IW} color={"var(--c-gold)"} fill={"var(--c-gold)"} />
+                    <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} />
                   </div>
                 </div>
               ))}
@@ -691,7 +729,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
       {tab === "books" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* System word books */}
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.s500, paddingLeft: 2 }}>{"\u7CFB\u7EDF\u8BCD\u4E66"}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-s500)", paddingLeft: 2 }}>{"\u7CFB\u7EDF\u8BCD\u4E66"}</div>
           {wordBooks.map((book, i) => (
             <Card key={`wb-${i}`} style={{ padding: 14 }} onClick={() => {}}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -699,13 +737,13 @@ const WordBookPage = ({ userId, onWordTap }) => {
                   <div style={{ width: 30, height: 30, borderRadius: 8, background: `${book.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <BookOpen size={14} strokeWidth={IW} color={book.color} />
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{book.name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{book.name}</div>
                 </div>
                 <Badge bg={`${book.color}18`} fg={book.color}>{book.count}{"\u8BCD"}</Badge>
               </div>
               <ProgressBar value={book.learned} max={book.count} color={book.color} />
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-                <span style={{ fontSize: 11, color: C.s300 }}>{"\u5DF2\u5B66"} {book.learned}/{book.count}</span>
+                <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{"\u5DF2\u5B66"} {book.learned}/{book.count}</span>
                 <span style={{ fontSize: 11, color: book.color, fontWeight: 500 }}>{Math.round(book.learned / book.count * 100)}%</span>
               </div>
             </Card>
@@ -713,20 +751,20 @@ const WordBookPage = ({ userId, onWordTap }) => {
 
           {/* User folders */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingLeft: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.s500 }}>{"\u6211\u7684\u6587\u4EF6\u5939"}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-s500)" }}>{"\u6211\u7684\u6587\u4EF6\u5939"}</span>
             <div onClick={() => setShowAddFolder(true)} style={{
               display: "flex", alignItems: "center", gap: 3, padding: "4px 10px",
-              borderRadius: 8, background: C.p50, border: `1px dashed ${C.p200}`,
-              cursor: "pointer", fontSize: 12, color: C.p600, fontWeight: 500,
+              borderRadius: 8, background: "var(--c-p50)", border: `1px dashed ${"var(--c-p200)"}`,
+              cursor: "pointer", fontSize: 12, color: "var(--c-p600)", fontWeight: 500,
             }}>
-              <Plus size={12} strokeWidth={IW} color={C.p500} />
+              <Plus size={12} strokeWidth={IW} color={"var(--c-p500)"} />
               <span>{"\u65B0\u5EFA"}</span>
             </div>
           </div>
 
           {/* Add folder input */}
           {showAddFolder && (
-            <Card style={{ padding: 12, background: C.p50, border: `1px solid ${C.p200}` }}>
+            <Card style={{ padding: 12, background: "var(--c-p50)", border: `1px solid ${"var(--c-p200)"}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
                   autoFocus
@@ -735,9 +773,9 @@ const WordBookPage = ({ userId, onWordTap }) => {
                   placeholder={"\u6587\u4EF6\u5939\u540D\u79F0..."}
                   style={{
                     flex: 1, padding: "8px 12px", borderRadius: 8,
-                    border: `1px solid ${C.p200}`, background: C.surface,
-                    fontSize: 13, color: C.p800, outline: "none",
-                    fontFamily: "'Noto Sans SC', sans-serif",
+                    border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                    fontSize: 13, color: "var(--c-p800)", outline: "none",
+                    fontFamily: "'Noto Serif SC', sans-serif",
                   }}
                   onKeyDown={e => {
                     if (e.key === "Enter" && newFolderName.trim()) {
@@ -755,16 +793,16 @@ const WordBookPage = ({ userId, onWordTap }) => {
                     setShowAddFolder(false);
                   }
                 }} style={{
-                  width: 32, height: 32, borderRadius: 8, background: C.teal,
+                  width: 32, height: 32, borderRadius: 8, background: "var(--c-teal)",
                   display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                 }}>
                   <Check size={14} strokeWidth={2} color="#fff" />
                 </div>
                 <div onClick={() => { setShowAddFolder(false); setNewFolderName(""); }} style={{
-                  width: 32, height: 32, borderRadius: 8, background: C.surfaceAlt,
+                  width: 32, height: 32, borderRadius: 8, background: "var(--c-surfaceAlt)",
                   display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                 }}>
-                  <X size={14} strokeWidth={IW} color={C.s500} />
+                  <X size={14} strokeWidth={IW} color={"var(--c-s500)"} />
                 </div>
               </div>
             </Card>
@@ -781,9 +819,9 @@ const WordBookPage = ({ userId, onWordTap }) => {
                     onChange={e => setEditName(e.target.value)}
                     style={{
                       flex: 1, padding: "8px 12px", borderRadius: 8,
-                      border: `1px solid ${C.p200}`, background: C.surface,
-                      fontSize: 14, color: C.p800, outline: "none",
-                      fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 600,
+                      border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                      fontSize: 14, color: "var(--c-p800)", outline: "none",
+                      fontFamily: "'Noto Serif SC', sans-serif", fontWeight: 600,
                     }}
                     onKeyDown={e => {
                       if (e.key === "Enter" && editName.trim()) {
@@ -799,16 +837,16 @@ const WordBookPage = ({ userId, onWordTap }) => {
                       setEditingId(null); setEditName("");
                     }
                   }} style={{
-                    width: 30, height: 30, borderRadius: 8, background: C.teal,
+                    width: 30, height: 30, borderRadius: 8, background: "var(--c-teal)",
                     display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                   }}>
                     <Check size={13} strokeWidth={2} color="#fff" />
                   </div>
                   <div onClick={() => { setEditingId(null); setEditName(""); }} style={{
-                    width: 30, height: 30, borderRadius: 8, background: C.surfaceAlt,
+                    width: 30, height: 30, borderRadius: 8, background: "var(--c-surfaceAlt)",
                     display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                   }}>
-                    <X size={13} strokeWidth={IW} color={C.s500} />
+                    <X size={13} strokeWidth={IW} color={"var(--c-s500)"} />
                   </div>
                 </div>
               ) : (
@@ -821,22 +859,22 @@ const WordBookPage = ({ userId, onWordTap }) => {
                       <Folder size={16} strokeWidth={IW} color={folder.color} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{folder.name}</div>
-                      <div style={{ fontSize: 11, color: C.s300, marginTop: 1 }}>{folder.count} {"\u8BCD"}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{folder.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--c-s300)", marginTop: 1 }}>{folder.count} {"\u8BCD"}</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <div onClick={() => { setEditingId(folder.id); setEditName(folder.name); }} style={{
-                      width: 28, height: 28, borderRadius: 7, background: C.surfaceAlt,
+                      width: 28, height: 28, borderRadius: 7, background: "var(--c-surfaceAlt)",
                       display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                     }}>
-                      <Pencil size={12} strokeWidth={IW} color={C.s500} />
+                      <Pencil size={12} strokeWidth={IW} color={"var(--c-s500)"} />
                     </div>
                     <div onClick={() => handleDeleteFolder(folder.id)} style={{
-                      width: 28, height: 28, borderRadius: 7, background: C.surfaceAlt,
+                      width: 28, height: 28, borderRadius: 7, background: "var(--c-surfaceAlt)",
                       display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                     }}>
-                      <Trash2 size={12} strokeWidth={IW} color={C.err} />
+                      <Trash2 size={12} strokeWidth={IW} color={"var(--c-err)"} />
                     </div>
                   </div>
                 </div>
@@ -845,7 +883,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
           ))}
 
           {folders.length === 0 && !showAddFolder && (
-            <div style={{ textAlign: "center", padding: "24px 0", color: C.s400, fontSize: 13 }}>
+            <div style={{ textAlign: "center", padding: "24px 0", color: "var(--c-s400)", fontSize: 13 }}>
               {"\u8FD8\u6CA1\u6709\u6587\u4EF6\u5939\uFF0C\u70B9\u51FB\u201C\u65B0\u5EFA\u201D\u521B\u5EFA\u4E00\u4E2A\u5427"}
             </div>
           )}
@@ -902,41 +940,41 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
   const ReportPopover = ({ items }) => (
     <div style={{
       position: "absolute", top: "100%", right: 0, zIndex: 100,
-      background: C.surface, borderRadius: 12, border: `1px solid ${C.p100}`,
+      background: "var(--c-surface)", borderRadius: 12, border: `1px solid ${"var(--c-p100)"}`,
       boxShadow: "0 4px 16px rgba(61,43,31,0.12)", padding: 12, marginTop: 4,
       minWidth: 220, maxWidth: 300,
     }}>
       {reportStatus === "done" ? (
-        <div style={{ textAlign: "center", padding: "8px 0", color: C.ok, fontSize: 14, fontWeight: 600 }}>
+        <div style={{ textAlign: "center", padding: "8px 0", color: "var(--c-ok)", fontSize: 14, fontWeight: 600 }}>
           {"\u5DF2\u66F4\u6B63 \u2713"}
         </div>
       ) : (
         <>
-          <div style={{ fontSize: 12, color: C.p600, fontWeight: 600, marginBottom: 8 }}>{"\u9009\u62E9\u9519\u8BEF\u9879"}</div>
+          <div style={{ fontSize: 12, color: "var(--c-p600)", fontWeight: 600, marginBottom: 8 }}>{"\u9009\u62E9\u9519\u8BEF\u9879"}</div>
           {items.map((item, idx) => (
             <div key={idx} onClick={() => setReportItem(idx)} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "6px 4px",
-              cursor: "pointer", borderRadius: 6, background: reportItem === idx ? C.p50 : "transparent",
+              cursor: "pointer", borderRadius: 6, background: reportItem === idx ? "var(--c-p50)" : "transparent",
             }}>
               <div style={{
                 width: 16, height: 16, borderRadius: 8,
-                border: `2px solid ${reportItem === idx ? C.teal : C.s300}`,
+                border: `2px solid ${reportItem === idx ? "var(--c-teal)" : "var(--c-s300)"}`,
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
               }}>
-                {reportItem === idx && <div style={{ width: 8, height: 8, borderRadius: 4, background: C.teal }} />}
+                {reportItem === idx && <div style={{ width: 8, height: 8, borderRadius: 4, background: "var(--c-teal)" }} />}
               </div>
-              <span style={{ fontSize: 12, color: C.p700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
+              <span style={{ fontSize: 12, color: "var(--c-p700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
             </div>
           ))}
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <div onClick={() => reportItem !== null && submitReport("ai")} style={{
               flex: 1, padding: "6px 0", borderRadius: 8, textAlign: "center", fontSize: 11, fontWeight: 600,
-              background: reportItem !== null ? C.teal : C.p100, color: reportItem !== null ? "#fff" : C.s300,
+              background: reportItem !== null ? "var(--c-teal)" : "var(--c-p100)", color: reportItem !== null ? "#fff" : "var(--c-s300)",
               cursor: reportItem !== null ? "pointer" : "default",
             }}>{"AI \u66F4\u6B63"}</div>
             <div onClick={() => reportItem !== null && submitReport("api")} style={{
               flex: 1, padding: "6px 0", borderRadius: 8, textAlign: "center", fontSize: 11, fontWeight: 600,
-              background: reportItem !== null ? C.info : C.p100, color: reportItem !== null ? "#fff" : C.s300,
+              background: reportItem !== null ? "var(--c-info)" : "var(--c-p100)", color: reportItem !== null ? "#fff" : "var(--c-s300)",
               cursor: reportItem !== null ? "pointer" : "default",
             }}>{"\u7FFB\u8BD1API \u66F4\u6B63"}</div>
           </div>
@@ -947,30 +985,30 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
 
   /* ── 映射表 ── */
   const sourceMap = {
-    src_words_th: { label: "\u4E3B\u8BCD\u8868", bg: C.infoL, fg: C.info },
-    src_words_thai2fit: { label: "thai2fit", bg: C.s100, fg: C.s700 },
-    src_words_orst: { label: "\u7687\u5BB6\u5B66\u4F1A", bg: C.goldL, fg: C.gold },
-    src_words_volubilis: { label: "Volubilis", bg: C.tealL, fg: C.teal },
+    src_words_th: { label: "\u4E3B\u8BCD\u8868", bg: "var(--c-infoL)", fg: "var(--c-info)" },
+    src_words_thai2fit: { label: "thai2fit", bg: "var(--c-s100)", fg: "var(--c-s700)" },
+    src_words_orst: { label: "\u7687\u5BB6\u5B66\u4F1A", bg: "var(--c-goldL)", fg: "var(--c-gold)" },
+    src_words_volubilis: { label: "Volubilis", bg: "var(--c-tealL)", fg: "var(--c-teal)" },
     src_words_icu: { label: "ICU \u5206\u8BCD", bg: "#E8DEF0", fg: "#7B5EA7" },
-    src_words_wikipedia: { label: "\u7EF4\u57FA\u767E\u79D1", bg: C.errL, fg: C.err },
-    src_words_etcc: { label: "\u5B57\u7B26\u7C07", bg: C.s100, fg: C.s500 },
+    src_words_wikipedia: { label: "\u7EF4\u57FA\u767E\u79D1", bg: "var(--c-errL)", fg: "var(--c-err)" },
+    src_words_etcc: { label: "\u5B57\u7B26\u7C07", bg: "var(--c-s100)", fg: "var(--c-s500)" },
   };
 
   const posColor = (pos) => {
-    if (pos === "\u52A8\u8BCD") return { bg: C.amberL, fg: C.amber };
-    if (pos === "\u540D\u8BCD") return { bg: C.infoL, fg: C.info };
-    if (pos === "\u5F62\u5BB9\u8BCD") return { bg: C.okL, fg: C.ok };
-    if (pos === "\u526F\u8BCD") return { bg: C.roseL, fg: C.rose };
-    return { bg: C.p100, fg: C.p700 };
+    if (pos === "\u52A8\u8BCD") return { bg: "var(--c-amberL)", fg: "var(--c-amber)" };
+    if (pos === "\u540D\u8BCD") return { bg: "var(--c-infoL)", fg: "var(--c-info)" };
+    if (pos === "\u5F62\u5BB9\u8BCD") return { bg: "var(--c-okL)", fg: "var(--c-ok)" };
+    if (pos === "\u526F\u8BCD") return { bg: "var(--c-roseL)", fg: "var(--c-rose)" };
+    return { bg: "var(--c-p100)", fg: "var(--c-p700)" };
   };
 
   const regColor = (reg) => {
-    if (reg === "\u901A\u7528") return { bg: C.s100, fg: C.s700 };
-    if (reg === "\u53E3\u8BED") return { bg: C.amberL, fg: C.amber };
-    if (reg === "\u6B63\u5F0F") return { bg: C.infoL, fg: C.info };
-    if (reg === "\u4FF3\u8BED") return { bg: C.errL, fg: C.err };
+    if (reg === "\u901A\u7528") return { bg: "var(--c-s100)", fg: "var(--c-s700)" };
+    if (reg === "\u53E3\u8BED") return { bg: "var(--c-amberL)", fg: "var(--c-amber)" };
+    if (reg === "\u6B63\u5F0F") return { bg: "var(--c-infoL)", fg: "var(--c-info)" };
+    if (reg === "\u4FF3\u8BED") return { bg: "var(--c-errL)", fg: "var(--c-err)" };
     if (reg === "\u4E66\u9762") return { bg: "#E8DEF0", fg: "#7B5EA7" };
-    return { bg: C.p100, fg: C.p700 };
+    return { bg: "var(--c-p100)", fg: "var(--c-p700)" };
   };
 
   const sourceIcon = (src) => {
@@ -995,18 +1033,19 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
       <Card style={{ padding: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 32, fontWeight: 700, color: C.p900, fontFamily: "'Noto Serif Thai', serif", letterSpacing: "0.02em" }}>
+            <div style={{ fontSize: 32, fontWeight: 700, color: "var(--c-p900)", fontFamily: "'Sarabun', serif", letterSpacing: "0.02em" }}>
               {wd.word}
             </div>
-            <div style={{ fontSize: 15, color: C.teal, fontFamily: "monospace", fontStyle: "italic", marginTop: 4, letterSpacing: "0.02em" }}>
+            <div style={{ fontSize: 15, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", marginTop: 4, letterSpacing: "0.02em" }}>
               {wd.romanization}
-              <span style={{ fontSize: 10, fontStyle: "normal", color: C.s300, marginLeft: 6 }}>
+              <span style={{ fontSize: 10, fontStyle: "normal", color: "var(--c-s300)", marginLeft: 6 }}>
                 {wd.romanization_source === "deepseek" ? "\uD83E\uDD16 AI" : "\uD83D\uDCD6 \u8BCD\u5178"}
               </span>
             </div>
           </div>
-          {/* 右侧：来源标签 + 收藏 */}
+          {/* 右侧：发音 + 来源标签 + 收藏 */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0, marginLeft: 10 }}>
+            <TtsPlay text={wd.word} size={18} />
             <div onClick={() => {
               const next = !bookmarked;
               setBookmarked(next);
@@ -1015,13 +1054,13 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
               }
             }} style={{
               width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
-              background: bookmarked ? C.goldL : C.p50, cursor: "pointer",
+              background: bookmarked ? "var(--c-goldL)" : "var(--c-p50)", cursor: "pointer",
             }}>
-              <Bookmark size={15} strokeWidth={IW} color={bookmarked ? C.gold : C.s500} fill={bookmarked ? C.gold : "none"} />
+              <Bookmark size={15} strokeWidth={IW} color={bookmarked ? "var(--c-gold)" : "var(--c-s500)"} fill={bookmarked ? "var(--c-gold)" : "none"} />
             </div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
               {wd.sources.map((s, i) => {
-                const info = sourceMap[s] || { label: s, bg: C.p100, fg: C.p700 };
+                const info = sourceMap[s] || { label: s, bg: "var(--c-p100)", fg: "var(--c-p700)" };
                 return <Badge key={i} bg={info.bg} fg={info.fg} style={{ fontSize: 9, padding: "1px 6px" }}>{info.label}</Badge>;
               })}
             </div>
@@ -1030,12 +1069,12 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
         {/* 发音 + 义项数 — 简化为一行 */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8, background: C.tealL + "40",
+            width: 32, height: 32, borderRadius: 8, background: "color-mix(in srgb, var(--c-tealL) 25%, transparent)",
             display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
           }}>
-            <Volume2 size={16} strokeWidth={IW} color={C.teal} />
+            <Volume2 size={16} strokeWidth={IW} color={"var(--c-teal)"} />
           </div>
-          <Badge bg={C.surfaceAlt} fg={C.s500}>{wd.sense_count} {"\u4E2A\u4E49\u9879"}</Badge>
+          <Badge bg={"var(--c-surfaceAlt)"} fg={"var(--c-s500)"}>{wd.sense_count} {"\u4E2A\u4E49\u9879"}</Badge>
         </div>
       </Card>
 
@@ -1043,7 +1082,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
       <div style={{ position: "relative" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <SectionTitle>{"\u4E49\u9879"}</SectionTitle>
-          <AlertCircle size={15} strokeWidth={IW} color={reportSection === "sense" ? C.teal : C.s300} style={{ cursor: "pointer" }} onClick={() => openReport("sense")} />
+          <AlertCircle size={15} strokeWidth={IW} color={reportSection === "sense" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("sense")} />
         </div>
         {reportSection === "sense" && (
           <div style={{ position: "relative", marginBottom: 8 }}>
@@ -1056,25 +1095,25 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
             const pc = posColor(sense.pos);
             const rc = regColor(sense.register);
             return (
-              <Card key={sense.sense_id} style={{ padding: 0, overflow: "hidden", border: isExpanded ? `1.5px solid ${C.p200}` : `1px solid ${C.p100}` }}>
+              <Card key={sense.sense_id} style={{ padding: 0, overflow: "hidden", border: isExpanded ? `1.5px solid ${"var(--c-p200)"}` : `1px solid ${"var(--c-p100)"}` }}>
                 {/* 义项头部 */}
                 <div onClick={() => toggleSense(i)} style={{
                   display: "flex", alignItems: "center", gap: 6, padding: "10px 12px",
-                  cursor: "pointer", background: isExpanded ? C.p50 : C.surface,
-                  borderBottom: isExpanded ? `1px solid ${C.p100}` : "none",
+                  cursor: "pointer", background: isExpanded ? "var(--c-p50)" : "var(--c-surface)",
+                  borderBottom: isExpanded ? `1px solid ${"var(--c-p100)"}` : "none",
                 }}>
-                  <span style={{ fontSize: 15, color: C.p600, fontWeight: 700, flexShrink: 0 }}>{senseNums[i]}</span>
+                  <span style={{ fontSize: 15, color: "var(--c-p600)", fontWeight: 700, flexShrink: 0 }}>{senseNums[i]}</span>
                   <Badge bg={pc.bg} fg={pc.fg} style={{ fontSize: 10 }}>{sense.pos}</Badge>
                   <Badge bg={rc.bg} fg={rc.fg} style={{ fontSize: 10 }}>{sense.register}</Badge>
                   <span style={{ fontSize: 10, flexShrink: 0 }}>{sourceIcon(sense.source)}</span>
                   <div style={{ flex: 1 }} />
-                  <ChevronRight size={14} strokeWidth={IW} color={C.s300} style={{
+                  <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} style={{
                     transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0,
                   }} />
                 </div>
                 {isExpanded && (
                   <div style={{ padding: "12px" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: C.p800, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", lineHeight: 1.5 }}>
                       {sense.meaning}
                     </div>
                     {/* 例句卡片 — with segmentation */}
@@ -1083,7 +1122,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                         {sense.examples.map((ex, j) => {
                           const segTokens = sense.segmented && sense.segmented[j] ? sense.segmented[j] : null;
                           return (
-                            <div key={j} style={{ padding: "8px 12px", borderRadius: 8, background: C.surfaceAlt }}>
+                            <div key={j} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--c-surfaceAlt)" }}>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
                                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0 }}>
                                   {segTokens ? segTokens.map((tok, ti) => (
@@ -1095,17 +1134,17 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                                         setWordPopover(isOpen ? null : { senseIdx: i, exIdx: j, tokenIdx: ti });
                                       }}
                                       style={{
-                                        fontSize: 13, color: C.teal, fontWeight: 500,
-                                        fontFamily: "'Noto Sans Thai', sans-serif",
-                                        borderBottom: `1px dashed ${C.teal}`,
+                                        fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
+                                        fontFamily: "'Sarabun', sans-serif",
+                                        borderBottom: `1px dashed ${"var(--c-teal)"}`,
                                         cursor: "pointer", padding: "0 2px", lineHeight: 1.8,
                                       }}
                                     >{tok.text}</span>
                                   )) : (
-                                    <span style={{ fontSize: 13, color: C.teal, fontWeight: 500, fontFamily: "'Noto Sans Thai', sans-serif" }}>{ex.th}</span>
+                                    <span style={{ fontSize: 13, color: "var(--c-teal)", fontWeight: 500, fontFamily: "'Sarabun', sans-serif" }}>{ex.th}</span>
                                   )}
                                 </div>
-                                <Play size={12} strokeWidth={IW} color={C.p500} style={{ cursor: "pointer", flexShrink: 0, marginLeft: 6 }} />
+                                <TtsPlay text={ex.th} />
                                 {/* Word token popover */}
                                 {wordPopover && wordPopover.senseIdx === i && wordPopover.exIdx === j && (() => {
                                   const tok = segTokens ? segTokens[wordPopover.tokenIdx] : null;
@@ -1113,24 +1152,24 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                                   return (
                                     <div style={{
                                       position: "absolute", top: "100%", left: Math.min(wordPopover.tokenIdx * 48, 200),
-                                      zIndex: 100, background: C.surface, borderRadius: 8,
-                                      border: `1px solid ${C.p100}`, boxShadow: "0 2px 10px rgba(61,43,31,0.12)",
+                                      zIndex: 100, background: "var(--c-surface)", borderRadius: 8,
+                                      border: `1px solid ${"var(--c-p100)"}`, boxShadow: "0 2px 10px rgba(61,43,31,0.12)",
                                       padding: "6px 10px", marginTop: 2, whiteSpace: "nowrap",
                                     }}>
                                       {tok.pos && tok.meaning ? (
-                                        <span style={{ fontSize: 11, color: C.p700 }}>
-                                          <span style={{ color: C.teal, fontWeight: 600 }}>{tok.pos}</span>
+                                        <span style={{ fontSize: 11, color: "var(--c-p700)" }}>
+                                          <span style={{ color: "var(--c-teal)", fontWeight: 600 }}>{tok.pos}</span>
                                           {" \u00B7 "}
                                           {tok.meaning}
                                         </span>
                                       ) : (
-                                        <span style={{ fontSize: 11, color: C.teal, cursor: "pointer", fontWeight: 600 }}>{"AI \u641C\u7D22"}</span>
+                                        <span style={{ fontSize: 11, color: "var(--c-teal)", cursor: "pointer", fontWeight: 600 }}>{"AI \u641C\u7D22"}</span>
                                       )}
                                     </div>
                                   );
                                 })()}
                               </div>
-                              <div style={{ fontSize: 12, color: C.p700, marginTop: 3 }}>{ex.zh}</div>
+                              <div style={{ fontSize: 12, color: "var(--c-p700)", marginTop: 3 }}>{ex.zh}</div>
                             </div>
                           );
                         })}
@@ -1149,33 +1188,33 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
         <Card style={{ padding: 12 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <SectionTitle>{"\u8BCD\u9891"}</SectionTitle>
-            <AlertCircle size={15} strokeWidth={IW} color={reportSection === "freq" ? C.teal : C.s300} style={{ cursor: "pointer" }} onClick={() => openReport("freq")} />
+            <AlertCircle size={15} strokeWidth={IW} color={reportSection === "freq" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("freq")} />
           </div>
           {reportSection === "freq" && (
             <div style={{ position: "relative", marginBottom: 8 }}>
               <ReportPopover items={freqEntries.map(f => `${f.label}: ${f.value ? f.value.toLocaleString() : "\u2014"}`)} />
             </div>
           )}
-          <div style={{ display: "flex", gap: 5, marginBottom: 10, background: C.surfaceAlt, borderRadius: 8, padding: 2 }}>
+          <div style={{ display: "flex", gap: 5, marginBottom: 10, background: "var(--c-surfaceAlt)", borderRadius: 8, padding: 2 }}>
             {freqEntries.map(f => (
               <div key={f.key} onClick={() => setFreqTab(f.key)} style={{
                 flex: 1, padding: "5px 0", borderRadius: 6, textAlign: "center",
-                background: freqTab === f.key ? C.surface : "transparent",
-                color: freqTab === f.key ? C.p800 : C.s500,
+                background: freqTab === f.key ? "var(--c-surface)" : "transparent",
+                color: freqTab === f.key ? "var(--c-p800)" : "var(--c-s500)",
                 fontSize: 11, fontWeight: freqTab === f.key ? 600 : 400,
                 boxShadow: freqTab === f.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-                cursor: "pointer", fontFamily: "'Noto Sans SC', sans-serif",
+                cursor: "pointer", fontFamily: "'Noto Serif SC', sans-serif",
               }}>{f.label}</div>
             ))}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
-            <span style={{ fontSize: 22, fontWeight: 700, color: C.p800, fontFamily: "monospace" }}>
+            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--c-p800)", fontFamily: "monospace" }}>
               {activeFreq.value ? activeFreq.value.toLocaleString() : "\u2014"}
             </span>
-            <span style={{ fontSize: 10, color: C.s300 }}>/{activeFreq.total.toLocaleString()}</span>
+            <span style={{ fontSize: 10, color: "var(--c-s300)" }}>/{activeFreq.total.toLocaleString()}</span>
           </div>
-          <ProgressBar value={activeFreq.value || 0} max={activeFreq.total} color={C.teal} height={5} />
-          <div style={{ fontSize: 10, color: C.s300, marginTop: 4, textAlign: "right" }}>
+          <ProgressBar value={activeFreq.value || 0} max={activeFreq.total} color={"var(--c-teal)"} height={5} />
+          <div style={{ fontSize: 10, color: "var(--c-s300)", marginTop: 4, textAlign: "right" }}>
             {freqTab === "ttc" ? "\u6559\u79D1\u4E66\u8BCD\u9891\uFF08\u5B66\u4E60\u8005\u6700\u76F8\u5173\uFF09" : freqTab === "tnc" ? "\u6CF0\u56FD\u56FD\u5BB6\u8BED\u5E93" : "\u7F51\u7EDC\u8BED\u6599\u5E93"}
           </div>
         </Card>
@@ -1187,7 +1226,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
           <Card style={{ padding: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <SectionTitle>{"\u8FD1\u4E49/\u53CD\u4E49"}</SectionTitle>
-              <AlertCircle size={15} strokeWidth={IW} color={reportSection === "syn" ? C.teal : C.s300} style={{ cursor: "pointer" }} onClick={() => openReport("syn")} />
+              <AlertCircle size={15} strokeWidth={IW} color={reportSection === "syn" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("syn")} />
             </div>
             {reportSection === "syn" && (
               <div style={{ position: "relative", marginBottom: 8 }}>
@@ -1199,16 +1238,16 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
             )}
             {wd.synonyms.length > 0 && (
               <div style={{ marginBottom: wd.antonyms.length > 0 ? 12 : 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: C.p700, marginBottom: 8 }}>{"\u8FD1\u4E49\u8BCD"}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-p700)", marginBottom: 8 }}>{"\u8FD1\u4E49\u8BCD"}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {wd.synonyms.map((w, i) => (
                     <div key={i} onClick={() => onWordTap && onWordTap(w.word)} style={{
-                      padding: "5px 12px", borderRadius: 20, background: C.tealL + "40",
-                      border: `1px solid ${C.tealL}`, fontSize: 13, color: C.teal, fontWeight: 500,
-                      fontFamily: "'Noto Sans Thai', sans-serif", cursor: "pointer",
+                      padding: "5px 12px", borderRadius: 20, background: "color-mix(in srgb, var(--c-tealL) 25%, transparent)",
+                      border: `1px solid ${"var(--c-tealL)"}`, fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
+                      fontFamily: "'Sarabun', sans-serif", cursor: "pointer",
                     }}>
                       {w.word}
-                      <span style={{ fontSize: 11, color: C.s500, fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
+                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
                     </div>
                   ))}
                 </div>
@@ -1216,16 +1255,16 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
             )}
             {wd.antonyms.length > 0 && (
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: C.p700, marginBottom: 8 }}>{"\u53CD\u4E49\u8BCD"}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-p700)", marginBottom: 8 }}>{"\u53CD\u4E49\u8BCD"}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {wd.antonyms.map((w, i) => (
                     <div key={i} onClick={() => onWordTap && onWordTap(w.word)} style={{
-                      padding: "5px 12px", borderRadius: 20, background: C.roseL + "40",
-                      border: `1px solid ${C.roseL}`, fontSize: 13, color: C.rose, fontWeight: 500,
-                      fontFamily: "'Noto Sans Thai', sans-serif", cursor: "pointer",
+                      padding: "5px 12px", borderRadius: 20, background: "color-mix(in srgb, var(--c-roseL) 25%, transparent)",
+                      border: `1px solid ${"var(--c-roseL)"}`, fontSize: 13, color: "var(--c-rose)", fontWeight: 500,
+                      fontFamily: "'Sarabun', sans-serif", cursor: "pointer",
                     }}>
                       {w.word}
-                      <span style={{ fontSize: 11, color: C.s500, fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
+                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
                     </div>
                   ))}
                 </div>
@@ -1240,7 +1279,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
         <div style={{ position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <SectionTitle>{"\u5173\u8054\u8BCD\u6C47"}</SectionTitle>
-            <AlertCircle size={15} strokeWidth={IW} color={reportSection === "assoc" ? C.teal : C.s300} style={{ cursor: "pointer" }} onClick={() => openReport("assoc")} />
+            <AlertCircle size={15} strokeWidth={IW} color={reportSection === "assoc" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("assoc")} />
           </div>
           {reportSection === "assoc" && (
             <div style={{ position: "relative", marginBottom: 8 }}>
@@ -1255,17 +1294,17 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                   cursor: "pointer",
                 }}>
                   <div style={{
-                    fontSize: 15, fontWeight: 700, color: C.p800,
-                    fontFamily: "'Noto Sans Thai', sans-serif", flexShrink: 0, minWidth: 60,
+                    fontSize: 15, fontWeight: 700, color: "var(--c-p800)",
+                    fontFamily: "'Sarabun', sans-serif", flexShrink: 0, minWidth: 60,
                   }}>{item.word}</div>
                   <div style={{
-                    flex: 1, minWidth: 0, fontSize: 12, color: C.p600, lineHeight: 1.4,
+                    flex: 1, minWidth: 0, fontSize: 12, color: "var(--c-p600)", lineHeight: 1.4,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>{item.note}</div>
-                  <ChevronRight size={13} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0 }} />
+                  <ChevronRight size={13} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0 }} />
                 </div>
                 {i < wd.learner_associations.length - 1 && (
-                  <div style={{ margin: "0 16px", borderBottom: `1px solid ${C.p100}` }} />
+                  <div style={{ margin: "0 16px", borderBottom: `1px solid ${"var(--c-p100)"}` }} />
                 )}
               </div>
             ))}
@@ -1278,12 +1317,12 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
         <Card style={{ padding: 12 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <FileText size={14} strokeWidth={IW} color={C.p500} />
-              <span style={{ fontSize: 12, color: C.p700 }}>
+              <FileText size={14} strokeWidth={IW} color={"var(--c-p500)"} />
+              <span style={{ fontSize: 12, color: "var(--c-p700)" }}>
                 {"\u7528\u6237\u8D21\u732E\u4E86"} {wd.user_sentence_count} {"\u6761\u4F8B\u53E5"}
               </span>
             </div>
-            <span style={{ fontSize: 11, color: C.p500, cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
+            <span style={{ fontSize: 11, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
               {"\u67E5\u770B"} <ChevronRight size={13} strokeWidth={IW} />
             </span>
           </div>
@@ -1316,16 +1355,16 @@ const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 16px" }}>
       <Card style={{ padding: 14, textAlign: "center" }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>{"\uD83D\uDD0D"}</div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: C.p800, marginBottom: 4 }}>{"\u672A\u627E\u5230\u8BE5\u8BCD"}</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: C.teal, fontFamily: "'Noto Sans Thai', sans-serif", marginBottom: 4 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", marginBottom: 4 }}>{"\u672A\u627E\u5230\u8BE5\u8BCD"}</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif", marginBottom: 4 }}>
           {word}
         </div>
-        <div style={{ fontSize: 12, color: C.s500, marginBottom: 16 }}>{"\u8BCD\u5E93\u4E2D\u6682\u65E0\u6B64\u8BCD\u6761"}</div>
+        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 16 }}>{"\u8BCD\u5E93\u4E2D\u6682\u65E0\u6B64\u8BCD\u6761"}</div>
         <div onClick={!generating ? handleGenerate : undefined} style={{
           display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
           padding: "10px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
-          background: generating ? C.p100 : C.teal, color: generating ? C.s500 : "#fff",
-          cursor: generating ? "default" : "pointer", fontFamily: "'Noto Sans SC', sans-serif",
+          background: generating ? "var(--c-p100)" : "var(--c-teal)", color: generating ? "var(--c-s500)" : "#fff",
+          cursor: generating ? "default" : "pointer", fontFamily: "'Noto Serif SC', sans-serif",
         }}>
           {generating ? (
             <span>{"\u751F\u6210\u4E2D..."}</span>
@@ -1370,10 +1409,10 @@ const LearnPage = ({ userId, onWordTap }) => {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         <div style={{ padding: "4px 16px 6px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          <div onClick={info.onBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: C.p100, flexShrink: 0 }}>
-            <ChevronLeft size={18} strokeWidth={IW} color={C.p700} />
+          <div onClick={info.onBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{info.title}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{info.title}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           {section === "adjustPlan" && <AdjustPlanSection onBack={info.onBack} userId={userId} />}
@@ -1394,45 +1433,45 @@ const LearnPage = ({ userId, onWordTap }) => {
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u8BA1\u5212"}</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u8BA1\u5212"}</h2>
           </div>
-          <span onClick={() => setSection("adjustPlan")} style={{ fontSize: 12, color: C.p500, cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
+          <span onClick={() => setSection("adjustPlan")} style={{ fontSize: 12, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
             {"\u8C03\u6574\u8BA1\u5212"} <ChevronRight size={14} strokeWidth={IW} />
           </span>
         </div>
         <Card style={{ padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Calendar size={14} strokeWidth={IW} color={C.s500} />
-              <span style={{ fontSize: 13, color: C.s500, fontWeight: 500 }}>{"\u4ECA\u65E5\u4EFB\u52A1"}</span>
+              <Calendar size={14} strokeWidth={IW} color={"var(--c-s500)"} />
+              <span style={{ fontSize: 13, color: "var(--c-s500)", fontWeight: 500 }}>{"\u4ECA\u65E5\u4EFB\u52A1"}</span>
             </div>
-            <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>2/4 {"\u5DF2\u5B8C\u6210"}</span>
+            <span style={{ fontSize: 12, color: "var(--c-teal)", fontWeight: 600 }}>2/4 {"\u5DF2\u5B8C\u6210"}</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[
-              { icon: Target, text: "\u590D\u4E60 20 \u4E2A\u65E7\u8BCD", done: true, color: C.teal },
-              { icon: BookOpen, text: "\u5B66\u4E60 10 \u4E2A\u65B0\u8BCD", done: true, color: C.rose },
-              { icon: BookOpen, text: "\u5B8C\u6210 1 \u7BC7\u9605\u8BFB\u7406\u89E3", done: false, color: C.gold },
-              { icon: PenTool, text: "\u5B8C\u6210 5 \u9053\u9020\u53E5\u7EC3\u4E60", done: false, color: C.amber },
+              { icon: Target, text: "\u590D\u4E60 20 \u4E2A\u65E7\u8BCD", done: true, color: "var(--c-teal)" },
+              { icon: BookOpen, text: "\u5B66\u4E60 10 \u4E2A\u65B0\u8BCD", done: true, color: "var(--c-rose)" },
+              { icon: BookOpen, text: "\u5B8C\u6210 1 \u7BC7\u9605\u8BFB\u7406\u89E3", done: false, color: "var(--c-gold)" },
+              { icon: PenTool, text: "\u5B8C\u6210 5 \u9053\u9020\u53E5\u7EC3\u4E60", done: false, color: "var(--c-amber)" },
             ].map((task, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "10px 12px", borderRadius: 10,
-                background: task.done ? C.okL + "30" : C.surfaceAlt,
-                border: `1px solid ${task.done ? C.ok + "30" : C.p100}`,
+                background: task.done ? "color-mix(in srgb, var(--c-okL) 19%, transparent)" : "var(--c-surfaceAlt)",
+                border: `1px solid ${task.done ? "color-mix(in srgb, var(--c-ok) 19%, transparent)" : "var(--c-p100)"}`,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                   <div style={{
                     width: 22, height: 22, borderRadius: "50%",
-                    background: task.done ? C.ok : "transparent",
-                    border: task.done ? "none" : `1.5px solid ${C.p200}`,
+                    background: task.done ? "var(--c-ok)" : "transparent",
+                    border: task.done ? "none" : `1.5px solid ${"var(--c-p200)"}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
                     {task.done && <Check size={13} strokeWidth={2} color="#fff" />}
                   </div>
-                  <task.icon size={15} strokeWidth={IW} color={task.done ? C.ok : task.color} />
+                  <task.icon size={15} strokeWidth={IW} color={task.done ? "var(--c-ok)" : task.color} />
                   <span style={{
-                    fontSize: 13, color: task.done ? C.s300 : C.p800,
+                    fontSize: 13, color: task.done ? "var(--c-s300)" : "var(--c-p800)",
                     fontWeight: 500, textDecoration: task.done ? "line-through" : "none",
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0,
                   }}>{task.text}</span>
@@ -1442,10 +1481,10 @@ const LearnPage = ({ userId, onWordTap }) => {
           </div>
           <div style={{ marginTop: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontSize: 11, color: C.s500 }}>{"\u4ECA\u65E5\u8FDB\u5EA6"}</span>
-              <span style={{ fontSize: 11, color: C.teal, fontWeight: 600 }}>50%</span>
+              <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u4ECA\u65E5\u8FDB\u5EA6"}</span>
+              <span style={{ fontSize: 11, color: "var(--c-teal)", fontWeight: 600 }}>50%</span>
             </div>
-            <ProgressBar value={2} max={4} color={C.teal} height={6} />
+            <ProgressBar value={2} max={4} color={"var(--c-teal)"} height={6} />
           </div>
         </Card>
       </div>
@@ -1459,8 +1498,8 @@ const LearnPage = ({ userId, onWordTap }) => {
               <div style={{ width: 38, height: 38, borderRadius: 10, background: `${ex.color}15`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
                 <ex.icon size={18} strokeWidth={IW} color={ex.color} />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{ex.name}</div>
-              <div style={{ fontSize: 11, color: C.s500, marginTop: 2 }}>{ex.count}{"\u9898"}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{ex.name}</div>
+              <div style={{ fontSize: 11, color: "var(--c-s500)", marginTop: 2 }}>{ex.count}{"\u9898"}</div>
             </Card>
           ))}
         </div>
@@ -1470,25 +1509,25 @@ const LearnPage = ({ userId, onWordTap }) => {
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
           </div>
-          <span style={{ fontSize: 12, color: C.p500, cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
+          <span style={{ fontSize: 12, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
             {"\u5168\u90E8"} <ChevronRight size={14} strokeWidth={IW} />
           </span>
         </div>
 
         {/* AI Summary Card */}
-        <Card style={{ padding: 18, marginBottom: 10, background: `linear-gradient(135deg, ${C.info}08, ${C.teal}08)`, border: `1px solid ${C.info}20` }}>
+        <Card style={{ padding: 18, marginBottom: 10, background: `linear-gradient(135deg, ${`color-mix(in srgb, var(--c-info) 3%, transparent)`}, ${`color-mix(in srgb, var(--c-teal) 3%, transparent)`})`, border: `1px solid ${`color-mix(in srgb, var(--c-info) 13%, transparent)`}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${C.info}, ${C.teal})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${"var(--c-info)"}, ${"var(--c-teal)"})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Sparkles size={16} strokeWidth={IW} color="#fff" />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>AI{"\u667A\u80FD\u603B\u7ED3"}</div>
-              <div style={{ fontSize: 11, color: C.s500 }}>{"\u57FA\u4E8E\u4F60\u7684\u5B66\u4E60\u8BB0\u5F55\u81EA\u52A8\u751F\u6210"}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>AI{"\u667A\u80FD\u603B\u7ED3"}</div>
+              <div style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u57FA\u4E8E\u4F60\u7684\u5B66\u4E60\u8BB0\u5F55\u81EA\u52A8\u751F\u6210"}</div>
             </div>
           </div>
-          <div style={{ fontSize: 13, color: C.p700, lineHeight: 1.7, wordBreak: "break-word" }}>
+          <div style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.7, wordBreak: "break-word" }}>
             {"\u672C\u5468\u4F60\u5B66\u4E60\u4E86 186 \u4E2A\u65B0\u8BCD\uFF0C\u91CD\u70B9\u638C\u63E1\u4E86\u65E5\u5E38\u5BF9\u8BDD\u548C\u98DF\u7269\u7C7B\u8BCD\u6C47\u3002\u5EFA\u8BAE\u52A0\u5F3A\u52A8\u8BCD\u65F6\u6001\u53D8\u5316\u7684\u7EC3\u4E60\uFF0C\u5C1D\u8BD5\u7528\u65B0\u8BCD\u9020\u53E5\u6765\u52A0\u6DF1\u8BB0\u5FC6\u3002"}
           </div>
         </Card>
@@ -1497,22 +1536,22 @@ const LearnPage = ({ userId, onWordTap }) => {
         <div onClick={() => { setNoteEditorFrom("main"); setSection("noteEditor"); }} style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           padding: "12px 0", marginBottom: 10, borderRadius: 12,
-          border: `1.5px dashed ${C.p300}`, background: C.surface,
+          border: `1.5px dashed ${"var(--c-p300)"}`, background: "var(--c-surface)",
           cursor: "pointer", transition: "all 0.2s",
         }}>
-          <Plus size={15} strokeWidth={IW} color={C.p500} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: C.p500 }}>{"\u6DFB\u52A0\u65B0\u7B14\u8BB0"}</span>
+          <Plus size={15} strokeWidth={IW} color={"var(--c-p500)"} />
+          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--c-p500)" }}>{"\u6DFB\u52A0\u65B0\u7B14\u8BB0"}</span>
         </div>
 
         {/* Note entries - scrollable with fade */}
         <div style={{ position: "relative" }}>
           <div style={{ maxHeight: 280, overflow: "hidden", display: "flex", flexDirection: "column", gap: 8 }}>
             {(notesData.length > 0 ? notesData : [
-              { title: "\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0", created_at: null, content: "\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u901A\u8FC7\u52A9\u8BCD\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5...", color: C.info },
-              { title: "\u98DF\u7269\u7C7B\u8BCD\u6C47\u6574\u7406", created_at: null, content: "\u6CF0\u56FD\u5E38\u89C1\u98DF\u7269\u8BCD\u6C47\u6C47\u603B\uFF0C\u5305\u62EC\u6C34\u679C\u3001\u5C0F\u5403\u3001\u4E3B\u98DF\u7B49\u5206\u7C7B...", color: C.amber },
-              { title: "\u65E5\u5E38\u95EE\u5019\u8BED\u5BF9\u6BD4", created_at: null, content: "\u6CF0\u8BED\u95EE\u5019\u8BED\u4E0E\u4E2D\u6587\u7684\u5BF9\u6BD4\u5206\u6790\uFF0C\u6CE8\u610F\u6587\u5316\u5DEE\u5F02\u548C\u8BED\u5883\u7528\u6CD5...", color: C.teal },
+              { title: "\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0", created_at: null, content: "\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u901A\u8FC7\u52A9\u8BCD\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5...", color: "var(--c-info)" },
+              { title: "\u98DF\u7269\u7C7B\u8BCD\u6C47\u6574\u7406", created_at: null, content: "\u6CF0\u56FD\u5E38\u89C1\u98DF\u7269\u8BCD\u6C47\u6C47\u603B\uFF0C\u5305\u62EC\u6C34\u679C\u3001\u5C0F\u5403\u3001\u4E3B\u98DF\u7B49\u5206\u7C7B...", color: "var(--c-amber)" },
+              { title: "\u65E5\u5E38\u95EE\u5019\u8BED\u5BF9\u6BD4", created_at: null, content: "\u6CF0\u8BED\u95EE\u5019\u8BED\u4E0E\u4E2D\u6587\u7684\u5BF9\u6BD4\u5206\u6790\uFF0C\u6CE8\u610F\u6587\u5316\u5DEE\u5F02\u548C\u8BED\u5883\u7528\u6CD5...", color: "var(--c-teal)" },
             ]).map((note, i) => {
-              const noteColor = note.color && note.color.startsWith("#") ? note.color : (note.color || [C.info, C.amber, C.teal, C.rose, C.gold][i % 5]);
+              const noteColor = note.color && note.color.startsWith("#") ? note.color : (note.color || ["var(--c-info)", "var(--c-amber)", "var(--c-teal)", "var(--c-rose)", "var(--c-gold)"][i % 5]);
               const dateStr = note.created_at ? (() => {
                 const diff = Math.floor((Date.now() - new Date(note.created_at).getTime()) / 86400000);
                 if (diff === 0) return "\u4ECA\u5929";
@@ -1526,11 +1565,11 @@ const LearnPage = ({ userId, onWordTap }) => {
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <div style={{ width: 4, height: 48, borderRadius: 2, background: noteColor, flexShrink: 0, marginTop: 2 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{note.title}</div>
-                    {dateStr && <div style={{ fontSize: 11, color: C.s300, marginTop: 2 }}>{dateStr}</div>}
-                    <div style={{ fontSize: 12, color: C.s500, marginTop: 6, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.content}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{note.title}</div>
+                    {dateStr && <div style={{ fontSize: 11, color: "var(--c-s300)", marginTop: 2 }}>{dateStr}</div>}
+                    <div style={{ fontSize: 12, color: "var(--c-s500)", marginTop: 6, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.content}</div>
                   </div>
-                  <ChevronRight size={14} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0, marginTop: 4 }} />
+                  <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0, marginTop: 4 }} />
                 </div>
               </Card>
               );
@@ -1539,7 +1578,7 @@ const LearnPage = ({ userId, onWordTap }) => {
           {/* Gradient fade overlay */}
           <div style={{
             position: "absolute", bottom: 0, left: 0, right: 0, height: 60,
-            background: `linear-gradient(transparent, ${C.bg})`,
+            background: `linear-gradient(transparent, ${"var(--c-bg)"})`,
             pointerEvents: "none",
           }} />
         </div>
@@ -1557,16 +1596,16 @@ const LearnPage = ({ userId, onWordTap }) => {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: C.surface, maxWidth: 320, width: "90%",
+            background: "var(--c-surface)", maxWidth: 320, width: "90%",
             borderRadius: 16, padding: 24,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${C.info}, ${C.teal})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${"var(--c-info)"}, ${"var(--c-teal)"})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Sparkles size={16} strokeWidth={IW} color="#fff" />
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: C.p800, margin: 0 }}>{"AI \u5B66\u4E60\u7B14\u8BB0"}</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0 }}>{"AI \u5B66\u4E60\u7B14\u8BB0"}</h3>
             </div>
-            <p style={{ fontSize: 13, color: C.p700, lineHeight: 1.7, margin: "0 0 20px" }}>
+            <p style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.7, margin: "0 0 20px" }}>
               {"AI\u4F1A\u6839\u636E\u4F60\u7684\u5B66\u4E60\u8BB0\u5F55\u81EA\u52A8\u751F\u6210\u7B14\u8BB0\u603B\u7ED3\uFF0C\u5E2E\u52A9\u4F60\u68B3\u7406\u77E5\u8BC6\u8981\u70B9\u3002\u4F60\u53EF\u4EE5\u5728\u6B64\u57FA\u7840\u4E0A\u6DFB\u52A0\u81EA\u5DF1\u7684\u7B14\u8BB0\u3002"}
             </p>
             <Btn variant="primary" onClick={() => setShowAiInfo(false)} style={{ width: "100%" }}>
@@ -1582,27 +1621,27 @@ const LearnPage = ({ userId, onWordTap }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <Card style={{ padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }} onClick={() => setSection("phrases")}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: `${C.gold}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Globe size={18} strokeWidth={IW} color={C.gold} />
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: `${`color-mix(in srgb, var(--c-gold) 8%, transparent)`}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Globe size={18} strokeWidth={IW} color={"var(--c-gold)"} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.p800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u5E38\u7528\u8BED"}</div>
-                <div style={{ fontSize: 11, color: C.s500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u4FD7\u8BED\u3001\u4F5B\u6559\u7528\u8BED\u4E0E\u65E5\u5E38\u8868\u8FBE"}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u5E38\u7528\u8BED"}</div>
+                <div style={{ fontSize: 11, color: "var(--c-s500)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u4FD7\u8BED\u3001\u4F5B\u6559\u7528\u8BED\u4E0E\u65E5\u5E38\u8868\u8FBE"}</div>
               </div>
             </div>
-            <ChevronRight size={16} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0 }} />
+            <ChevronRight size={16} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0 }} />
           </Card>
           <Card style={{ padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }} onClick={() => setSection("stats")}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: `${C.teal}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <BarChart3 size={18} strokeWidth={IW} color={C.teal} />
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: `${`color-mix(in srgb, var(--c-teal) 8%, transparent)`}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <BarChart3 size={18} strokeWidth={IW} color={"var(--c-teal)"} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.p800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u5B66\u4E60\u7EDF\u8BA1"}</div>
-                <div style={{ fontSize: 11, color: C.s500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u6253\u5361\u8BB0\u5F55\u3001\u8BCD\u6C47\u589E\u957F\u4E0E\u5B66\u4E60\u62A5\u544A"}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u5B66\u4E60\u7EDF\u8BA1"}</div>
+                <div style={{ fontSize: 11, color: "var(--c-s500)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u6253\u5361\u8BB0\u5F55\u3001\u8BCD\u6C47\u589E\u957F\u4E0E\u5B66\u4E60\u62A5\u544A"}</div>
               </div>
             </div>
-            <ChevronRight size={16} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0 }} />
+            <ChevronRight size={16} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0 }} />
           </Card>
         </div>
       </div>
@@ -1640,9 +1679,9 @@ const AdjustPlanSection = ({ onBack, userId }) => {
   };
 
   const subjects = [
-    { key: "words", label: "\u5355\u8BCD", goalLabel: "\u76EE\u6807\u8BCD\u6C47\u91CF", unit: "\u8BCD/\u5929", icon: BookOpen, color: C.teal, min: 5, max: 100, step: 5 },
-    { key: "grammar", label: "\u8BED\u6CD5", goalLabel: "\u76EE\u6807\u8BED\u6CD5\u91CF", unit: "\u6761/\u5929", icon: PenTool, color: C.gold, min: 2, max: 50, step: 2 },
-    { key: "reading", label: "\u9605\u8BFB", goalLabel: "\u76EE\u6807\u9605\u8BFB\u91CF", unit: "\u7BC7/\u5929", icon: FileText, color: C.rose, min: 1, max: 20, step: 1 },
+    { key: "words", label: "\u5355\u8BCD", goalLabel: "\u76EE\u6807\u8BCD\u6C47\u91CF", unit: "\u8BCD/\u5929", icon: BookOpen, color: "var(--c-teal)", min: 5, max: 100, step: 5 },
+    { key: "grammar", label: "\u8BED\u6CD5", goalLabel: "\u76EE\u6807\u8BED\u6CD5\u91CF", unit: "\u6761/\u5929", icon: PenTool, color: "var(--c-gold)", min: 2, max: 50, step: 2 },
+    { key: "reading", label: "\u9605\u8BFB", goalLabel: "\u76EE\u6807\u9605\u8BFB\u91CF", unit: "\u7BC7/\u5929", icon: FileText, color: "var(--c-rose)", min: 1, max: 20, step: 1 },
   ];
 
   const SubjectCard = ({ s }) => {
@@ -1655,57 +1694,57 @@ const AdjustPlanSection = ({ onBack, userId }) => {
           <div style={{ width: 30, height: 30, borderRadius: 8, background: `${s.color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <s.icon size={15} strokeWidth={IW} color={s.color} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 600, color: C.p800 }}>{s.label}</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--c-p800)" }}>{s.label}</span>
         </div>
         {/* Study time */}
-        <div style={{ fontSize: 12, color: C.s500, marginBottom: 8 }}>{"\u5B66\u4E60\u65F6\u957F"}</div>
+        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 8 }}>{"\u5B66\u4E60\u65F6\u957F"}</div>
         <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
           {["15", "30"].map(m => (
             <button key={m} onClick={() => setTimes(p => ({ ...p, [s.key]: m }))} style={{
               flex: 1, padding: "7px 0", borderRadius: 8,
-              border: time === m ? `1.5px solid ${s.color}` : `1px solid ${C.p200}`,
-              background: time === m ? s.color + "12" : C.surface,
-              color: time === m ? C.p800 : C.s500,
+              border: time === m ? `1.5px solid ${s.color}` : `1px solid ${"var(--c-p200)"}`,
+              background: time === m ? s.color + "12" : "var(--c-surface)",
+              color: time === m ? "var(--c-p800)" : "var(--c-s500)",
               fontSize: 12, fontWeight: time === m ? 600 : 400,
-              cursor: "pointer", fontFamily: "'Noto Sans SC', sans-serif",
+              cursor: "pointer", fontFamily: "'Noto Serif SC', sans-serif",
             }}>{m}{"\u5206\u949F"}</button>
           ))}
           <button onClick={() => { setCustomFor(s.key); setCustomMin(""); }} style={{
             flex: 1, padding: "7px 0", borderRadius: 8,
-            border: (time !== "15" && time !== "30") ? `1.5px solid ${s.color}` : `1px solid ${C.p200}`,
-            background: (time !== "15" && time !== "30") ? s.color + "12" : C.surface,
-            color: (time !== "15" && time !== "30") ? C.p800 : C.s500,
+            border: (time !== "15" && time !== "30") ? `1.5px solid ${s.color}` : `1px solid ${"var(--c-p200)"}`,
+            background: (time !== "15" && time !== "30") ? s.color + "12" : "var(--c-surface)",
+            color: (time !== "15" && time !== "30") ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 12, fontWeight: (time !== "15" && time !== "30") ? 600 : 400,
-            cursor: "pointer", fontFamily: "'Noto Sans SC', sans-serif",
+            cursor: "pointer", fontFamily: "'Noto Serif SC', sans-serif",
           }}>
             {(time !== "15" && time !== "30") ? `${time}\u5206\u949F` : "\u81EA\u5B9A\u4E49"}
           </button>
         </div>
         {/* Goal compact */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
-          <span style={{ fontSize: 13, color: C.s500 }}>{s.goalLabel}{"\uFF1A"}</span>
+          <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{s.goalLabel}{"\uFF1A"}</span>
           <span style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{goal}</span>
-          <span style={{ fontSize: 11, color: C.s300 }}>{s.unit}</span>
+          <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{s.unit}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 9, color: C.s300 }}>{s.min}</span>
-          <div style={{ flex: 1, height: 5, borderRadius: 3, background: C.p100, overflow: "hidden" }}>
+          <span style={{ fontSize: 9, color: "var(--c-s300)" }}>{s.min}</span>
+          <div style={{ flex: 1, height: 5, borderRadius: 3, background: "var(--c-p100)", overflow: "hidden" }}>
             <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, background: s.color, transition: "width 0.3s ease" }} />
           </div>
-          <span style={{ fontSize: 9, color: C.s300 }}>{s.max}</span>
+          <span style={{ fontSize: 9, color: "var(--c-s300)" }}>{s.max}</span>
           <div onClick={() => setGoals(p => ({ ...p, [s.key]: Math.max(s.min, goal - s.step) }))} style={{
-            width: 26, height: 26, borderRadius: "50%", background: C.p50,
-            border: `1px solid ${C.p200}`, display: "flex", alignItems: "center", justifyContent: "center",
+            width: 26, height: 26, borderRadius: "50%", background: "var(--c-p50)",
+            border: `1px solid ${"var(--c-p200)"}`, display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", flexShrink: 0,
           }}>
-            <Minus size={13} strokeWidth={IW} color={C.p600} />
+            <Minus size={13} strokeWidth={IW} color={"var(--c-p600)"} />
           </div>
           <div onClick={() => setGoals(p => ({ ...p, [s.key]: Math.min(s.max, goal + s.step) }))} style={{
-            width: 26, height: 26, borderRadius: "50%", background: C.p50,
-            border: `1px solid ${C.p200}`, display: "flex", alignItems: "center", justifyContent: "center",
+            width: 26, height: 26, borderRadius: "50%", background: "var(--c-p50)",
+            border: `1px solid ${"var(--c-p200)"}`, display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", flexShrink: 0,
           }}>
-            <Plus size={13} strokeWidth={IW} color={C.p600} />
+            <Plus size={13} strokeWidth={IW} color={"var(--c-p600)"} />
           </div>
         </div>
       </Card>
@@ -1719,19 +1758,19 @@ const AdjustPlanSection = ({ onBack, userId }) => {
 
       {/* Study days */}
       <Card>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.p800, marginBottom: 14 }}>{"\u5B66\u4E60\u65E5\u671F"}</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14 }}>{"\u5B66\u4E60\u65E5\u671F"}</div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           {dayLabels.map((d, i) => (
             <div key={i} onClick={() => toggleDay(i)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer" }}>
-              <span style={{ fontSize: 11, color: activeDays[i] ? C.p700 : C.s300, fontWeight: 500 }}>{d}</span>
+              <span style={{ fontSize: 11, color: activeDays[i] ? "var(--c-p700)" : "var(--c-s300)", fontWeight: 500 }}>{d}</span>
               <div style={{
                 width: 36, height: 36, borderRadius: "50%",
-                background: activeDays[i] ? C.p600 : C.p50,
-                border: activeDays[i] ? "none" : `1.5px solid ${C.p200}`,
+                background: activeDays[i] ? "var(--c-p600)" : "var(--c-p50)",
+                border: activeDays[i] ? "none" : `1.5px solid ${"var(--c-p200)"}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.2s",
               }}>
-                {activeDays[i] ? <Check size={16} strokeWidth={IW} color="#fff" /> : <span style={{ fontSize: 11, color: C.s300 }}>{i + 1}</span>}
+                {activeDays[i] ? <Check size={16} strokeWidth={IW} color="#fff" /> : <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{i + 1}</span>}
               </div>
             </div>
           ))}
@@ -1751,30 +1790,30 @@ const AdjustPlanSection = ({ onBack, userId }) => {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: C.surface, maxWidth: 300, width: "85%",
+            background: "var(--c-surface)", maxWidth: 300, width: "85%",
             borderRadius: 16, padding: 24,
           }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: C.p800, marginBottom: 16 }}>{"\u81EA\u5B9A\u4E49\u5B66\u4E60\u65F6\u957F"}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", marginBottom: 16 }}>{"\u81EA\u5B9A\u4E49\u5B66\u4E60\u65F6\u957F"}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="number" value={customMin} onChange={e => setCustomMin(e.target.value.replace(/\D/g, ""))}
                 placeholder=""
                 style={{
                   flex: 1, padding: "10px 14px", borderRadius: 10,
-                  border: `1.5px solid ${C.p200}`, background: C.surface,
-                  fontSize: 18, fontWeight: 600, color: C.p800,
-                  outline: "none", fontFamily: "'Noto Sans SC', sans-serif",
+                  border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                  fontSize: 18, fontWeight: 600, color: "var(--c-p800)",
+                  outline: "none", fontFamily: "'Noto Serif SC', sans-serif",
                   textAlign: "center",
                 }}
               />
-              <span style={{ fontSize: 15, color: C.s500, fontWeight: 500 }}>{"\u5206\u949F"}</span>
+              <span style={{ fontSize: 15, color: "var(--c-s500)", fontWeight: 500 }}>{"\u5206\u949F"}</span>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
               <button onClick={() => setCustomFor(null)} style={{
                 flex: 1, padding: "10px 0", borderRadius: 10,
-                border: `1px solid ${C.p200}`, background: C.surface,
-                color: C.s500, fontSize: 14, cursor: "pointer",
-                fontFamily: "'Noto Sans SC', sans-serif",
+                border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                color: "var(--c-s500)", fontSize: 14, cursor: "pointer",
+                fontFamily: "'Noto Serif SC', sans-serif",
               }}>{"\u53D6\u6D88"}</button>
               <button onClick={() => {
                 const v = parseInt(customMin);
@@ -1782,9 +1821,9 @@ const AdjustPlanSection = ({ onBack, userId }) => {
                 setCustomFor(null);
               }} style={{
                 flex: 1, padding: "10px 0", borderRadius: 10,
-                border: "none", background: C.p600,
+                border: "none", background: "var(--c-p600)",
                 color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
-                fontFamily: "'Noto Sans SC', sans-serif",
+                fontFamily: "'Noto Serif SC', sans-serif",
               }}>{"\u786E\u5B9A"}</button>
             </div>
           </div>
@@ -1799,15 +1838,15 @@ const NotesDetailSection = ({ onBack, onEditNote, notes = [] }) => {
   const [monthIdx, setMonthIdx] = useState(0);
   const months = ["2025\u5E746\u6708", "2025\u5E745\u6708", "2025\u5E744\u6708"];
   const fallbackNotes = [
-    { date: "6\u670812\u65E5", title: "\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0", preview: "\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u901A\u8FC7\u52A9\u8BCD\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5...", color: C.info },
-    { date: "6\u670810\u65E5", title: "\u98DF\u7269\u7C7B\u8BCD\u6C47\u6574\u7406", preview: "\u6CF0\u56FD\u5E38\u89C1\u98DF\u7269\u8BCD\u6C47\u6C47\u603B\uFF0C\u5305\u62EC\u6C34\u679C\u3001\u5C0F\u5403\u3001\u4E3B\u98DF\u7B49\u5206\u7C7B...", color: C.amber },
-    { date: "6\u67087\u65E5", title: "\u65E5\u5E38\u95EE\u5019\u8BED\u5BF9\u6BD4", preview: "\u6CF0\u8BED\u95EE\u5019\u8BED\u4E0E\u4E2D\u6587\u7684\u5BF9\u6BD4\u5206\u6790\uFF0C\u6CE8\u610F\u6587\u5316\u5DEE\u5F02\u548C\u8BED\u5883\u7528\u6CD5...", color: C.teal },
-    { date: "6\u67084\u65E5", title: "\u6570\u5B57\u4E0E\u91CF\u8BCD\u7528\u6CD5", preview: "\u6CF0\u8BED\u6570\u5B57\u7CFB\u7EDF\u4E0E\u91CF\u8BCD\u642D\u914D\u89C4\u5219\uFF0C\u4E0E\u4E2D\u6587\u7684\u5F02\u540C\u6BD4\u8F83...", color: C.rose },
-    { date: "6\u67081\u65E5", title: "\u6CF0\u8BED\u58F0\u8C03\u7EC3\u4E60\u7B14\u8BB0", preview: "\u6CF0\u8BED\u6709\u4E94\u4E2A\u58F0\u8C03\uFF0C\u5206\u522B\u662F\u4E2D\u5E73\u3001\u4F4E\u3001\u4E0B\u964D\u3001\u9AD8\u3001\u4E0A\u5347...", color: C.gold },
-    { date: "5\u670828\u65E5", title: "\u5BB6\u5EAD\u79F0\u8C13\u8BCD\u6C47", preview: "\u6CF0\u8BED\u5BB6\u5EAD\u6210\u5458\u79F0\u8C13\u6C47\u603B\uFF0C\u5305\u62EC\u7236\u6BCD\u3001\u5144\u5F1F\u59D0\u59B9\u3001\u7956\u7236\u6BCD\u7B49...", color: C.ok },
+    { date: "6\u670812\u65E5", title: "\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0", preview: "\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u901A\u8FC7\u52A9\u8BCD\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5...", color: "var(--c-info)" },
+    { date: "6\u670810\u65E5", title: "\u98DF\u7269\u7C7B\u8BCD\u6C47\u6574\u7406", preview: "\u6CF0\u56FD\u5E38\u89C1\u98DF\u7269\u8BCD\u6C47\u6C47\u603B\uFF0C\u5305\u62EC\u6C34\u679C\u3001\u5C0F\u5403\u3001\u4E3B\u98DF\u7B49\u5206\u7C7B...", color: "var(--c-amber)" },
+    { date: "6\u67087\u65E5", title: "\u65E5\u5E38\u95EE\u5019\u8BED\u5BF9\u6BD4", preview: "\u6CF0\u8BED\u95EE\u5019\u8BED\u4E0E\u4E2D\u6587\u7684\u5BF9\u6BD4\u5206\u6790\uFF0C\u6CE8\u610F\u6587\u5316\u5DEE\u5F02\u548C\u8BED\u5883\u7528\u6CD5...", color: "var(--c-teal)" },
+    { date: "6\u67084\u65E5", title: "\u6570\u5B57\u4E0E\u91CF\u8BCD\u7528\u6CD5", preview: "\u6CF0\u8BED\u6570\u5B57\u7CFB\u7EDF\u4E0E\u91CF\u8BCD\u642D\u914D\u89C4\u5219\uFF0C\u4E0E\u4E2D\u6587\u7684\u5F02\u540C\u6BD4\u8F83...", color: "var(--c-rose)" },
+    { date: "6\u67081\u65E5", title: "\u6CF0\u8BED\u58F0\u8C03\u7EC3\u4E60\u7B14\u8BB0", preview: "\u6CF0\u8BED\u6709\u4E94\u4E2A\u58F0\u8C03\uFF0C\u5206\u522B\u662F\u4E2D\u5E73\u3001\u4F4E\u3001\u4E0B\u964D\u3001\u9AD8\u3001\u4E0A\u5347...", color: "var(--c-gold)" },
+    { date: "5\u670828\u65E5", title: "\u5BB6\u5EAD\u79F0\u8C13\u8BCD\u6C47", preview: "\u6CF0\u8BED\u5BB6\u5EAD\u6210\u5458\u79F0\u8C13\u6C47\u603B\uFF0C\u5305\u62EC\u7236\u6BCD\u3001\u5144\u5F1F\u59D0\u59B9\u3001\u7956\u7236\u6BCD\u7B49...", color: "var(--c-ok)" },
   ];
   const noteEntries = notes.length > 0 ? notes.map((note, i) => {
-    const noteColor = note.color && note.color.startsWith("#") ? note.color : (note.color || [C.info, C.amber, C.teal, C.rose, C.gold, C.ok][i % 6]);
+    const noteColor = note.color && note.color.startsWith("#") ? note.color : (note.color || ["var(--c-info)", "var(--c-amber)", "var(--c-teal)", "var(--c-rose)", "var(--c-gold)", "var(--c-ok)"][i % 6]);
     const dateStr = note.created_at ? (() => {
       const d = new Date(note.created_at);
       return `${d.getMonth() + 1}\u6708${d.getDate()}\u65E5`;
@@ -1817,23 +1856,23 @@ const NotesDetailSection = ({ onBack, onEditNote, notes = [] }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
 
       {/* Date picker */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div onClick={() => setMonthIdx(Math.min(months.length - 1, monthIdx + 1))} style={{ cursor: "pointer", padding: 4 }}>
-          <ChevronLeft size={16} strokeWidth={IW} color={C.p500} />
+          <ChevronLeft size={16} strokeWidth={IW} color={"var(--c-p500)"} />
         </div>
-        <span style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{months[monthIdx]}</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{months[monthIdx]}</span>
         <div onClick={() => setMonthIdx(Math.max(0, monthIdx - 1))} style={{ cursor: "pointer", padding: 4 }}>
-          <ChevronRight size={16} strokeWidth={IW} color={C.p500} />
+          <ChevronRight size={16} strokeWidth={IW} color={"var(--c-p500)"} />
         </div>
       </div>
 
       {/* Timeline */}
       <div style={{ position: "relative", paddingLeft: 24 }}>
         {/* Vertical timeline line */}
-        <div style={{ position: "absolute", left: 7, top: 8, bottom: 8, width: 2, background: C.p200 }} />
+        <div style={{ position: "absolute", left: 7, top: 8, bottom: 8, width: 2, background: "var(--c-p200)" }} />
 
         {noteEntries.map((note, i) => (
           <div key={i} style={{ position: "relative", marginBottom: 14 }}>
@@ -1844,16 +1883,16 @@ const NotesDetailSection = ({ onBack, onEditNote, notes = [] }) => {
               background: note.color, zIndex: 1,
             }} />
             {/* Date label */}
-            <div style={{ fontSize: 11, color: C.s300, marginBottom: 6, fontWeight: 500 }}>{note.date}</div>
+            <div style={{ fontSize: 11, color: "var(--c-s300)", marginBottom: 6, fontWeight: 500 }}>{note.date}</div>
             {/* Note card */}
             <Card style={{ padding: 14 }} onClick={onEditNote}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <div style={{ width: 4, height: 40, borderRadius: 2, background: note.color, flexShrink: 0, marginTop: 2 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{note.title}</div>
-                  <div style={{ fontSize: 12, color: C.s500, marginTop: 4, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.preview}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{note.title}</div>
+                  <div style={{ fontSize: 12, color: "var(--c-s500)", marginTop: 4, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.preview}</div>
                 </div>
-                <ChevronRight size={14} strokeWidth={IW} color={C.s300} style={{ flexShrink: 0, marginTop: 4 }} />
+                <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0, marginTop: 4 }} />
               </div>
             </Card>
           </div>
@@ -1864,11 +1903,25 @@ const NotesDetailSection = ({ onBack, onEditNote, notes = [] }) => {
 };
 
 /* ─── Note Editor Sub-section (Markdown style) ─── */
-const NoteEditorSection = ({ onBack, userId }) => {
-  const [noteTitle, setNoteTitle] = useState("\u6CF0\u8BED\u52A8\u8BCD\u65F6\u6001\u7B14\u8BB0");
+const NoteEditorSection = ({ onBack, userId, webdavConnected }) => {
+  const [noteTitle, setNoteTitle] = useState("泰语动词时态笔记");
   const [noteContent, setNoteContent] = useState("\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u800C\u662F\u901A\u8FC7\u52A9\u8BCD\u6765\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5\u3002\n\n\u73B0\u5728\u65F6\uFF1A\u57FA\u672C\u5F62\u5F0F\n\u8FC7\u53BB\u65F6\uFF1A\u4F7F\u7528\u52A9\u8BCD \u0E44\u0E14\u0E49 (dai) \u8868\u793A\u52A8\u4F5C\u5DF2\u5B8C\u6210\u3002\n\n\u5E38\u7528\u65F6\u6001\u52A9\u8BCD\uFF1A\n- \u0E44\u0E14\u0E49 (dai) \u2014 \u8FC7\u53BB/\u5B8C\u6210\n- \u0E01\u0E33\u0E25\u0E31\u0E07 (gam-lang) \u2014 \u6B63\u5728\u8FDB\u884C\n- \u0E08\u0E30 (ja) \u2014 \u5C06\u6765/\u5C06\u8981\n- \u0E41\u0E25\u0E49\u0E27 (laew) \u2014 \u5DF2\u7ECF\u5B8C\u6210");
-  const [noteColor, setNoteColor] = useState(C.info);
+  const [noteColor, setNoteColor] = useState("var(--c-info)");
   const [savingNote, setSavingNote] = useState(false);
+  const noteImageRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!webdavConnected) {
+      alert("请先在「我的」页面配置 WebDAV 后再上传图片");
+      e.target.value = "";
+      return;
+    }
+    const imgMarkdown = `\n![${file.name}](pending-upload)\n`;
+    setNoteContent(prev => prev + imgMarkdown);
+    e.target.value = "";
+  };
 
   const handleSaveNote = async () => {
     if (!userId || userId === 'anonymous') { onBack && onBack(); return; }
@@ -1890,7 +1943,7 @@ const NoteEditorSection = ({ onBack, userId }) => {
         value={noteTitle}
         onChange={e => setNoteTitle(e.target.value)}
         style={{
-          fontSize: 22, fontWeight: 700, color: C.p800, fontFamily: "'Noto Serif SC', serif",
+          fontSize: 22, fontWeight: 700, color: "var(--c-p800)", fontFamily: "'Noto Serif SC', serif",
           padding: "4px 0", border: "none", background: "transparent", outline: "none",
           width: "100%",
         }}
@@ -1899,7 +1952,8 @@ const NoteEditorSection = ({ onBack, userId }) => {
       {/* Toolbar */}
       <div style={{
         display: "flex", gap: 6, padding: "8px 0",
-        borderBottom: `1px solid ${C.p100}`, flexWrap: "wrap",
+        borderBottom: `1px solid ${"var(--c-p100)"}`, flexWrap: "wrap",
+        alignItems: "center",
       }}>
         {[
           { label: "B", style: { fontWeight: 700 } },
@@ -1912,11 +1966,20 @@ const NoteEditorSection = ({ onBack, userId }) => {
         ].map((btn, i) => (
           <div key={i} style={{
             width: 28, height: 28, borderRadius: 6,
-            background: C.surfaceAlt, border: `1px solid ${C.p100}`,
+            background: "var(--c-surfaceAlt)", border: `1px solid ${"var(--c-p100)"}`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", fontSize: 13, color: C.p700, ...btn.style,
+            cursor: "pointer", fontSize: 13, color: "var(--c-p700)", ...btn.style,
           }}>{btn.label}</div>
         ))}
+        <input ref={noteImageRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} />
+        <div onClick={() => noteImageRef.current?.click()} style={{
+          width: 28, height: 28, borderRadius: 6,
+          background: "var(--c-surfaceAlt)", border: `1px solid ${"var(--c-p100)"}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", marginLeft: "auto",
+        }}>
+          <Upload size={14} strokeWidth={IW} color={"var(--c-p700)"} />
+        </div>
       </div>
 
       {/* Editor area - editable content */}
@@ -1928,8 +1991,8 @@ const NoteEditorSection = ({ onBack, userId }) => {
           style={{
             width: "100%", minHeight: 280, border: "none", outline: "none",
             background: "transparent", resize: "none",
-            fontSize: 14, color: C.p700, lineHeight: 1.8,
-            fontFamily: "'Noto Sans SC', sans-serif",
+            fontSize: 14, color: "var(--c-p700)", lineHeight: 1.8,
+            fontFamily: "'Noto Serif SC', sans-serif",
           }}
         />
       </Card>
@@ -1939,7 +2002,7 @@ const NoteEditorSection = ({ onBack, userId }) => {
         <Btn variant="primary" onClick={handleSaveNote} style={{ flex: 1, opacity: savingNote ? 0.6 : 1 }}>
           {savingNote ? "\u4FDD\u5B58\u4E2D..." : "\u4FDD\u5B58"}
         </Btn>
-        <span style={{ fontSize: 11, color: C.s300, marginLeft: 12 }}>Markdown {"\u683C\u5F0F"}</span>
+        <span style={{ fontSize: 11, color: "var(--c-s300)", marginLeft: 12 }}>Markdown {"\u683C\u5F0F"}</span>
       </div>
     </div>
   );
@@ -1950,18 +2013,18 @@ const MorphologySection = ({ onBack }) => {
   const [tab, setTab] = useState("th");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
-      <div style={{ display: "flex", gap: 6, background: C.surfaceAlt, borderRadius: 12, padding: 4 }}>
+      <div style={{ display: "flex", gap: 6, background: "var(--c-surfaceAlt)", borderRadius: 12, padding: 4 }}>
         {[
           { key: "th", label: "\u6CF0\u8BED\u6784\u8BCD" },
           { key: "grammar", label: "\u8BED\u6CD5\u6A21\u5F0F" },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer",
-            background: tab === t.key ? C.surface : "transparent",
-            color: tab === t.key ? C.p800 : C.s500,
+            background: tab === t.key ? "var(--c-surface)" : "transparent",
+            color: tab === t.key ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 13, fontWeight: tab === t.key ? 600 : 400,
             boxShadow: tab === t.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-            fontFamily: "'Noto Sans SC', sans-serif",
+            fontFamily: "'Noto Serif SC', sans-serif",
           }}>{t.label}</button>
         ))}
       </div>
@@ -1972,20 +2035,20 @@ const MorphologySection = ({ onBack }) => {
             <Card key={i} style={{ padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                 <div style={{
-                  width: 48, height: 48, borderRadius: 12, background: C.tealL + "60",
+                  width: 48, height: 48, borderRadius: 12, background: "color-mix(in srgb, var(--c-tealL) 38%, transparent)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, fontWeight: 700, color: C.teal, fontFamily: "'Noto Serif Thai', serif",
+                  fontSize: 22, fontWeight: 700, color: "var(--c-teal)", fontFamily: "'Sarabun', serif",
                 }}>{m.char}</div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{m.meaning}</div>
-                  <div style={{ fontSize: 11, color: C.s500 }}>{"\u5E38\u89C1\u7EC4\u5408\u8BCD"}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{m.meaning}</div>
+                  <div style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u5E38\u89C1\u7EC4\u5408\u8BCD"}</div>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {m.compounds.map((c, j) => (
                   <div key={j} style={{
-                    padding: "6px 12px", borderRadius: 8, background: C.surfaceAlt,
-                    fontSize: 13, color: C.p700, border: `1px solid ${C.p100}`,
+                    padding: "6px 12px", borderRadius: 8, background: "var(--c-surfaceAlt)",
+                    fontSize: 13, color: "var(--c-p700)", border: `1px solid ${"var(--c-p100)"}`,
                   }}>{c}</div>
                 ))}
               </div>
@@ -1998,9 +2061,9 @@ const MorphologySection = ({ onBack }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {grammarPatterns.map((g, i) => (
             <Card key={i} style={{ padding: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.p800, fontFamily: "monospace", marginBottom: 8, padding: "6px 12px", borderRadius: 8, background: C.surfaceAlt }}>{g.pattern}</div>
-              <div style={{ fontSize: 14, color: C.teal }}>{g.example}</div>
-              <div style={{ fontSize: 13, color: C.s500, marginTop: 3 }}>{g.zh}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", fontFamily: "monospace", marginBottom: 8, padding: "6px 12px", borderRadius: 8, background: "var(--c-surfaceAlt)" }}>{g.pattern}</div>
+              <div style={{ fontSize: 14, color: "var(--c-teal)" }}>{g.example}</div>
+              <div style={{ fontSize: 13, color: "var(--c-s500)", marginTop: 3 }}>{g.zh}</div>
             </Card>
           ))}
         </div>
@@ -2015,10 +2078,10 @@ const StatsSection = ({ onBack }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
       {/* Top stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value="25" sub={"\u5929"} color={C.gold} />
-        <StatCard icon={Target} label={"\u672C\u5468\u5B66\u4E60"} value="186" sub={"\u8BCD"} color={C.teal} />
-        <StatCard icon={Clock} label={"\u672C\u5468\u65F6\u957F"} value="4.5" sub="h" color={C.amber} />
-        <StatCard icon={Award} label={"\u603B\u8BCD\u6C47"} value="680" color={C.rose} />
+        <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value="25" sub={"\u5929"} color={"var(--c-gold)"} />
+        <StatCard icon={Target} label={"\u672C\u5468\u5B66\u4E60"} value="186" sub={"\u8BCD"} color={"var(--c-teal)"} />
+        <StatCard icon={Clock} label={"\u672C\u5468\u65F6\u957F"} value="4.5" sub="h" color={"var(--c-amber)"} />
+        <StatCard icon={Award} label={"\u603B\u8BCD\u6C47"} value="680" color={"var(--c-rose)"} />
       </div>
 
       {/* Weekly check-in */}
@@ -2027,18 +2090,18 @@ const StatsSection = ({ onBack }) => {
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           {weekDays.map((d, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 11, color: C.s500, fontWeight: 500 }}>{d}</span>
+              <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 500 }}>{d}</span>
               <div style={{
                 width: 36, height: 36, borderRadius: "50%",
-                background: weekDone[i] ? C.ok : C.p100,
+                background: weekDone[i] ? "var(--c-ok)" : "var(--c-p100)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                {weekDone[i] ? <Check size={16} strokeWidth={IW} color="#fff" /> : <span style={{ fontSize: 11, color: C.s300 }}>{i + 1}</span>}
+                {weekDone[i] ? <Check size={16} strokeWidth={IW} color="#fff" /> : <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{i + 1}</span>}
               </div>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 10, background: C.okL + "40", fontSize: 12, color: C.ok, display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 10, background: "color-mix(in srgb, var(--c-okL) 25%, transparent)", fontSize: 12, color: "var(--c-ok)", display: "flex", alignItems: "center", gap: 6 }}>
           <Check size={14} strokeWidth={IW} /> {"\u672C\u5468\u5DF2\u5B8C\u6210 4/7 \u5929\uFF0C\u7EE7\u7EED\u52A0\u6CB9!"}
         </div>
       </Card>
@@ -2046,8 +2109,8 @@ const StatsSection = ({ onBack }) => {
       {/* Heatmap */}
       <Card>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u65E5\u5386"}</h2>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: C.s300 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u65E5\u5386"}</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--c-s300)" }}>
             {"\u5C11"}
             {[0, 1, 2, 3, 4].map(l => <HeatCell key={l} level={l} size={10} />)}
             {"\u591A"}
@@ -2056,7 +2119,7 @@ const StatsSection = ({ onBack }) => {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, justifyContent: "center" }}>
           {Array.from({ length: 35 }).map((_, i) => <HeatCell key={i} level={heatmapLevels[i]} size={14} />)}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10, color: C.s300 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10, color: "var(--c-s300)" }}>
           <span>{"5\u5468\u524D"}</span><span>{"\u4ECA\u5929"}</span>
         </div>
       </Card>
@@ -2068,15 +2131,15 @@ const StatsSection = ({ onBack }) => {
           <AreaChart data={vocabGrowth}>
             <defs>
               <linearGradient id="colorG" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={C.teal} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={C.teal} stopOpacity={0} />
+                <stop offset="5%" stopColor={"var(--c-teal)"} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={"var(--c-teal)"} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={C.p100} />
-            <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.s300 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: C.s300 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${C.p100}`, background: C.surface, fontSize: 12 }} />
-            <Area type="monotone" dataKey="total" stroke={C.teal} fill="url(#colorG)" strokeWidth={2} />
+            <CartesianGrid strokeDasharray="3 3" stroke={"var(--c-p100)"} />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--c-s300)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: "var(--c-s300)" }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${"var(--c-p100)"}`, background: "var(--c-surface)", fontSize: 12 }} />
+            <Area type="monotone" dataKey="total" stroke={"var(--c-teal)"} fill="url(#colorG)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
@@ -2086,11 +2149,11 @@ const StatsSection = ({ onBack }) => {
         <SectionTitle>{"\u672C\u5468\u5B66\u4E60\u65F6\u957F"}</SectionTitle>
         <ResponsiveContainer width="100%" height={140}>
           <BarChart data={studyTimeData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={C.p100} />
-            <XAxis dataKey="day" tick={{ fontSize: 10, fill: C.s300 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: C.s300 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${C.p100}`, background: C.surface, fontSize: 12 }} />
-            <Bar dataKey="mins" fill={C.amber} radius={[4, 4, 0, 0]} />
+            <CartesianGrid strokeDasharray="3 3" stroke={"var(--c-p100)"} />
+            <XAxis dataKey="day" tick={{ fontSize: 10, fill: "var(--c-s300)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: "var(--c-s300)" }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${"var(--c-p100)"}`, background: "var(--c-surface)", fontSize: 12 }} />
+            <Bar dataKey="mins" fill={"var(--c-amber)"} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -2110,8 +2173,8 @@ const StatsSection = ({ onBack }) => {
             {pieData.map((d, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: d.color }} />
-                <span style={{ fontSize: 12, color: C.s500 }}>{d.name}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.p800 }}>{d.value}</span>
+                <span style={{ fontSize: 12, color: "var(--c-s500)" }}>{d.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>{d.value}</span>
               </div>
             ))}
           </div>
@@ -2232,9 +2295,9 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
   const [bookmarks, setBookmarks] = useState({});
   const [wordTip, setWordTip] = useState(null);
   const cats = [
-    { key: "idioms", label: "\u4FD7\u8BED", color: C.gold },
-    { key: "buddhist", label: "\u4F5B\u6559\u7528\u8BED", color: C.teal },
-    { key: "daily", label: "\u65E5\u5E38\u7528\u8BED", color: C.rose },
+    { key: "idioms", label: "\u4FD7\u8BED", color: "var(--c-gold)" },
+    { key: "buddhist", label: "\u4F5B\u6559\u7528\u8BED", color: "var(--c-teal)" },
+    { key: "daily", label: "\u65E5\u5E38\u7528\u8BED", color: "var(--c-rose)" },
   ];
   const list = phraseData[cat] || [];
   const recommended = list[0];
@@ -2244,15 +2307,15 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "0 16px 16px" }}>
       {/* Category tabs */}
-      <div style={{ display: "flex", gap: 6, background: C.surfaceAlt, borderRadius: 12, padding: 4 }}>
+      <div style={{ display: "flex", gap: 6, background: "var(--c-surfaceAlt)", borderRadius: 12, padding: 4 }}>
         {cats.map(c => (
           <button key={c.key} onClick={() => { setCat(c.key); setShowAll(false); }} style={{
             flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer",
-            background: cat === c.key ? C.surface : "transparent",
-            color: cat === c.key ? C.p800 : C.s500,
+            background: cat === c.key ? "var(--c-surface)" : "transparent",
+            color: cat === c.key ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 13, fontWeight: cat === c.key ? 600 : 400,
             boxShadow: cat === c.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-            fontFamily: "'Noto Sans SC', sans-serif",
+            fontFamily: "'Noto Serif SC', sans-serif",
           }}>{c.label}</button>
         ))}
       </div>
@@ -2261,8 +2324,8 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
       {!showAll && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Sparkles size={13} strokeWidth={IW} color={C.gold} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.p800 }}>{"\u4ECA\u65E5\u63A8\u8350"}</span>
+            <Sparkles size={13} strokeWidth={IW} color={"var(--c-gold)"} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>{"\u4ECA\u65E5\u63A8\u8350"}</span>
           </div>
         </div>
       )}
@@ -2274,47 +2337,47 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
             {/* Thai phrase + action buttons */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
               <div onClick={() => onSelectPhrase(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: C.p900, fontFamily: "'Noto Sans Thai', sans-serif", lineHeight: 1.5 }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "'Sarabun', sans-serif", lineHeight: 1.5 }}>
                   {p.segmented.map((seg, j) => (
                     <span key={j} style={{ position: "relative", display: "inline" }}>
                       <span onClick={(e) => { e.stopPropagation(); setWordTip(wordTip?.id === `${p.id}-${j}` ? null : { id: `${p.id}-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
                         cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
-                        textUnderlineOffset: 3, color: C.p900,
+                        textUnderlineOffset: 3, color: "var(--c-p900)",
                       }}>{seg.text}</span>
                       {wordTip?.id === `${p.id}-${j}` && (
                         <div style={{
                           position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
-                          background: C.p800, color: "#fff", padding: "6px 10px", borderRadius: 8,
+                          background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
                           fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
                           boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                         }}>
-                          <span style={{ color: C.gold, fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
+                          <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
                           {seg.meaning}
                           <div onClick={(e) => { e.stopPropagation(); setWordTip(null); onWordTap(seg.text); }} style={{
-                            marginTop: 4, fontSize: 10, color: C.teal, cursor: "pointer", textAlign: "center",
+                            marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
                           }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
                         </div>
                       )}
                     </span>
                   ))}
                 </div>
-                <div style={{ fontSize: 13, color: C.s500, lineHeight: 1.4, marginTop: 4 }}>{p.zh}</div>
+                <div style={{ fontSize: 13, color: "var(--c-s500)", lineHeight: 1.4, marginTop: 4 }}>{p.zh}</div>
               </div>
               {/* Action buttons */}
               <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 8, marginTop: 2 }}>
-                <div onClick={(e) => e.stopPropagation()} style={{ width: 28, height: 28, borderRadius: 8, background: C.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Volume2 size={13} strokeWidth={IW} color={C.teal} />
+                <div onClick={(e) => { e.stopPropagation(); speak(p.segmented.map(s => s.text).join(""), "th-TH", 0.85); }} style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <Volume2 size={13} strokeWidth={IW} color={"var(--c-teal)"} />
                 </div>
-                <div onClick={(e) => { e.stopPropagation(); toggleBm(p.id); }} style={{ width: 28, height: 28, borderRadius: 8, background: bookmarks[p.id] ? C.gold + "18" : C.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Bookmark size={13} strokeWidth={IW} color={bookmarks[p.id] ? C.gold : C.s300} fill={bookmarks[p.id] ? C.gold : "none"} />
+                <div onClick={(e) => { e.stopPropagation(); toggleBm(p.id); }} style={{ width: 28, height: 28, borderRadius: 8, background: bookmarks[p.id] ? "color-mix(in srgb, var(--c-gold) 9%, transparent)" : "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <Bookmark size={13} strokeWidth={IW} color={bookmarks[p.id] ? "var(--c-gold)" : "var(--c-s300)"} fill={bookmarks[p.id] ? "var(--c-gold)" : "none"} />
                 </div>
               </div>
             </div>
             {/* Segmented tags */}
             <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
               {p.segmented.map((seg, j) => (
-                <span key={j} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6, background: C.surfaceAlt, color: C.s500, border: `1px solid ${C.p100}` }}>
-                  {seg.text}<span style={{ color: C.s300, marginLeft: 3 }}>{seg.meaning}</span>
+                <span key={j} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6, background: "var(--c-surfaceAlt)", color: "var(--c-s500)", border: `1px solid ${"var(--c-p100)"}` }}>
+                  {seg.text}<span style={{ color: "var(--c-s300)", marginLeft: 3 }}>{seg.meaning}</span>
                 </span>
               ))}
             </div>
@@ -2326,17 +2389,17 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
       {!showAll && list.length > 1 && (
         <div onClick={() => setShowAll(true)} style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-          padding: "10px 0", borderRadius: 10, border: `1px solid ${C.p200}`,
-          background: C.surface, cursor: "pointer", fontSize: 13, color: C.p500, fontWeight: 500,
+          padding: "10px 0", borderRadius: 10, border: `1px solid ${"var(--c-p200)"}`,
+          background: "var(--c-surface)", cursor: "pointer", fontSize: 13, color: "var(--c-p500)", fontWeight: 500,
         }}>
-          {"\u5168\u90E8"} <span style={{ fontWeight: 600, color: C.p700 }}>{list.length}</span> {"\u6761"} <ChevronRight size={14} strokeWidth={IW} />
+          {"\u5168\u90E8"} <span style={{ fontWeight: 600, color: "var(--c-p700)" }}>{list.length}</span> {"\u6761"} <ChevronRight size={14} strokeWidth={IW} />
         </div>
       )}
       {showAll && (
         <div onClick={() => setShowAll(false)} style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-          padding: "10px 0", borderRadius: 10, border: `1px solid ${C.p200}`,
-          background: C.surface, cursor: "pointer", fontSize: 13, color: C.p500,
+          padding: "10px 0", borderRadius: 10, border: `1px solid ${"var(--c-p200)"}`,
+          background: "var(--c-surface)", cursor: "pointer", fontSize: 13, color: "var(--c-p500)",
         }}>
           {"\u6536\u8D77"} <ChevronRight size={14} strokeWidth={IW} style={{ transform: "rotate(90deg)" }} />
         </div>
@@ -2351,33 +2414,36 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "0 16px 16px" }}>
       {/* Phrase text */}
-      <Card style={{ padding: 16, background: `linear-gradient(135deg, ${C.teal}08, ${C.gold}06)`, border: `1px solid ${C.teal}18` }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: C.p900, fontFamily: "'Noto Sans Thai', serif", lineHeight: 1.5, marginBottom: 8 }}>
-          {phrase.text}
+      <Card style={{ padding: 16, background: `linear-gradient(135deg, ${`color-mix(in srgb, var(--c-teal) 3%, transparent)`}, ${`color-mix(in srgb, var(--c-gold) 2%, transparent)`})`, border: `1px solid ${`color-mix(in srgb, var(--c-teal) 9%, transparent)`}` }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p900)", fontFamily: "'Sarabun', serif", lineHeight: 1.5, flex: 1 }}>
+            {phrase.text}
+          </div>
+          <TtsPlay text={phrase.text} size={16} />
         </div>
-        <div style={{ fontSize: 14, color: C.p600, lineHeight: 1.5 }}>{phrase.zh}</div>
+        <div style={{ fontSize: 14, color: "var(--c-p600)", lineHeight: 1.5 }}>{phrase.zh}</div>
       </Card>
 
       {/* Word-by-word analysis */}
       <Card style={{ padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.p800, marginBottom: 14, fontFamily: "'Noto Serif SC', serif" }}>{"\u9010\u8BCD\u5206\u6790"}</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14, fontFamily: "'Noto Serif SC', serif" }}>{"\u9010\u8BCD\u5206\u6790"}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {phrase.segmented.map((seg, i) => (
             <div key={i}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0" }}>
                 <span onClick={() => onWordTap(seg.text)} style={{
-                  fontSize: 16, fontWeight: 600, color: C.teal,
-                  fontFamily: "'Noto Sans Thai', sans-serif",
+                  fontSize: 16, fontWeight: 600, color: "var(--c-teal)",
+                  fontFamily: "'Sarabun', sans-serif",
                   cursor: "pointer", textDecoration: "underline",
                   textDecorationStyle: "dashed", textUnderlineOffset: 3,
                 }}>{seg.text}</span>
-                <span style={{ fontSize: 11, color: C.s300, fontStyle: "italic", minWidth: 32 }}>{seg.pos}</span>
-                <span style={{ fontSize: 13, color: C.p700, flex: 1 }}>{seg.meaning}</span>
-                <ChevronRight size={13} strokeWidth={IW} color={C.s300} />
+                <span style={{ fontSize: 11, color: "var(--c-s300)", fontStyle: "italic", minWidth: 32 }}>{seg.pos}</span>
+                <span style={{ fontSize: 13, color: "var(--c-p700)", flex: 1 }}>{seg.meaning}</span>
+                <ChevronRight size={13} strokeWidth={IW} color={"var(--c-s300)"} />
               </div>
               {i < phrase.segmented.length - 1 && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 0 0 4px" }}>
-                  <span style={{ fontSize: 12, color: C.s300 }}>+</span>
+                  <span style={{ fontSize: 12, color: "var(--c-s300)" }}>+</span>
                 </div>
               )}
             </div>
@@ -2386,14 +2452,14 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
         {/* Combined gloss */}
         <div style={{
           marginTop: 12, padding: "10px 14px", borderRadius: 10,
-          background: C.surfaceAlt, border: `1px solid ${C.p100}`,
-          fontSize: 13, color: C.p700, lineHeight: 1.6,
+          background: "var(--c-surfaceAlt)", border: `1px solid ${"var(--c-p100)"}`,
+          fontSize: 13, color: "var(--c-p700)", lineHeight: 1.6,
         }}>
           {phrase.segmented.map((s, i) => (
             <span key={i}>
-              <span style={{ fontWeight: 600, color: C.p800 }}>{s.text}</span>
-              <span style={{ color: C.s500 }}>({s.meaning})</span>
-              {i < phrase.segmented.length - 1 && <span style={{ color: C.s300 }}> + </span>}
+              <span style={{ fontWeight: 600, color: "var(--c-p800)" }}>{s.text}</span>
+              <span style={{ color: "var(--c-s500)" }}>({s.meaning})</span>
+              {i < phrase.segmented.length - 1 && <span style={{ color: "var(--c-s300)" }}> + </span>}
             </span>
           ))}
         </div>
@@ -2402,15 +2468,15 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
       {/* Idiom: literal vs actual */}
       {isIdiom && (
         <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.p800, marginBottom: 12, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B57\u9762\u610F\u4E49 vs \u5B9E\u9645\u610F\u4E49"}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B57\u9762\u610F\u4E49 vs \u5B9E\u9645\u610F\u4E49"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ padding: 12, borderRadius: 10, background: C.gold + "12", border: `1px solid ${C.gold}25` }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, marginBottom: 4 }}>{"\u5B57\u9762\u610F\u4E49"}</div>
-              <div style={{ fontSize: 13, color: C.p700, lineHeight: 1.5 }}>{phrase.literal}</div>
+            <div style={{ padding: 12, borderRadius: 10, background: "color-mix(in srgb, var(--c-gold) 7%, transparent)", border: `1px solid ${`color-mix(in srgb, var(--c-gold) 15%, transparent)`}` }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-gold)", marginBottom: 4 }}>{"\u5B57\u9762\u610F\u4E49"}</div>
+              <div style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.5 }}>{phrase.literal}</div>
             </div>
-            <div style={{ padding: 12, borderRadius: 10, background: C.teal + "12", border: `1px solid ${C.teal}25` }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.teal, marginBottom: 4 }}>{"\u5B9E\u9645\u610F\u4E49"}</div>
-              <div style={{ fontSize: 13, color: C.p700, lineHeight: 1.5 }}>{phrase.actual}</div>
+            <div style={{ padding: 12, borderRadius: 10, background: "color-mix(in srgb, var(--c-teal) 7%, transparent)", border: `1px solid ${`color-mix(in srgb, var(--c-teal) 15%, transparent)`}` }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-teal)", marginBottom: 4 }}>{"\u5B9E\u9645\u610F\u4E49"}</div>
+              <div style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.5 }}>{phrase.actual}</div>
             </div>
           </div>
         </Card>
@@ -2418,14 +2484,14 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
 
       {/* Learner tip */}
       {phrase.tip && (
-        <Card style={{ padding: 16, background: C.info + "06", border: `1px solid ${C.info}18` }}>
+        <Card style={{ padding: 16, background: "color-mix(in srgb, var(--c-info) 2%, transparent)", border: `1px solid ${`color-mix(in srgb, var(--c-info) 9%, transparent)`}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: `linear-gradient(135deg, ${C.info}, ${C.teal})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: `linear-gradient(135deg, ${"var(--c-info)"}, ${"var(--c-teal)"})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Sparkles size={13} strokeWidth={IW} color="#fff" />
             </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.p800 }}>{"\u5B66\u4E60\u8005\u5EFA\u8BAE"}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>{"\u5B66\u4E60\u8005\u5EFA\u8BAE"}</span>
           </div>
-          <div style={{ fontSize: 13, color: C.p700, lineHeight: 1.7 }}>{phrase.tip}</div>
+          <div style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.7 }}>{phrase.tip}</div>
         </Card>
       )}
     </div>
@@ -2435,12 +2501,28 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
 /* ────────────────────────────────────────────
    PAGE: MY PROFILE (我的)
    ──────────────────────────────────────────── */
-const ProfilePage = ({ userId, onLogout }) => {
+const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
   const [dictDir, setDictDir] = useState("zh-th");
   const [webdavConnected, setWebdavConnected] = useState(false);
-  const [colorMode, setColorMode] = useState("light");
   const [showColorDropdown, setShowColorDropdown] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
+
+  /* ── Font selection state ── */
+  const [showFontPage, setShowFontPage] = useState(false);
+  const [zhFont, setZhFont] = useState("Noto Serif SC");
+  const [thFont, setThFont] = useState("Sarabun");
+  const zhFonts = ["Noto Sans SC", "Noto Serif SC"];
+  const thFonts = ["Sarabun", "Noto Sans Thai", "Charm"];
+
+  /* ── Profile editing state ── */
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  /* ── WebDAV config state ── */
+  const [showWebdavModal, setShowWebdavModal] = useState(false);
+  const [webdavConfig, setWebdavConfig] = useState({ serverUrl: "", username: "", password: "" });
 
   /* ── API management state ── */
   const [showApiMgmt, setShowApiMgmt] = useState(false);
@@ -2458,6 +2540,8 @@ const ProfilePage = ({ userId, onLogout }) => {
         if (s.dict_direction) setDictDir(s.dict_direction);
         if (s.color_mode) setColorMode(s.color_mode);
         if (s.reminder_enabled !== undefined) setReminderEnabled(s.reminder_enabled);
+        if (s.zh_font) setZhFont(s.zh_font);
+        if (s.th_font) setThFont(s.th_font);
       }
     });
     getApiKeys(userId).then(keys => {
@@ -2471,6 +2555,12 @@ const ProfilePage = ({ userId, onLogout }) => {
       })));
     });
   }, [userId]);
+
+  /* ── Apply font CSS variables when fonts change ── */
+  useEffect(() => {
+    document.documentElement.style.setProperty('--zh-font', `'${zhFont}'`);
+    document.documentElement.style.setProperty('--th-font', `'${thFont}'`);
+  }, [zhFont, thFont]);
 
   /* ── Save settings to Supabase on change ── */
   const prevDictDir = useRef(dictDir);
@@ -2491,6 +2581,17 @@ const ProfilePage = ({ userId, onLogout }) => {
     }
   }, [colorMode, userId]);
 
+  const prevZhFont = useRef(zhFont);
+  const prevThFont = useRef(thFont);
+  useEffect(() => {
+    if (prevZhFont.current === zhFont && prevThFont.current === thFont) return;
+    prevZhFont.current = zhFont;
+    prevThFont.current = thFont;
+    if (userId && userId !== 'anonymous') {
+      saveUserSettings(userId, { zh_font: zhFont, th_font: thFont });
+    }
+  }, [zhFont, thFont, userId]);
+
   const prevReminder = useRef(reminderEnabled);
   useEffect(() => {
     if (prevReminder.current === reminderEnabled) return;
@@ -2501,24 +2602,24 @@ const ProfilePage = ({ userId, onLogout }) => {
   }, [reminderEnabled, userId]);
 
   const apiTemplates = [
-    { id: "openai", name: "OpenAI", color: C.p700, baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
-    { id: "deepseek", name: "DeepSeek", color: C.teal, baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
-    { id: "kimi", name: "Kimi", color: C.info, baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
-    { id: "doubao", name: "\u8C46\u5305", color: C.gold, baseUrl: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-pro-32k" },
-    { id: "zhipu", name: "\u667A\u8C31 (GLM)", color: C.amber, baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4" },
-    { id: "qwen", name: "\u901A\u4E49\u5343\u95EE", color: C.rose, baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-max" },
-    { id: "custom", name: "\u81EA\u5B9A\u4E49", color: C.s500, baseUrl: "", model: "" },
+    { id: "openai", name: "OpenAI", color: "var(--c-p700)", baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
+    { id: "deepseek", name: "DeepSeek", color: "var(--c-teal)", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+    { id: "kimi", name: "Kimi", color: "var(--c-info)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
+    { id: "doubao", name: "\u8C46\u5305", color: "var(--c-gold)", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-pro-32k" },
+    { id: "zhipu", name: "\u667A\u8C31 (GLM)", color: "var(--c-amber)", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4" },
+    { id: "qwen", name: "\u901A\u4E49\u5343\u95EE", color: "var(--c-rose)", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-max" },
+    { id: "custom", name: "\u81EA\u5B9A\u4E49", color: "var(--c-s500)", baseUrl: "", model: "" },
   ];
 
   const SettingRow = ({ icon: Icon, label, desc, children }) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: `1px solid ${C.p100}` }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 8, background: C.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Icon size={16} strokeWidth={IW} color={C.p500} />
+        <div style={{ width: 34, height: 34, borderRadius: 8, background: "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon size={16} strokeWidth={IW} color={"var(--c-p500)"} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: C.p800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</div>
-          {desc && <div style={{ fontSize: 11, color: C.s500, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{desc}</div>}
+          <div style={{ fontSize: 14, fontWeight: 500, color: "var(--c-p800)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</div>
+          {desc && <div style={{ fontSize: 11, color: "var(--c-s500)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{desc}</div>}
         </div>
       </div>
       {children}
@@ -2527,7 +2628,7 @@ const ProfilePage = ({ userId, onLogout }) => {
 
   const Toggle = ({ on, onToggle }) => (
     <div onClick={onToggle} style={{
-      width: 44, height: 24, borderRadius: 12, background: on ? C.ok : C.p200,
+      width: 44, height: 24, borderRadius: 12, background: on ? "var(--c-ok)" : "var(--c-p200)",
       cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0,
     }}>
       <div style={{
@@ -2547,37 +2648,37 @@ const ProfilePage = ({ userId, onLogout }) => {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div onClick={() => { setShowApiMgmt(false); setEditingApiId(null); }} style={{
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            width: 32, height: 32, borderRadius: 10, background: C.p100, flexShrink: 0,
+            width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0,
           }}>
-            <ChevronLeft size={18} strokeWidth={IW} color={C.p700} />
+            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>AI API {"\u7BA1\u7406"}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>AI API {"\u7BA1\u7406"}</h2>
         </div>
 
         {/* Existing keys */}
         {apiKeys.length > 0 && (
           <Card style={{ padding: 0, overflow: "hidden" }}>
-            <div style={{ padding: "12px 18px", borderBottom: `1px solid ${C.p100}` }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: C.p700, margin: 0 }}>{"\u5DF2\u6DFB\u52A0\u7684 API"}</h3>
+            <div style={{ padding: "12px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p700)", margin: 0 }}>{"\u5DF2\u6DFB\u52A0\u7684 API"}</h3>
             </div>
             <div style={{ padding: "4px 18px" }}>
               {apiKeys.map(ak => {
                 const provider = apiTemplates.find(t => t.id === ak.provider);
                 const isEditing = editingApiId === ak.id;
                 return (
-                  <div key={ak.id} style={{ padding: "12px 0", borderBottom: `1px solid ${C.p100}` }}>
+                  <div key={ak.id} style={{ padding: "12px 0", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{
                           width: 32, height: 32, borderRadius: 8,
-                          background: `${provider?.color || C.s500}15`,
+                          background: `${provider?.color || "var(--c-s500)"}15`,
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
-                          <Key size={14} strokeWidth={IW} color={provider?.color || C.s500} />
+                          <Key size={14} strokeWidth={IW} color={provider?.color || "var(--c-s500)"} />
                         </div>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.p800 }}>{ak.name}</div>
-                          <div style={{ fontSize: 11, color: C.s400, marginTop: 1, fontFamily: "monospace" }}>{ak.key}</div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{ak.name}</div>
+                          <div style={{ fontSize: 11, color: "var(--c-s400)", marginTop: 1, fontFamily: "monospace" }}>{ak.key}</div>
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
@@ -2585,34 +2686,34 @@ const ProfilePage = ({ userId, onLogout }) => {
                           if (isEditing) { setEditingApiId(null); }
                           else { setEditingApiId(ak.id); setSelectedProvider(ak.provider); setCustomApi({ name: ak.name, key: "", baseUrl: ak.baseUrl, model: ak.model }); }
                         }} style={{
-                          width: 28, height: 28, borderRadius: 7, background: C.surfaceAlt,
+                          width: 28, height: 28, borderRadius: 7, background: "var(--c-surfaceAlt)",
                           display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                         }}>
-                          <Pencil size={12} strokeWidth={IW} color={C.s500} />
+                          <Pencil size={12} strokeWidth={IW} color={"var(--c-s500)"} />
                         </div>
                         <div onClick={() => {
                           deleteApiKey(ak.id).catch(e => console.error("[deleteApiKey]", e));
                           setApiKeys(prev => prev.filter(k => k.id !== ak.id));
                         }} style={{
-                          width: 28, height: 28, borderRadius: 7, background: C.surfaceAlt,
+                          width: 28, height: 28, borderRadius: 7, background: "var(--c-surfaceAlt)",
                           display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                         }}>
-                          <Trash2 size={12} strokeWidth={IW} color={C.err} />
+                          <Trash2 size={12} strokeWidth={IW} color={"var(--c-err)"} />
                         </div>
                       </div>
                     </div>
                     {isEditing && (
                       <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
                         <input value={customApi.key} onChange={e => setCustomApi(p => ({ ...p, key: e.target.value }))} placeholder={"\u65B0\u7684 API Key"} style={{
-                          padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.p200}`,
-                          background: C.surface, fontSize: 13, color: C.p800, outline: "none",
+                          padding: "10px 12px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`,
+                          background: "var(--c-surface)", fontSize: 13, color: "var(--c-p800)", outline: "none",
                           fontFamily: "monospace", boxSizing: "border-box", width: "100%",
                         }} />
                         <div style={{ display: "flex", gap: 8 }}>
                           <input value={customApi.model} onChange={e => setCustomApi(p => ({ ...p, model: e.target.value }))} placeholder={"\u6A21\u578B"} style={{
-                            flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.p200}`,
-                            background: C.surface, fontSize: 12, color: C.p800, outline: "none",
-                            fontFamily: "'Noto Sans SC', sans-serif", boxSizing: "border-box",
+                            flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`,
+                            background: "var(--c-surface)", fontSize: 12, color: "var(--c-p800)", outline: "none",
+                            fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
                           }} />
                           <div onClick={() => {
                             setApiKeys(prev => prev.map(k => k.id === ak.id ? {
@@ -2621,7 +2722,7 @@ const ProfilePage = ({ userId, onLogout }) => {
                             setEditingApiId(null);
                             setCustomApi({ name: "", key: "", baseUrl: "", model: "" });
                           }} style={{
-                            padding: "8px 16px", borderRadius: 8, background: C.teal,
+                            padding: "8px 16px", borderRadius: 8, background: "var(--c-teal)",
                             color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
                             display: "flex", alignItems: "center", whiteSpace: "nowrap",
                           }}>{"\u4FDD\u5B58"}</div>
@@ -2639,12 +2740,12 @@ const ProfilePage = ({ userId, onLogout }) => {
         <div onClick={() => { setShowAddApi(true); setEditingApiId(null); }} style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           padding: "14px 0", borderRadius: 12,
-          border: `1.5px dashed ${C.p300}`, background: C.surface,
+          border: `1.5px dashed ${"var(--c-p300)"}`, background: "var(--c-surface)",
           cursor: "pointer", fontSize: 14, fontWeight: 500,
-          color: C.p600, fontFamily: "'Noto Sans SC', sans-serif",
+          color: "var(--c-p600)", fontFamily: "'Noto Serif SC', sans-serif",
           transition: "all 0.2s",
         }}>
-          <Plus size={16} strokeWidth={IW} color={C.p500} />
+          <Plus size={16} strokeWidth={IW} color={"var(--c-p500)"} />
           <span>{"\u6DFB\u52A0\u65B0\u7684 API"}</span>
         </div>
 
@@ -2658,27 +2759,27 @@ const ProfilePage = ({ userId, onLogout }) => {
             }}>
               <div onClick={e => e.stopPropagation()} style={{
                 width: "90%", maxWidth: 380, maxHeight: "85vh", overflow: "auto",
-                background: C.surface, borderRadius: 16,
+                background: "var(--c-surface)", borderRadius: 16,
                 boxShadow: "0 8px 32px rgba(61,43,31,0.2)",
               }}>
                 {/* Modal header */}
                 <div style={{
-                  padding: "16px 20px", borderBottom: `1px solid ${C.p100}`,
+                  padding: "16px 20px", borderBottom: `1px solid ${"var(--c-p100)"}`,
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  position: "sticky", top: 0, background: C.surface, zIndex: 1, borderRadius: "16px 16px 0 0",
+                  position: "sticky", top: 0, background: "var(--c-surface)", zIndex: 1, borderRadius: "16px 16px 0 0",
                 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u6DFB\u52A0 API"}</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u6DFB\u52A0 API"}</h3>
                   <div onClick={() => { setShowAddApi(false); setCustomApi({ name: "", key: "", baseUrl: "", model: "" }); }} style={{
-                    width: 28, height: 28, borderRadius: "50%", background: C.surfaceAlt,
+                    width: 28, height: 28, borderRadius: "50%", background: "var(--c-surfaceAlt)",
                     display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
                   }}>
-                    <X size={14} strokeWidth={IW} color={C.s500} />
+                    <X size={14} strokeWidth={IW} color={"var(--c-s500)"} />
                   </div>
                 </div>
 
                 {/* Provider selection */}
                 <div style={{ padding: "14px 20px" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.s500, marginBottom: 10 }}>{"\u9009\u62E9\u670D\u52A1\u63D0\u4F9B\u5546"}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-s500)", marginBottom: 10 }}>{"\u9009\u62E9\u670D\u52A1\u63D0\u4F9B\u5546"}</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {apiTemplates.map(t => (
                       <div key={t.id} onClick={() => {
@@ -2691,10 +2792,10 @@ const ProfilePage = ({ userId, onLogout }) => {
                         }));
                       }} style={{
                         padding: "8px 14px", borderRadius: 10, cursor: "pointer",
-                        border: selectedProvider === t.id ? `1.5px solid ${t.color}` : `1px solid ${C.p200}`,
-                        background: selectedProvider === t.id ? `${t.color}12` : C.surface,
+                        border: selectedProvider === t.id ? `1.5px solid ${t.color}` : `1px solid ${"var(--c-p200)"}`,
+                        background: selectedProvider === t.id ? `${t.color}12` : "var(--c-surface)",
                         fontSize: 13, fontWeight: selectedProvider === t.id ? 600 : 400,
-                        color: selectedProvider === t.id ? t.color : C.s500,
+                        color: selectedProvider === t.id ? t.color : "var(--c-s500)",
                         transition: "all 0.15s", whiteSpace: "nowrap",
                       }}>
                         {t.name}
@@ -2706,38 +2807,38 @@ const ProfilePage = ({ userId, onLogout }) => {
                 {/* Form fields */}
                 <div style={{ padding: "0 20px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: C.s500, marginBottom: 4 }}>{"\u540D\u79F0"}</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--c-s500)", marginBottom: 4 }}>{"\u540D\u79F0"}</div>
                     <input value={customApi.name || (tpl.id !== "custom" ? tpl.name : "")} onChange={e => setCustomApi(p => ({ ...p, name: e.target.value }))} placeholder={"\u4F8B\uFF1AMy OpenAI"} style={{
                       width: "100%", padding: "10px 12px", borderRadius: 8,
-                      border: `1px solid ${C.p200}`, background: C.surface,
-                      fontSize: 13, color: C.p800, outline: "none",
-                      fontFamily: "'Noto Sans SC', sans-serif", boxSizing: "border-box",
+                      border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                      fontSize: 13, color: "var(--c-p800)", outline: "none",
+                      fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
                     }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: C.s500, marginBottom: 4 }}>API Key</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--c-s500)", marginBottom: 4 }}>API Key</div>
                     <input value={customApi.key} onChange={e => setCustomApi(p => ({ ...p, key: e.target.value }))} placeholder="sk-..." style={{
                       width: "100%", padding: "10px 12px", borderRadius: 8,
-                      border: `1px solid ${C.p200}`, background: C.surface,
-                      fontSize: 13, color: C.p800, outline: "none",
+                      border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                      fontSize: 13, color: "var(--c-p800)", outline: "none",
                       fontFamily: "monospace", boxSizing: "border-box",
                     }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: C.s500, marginBottom: 4 }}>Base URL</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--c-s500)", marginBottom: 4 }}>Base URL</div>
                     <input value={customApi.baseUrl} onChange={e => setCustomApi(p => ({ ...p, baseUrl: e.target.value }))} placeholder="https://api.example.com/v1" style={{
                       width: "100%", padding: "10px 12px", borderRadius: 8,
-                      border: `1px solid ${C.p200}`, background: C.surface,
-                      fontSize: 13, color: C.p800, outline: "none",
+                      border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                      fontSize: 13, color: "var(--c-p800)", outline: "none",
                       fontFamily: "monospace", boxSizing: "border-box",
                     }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: C.s500, marginBottom: 4 }}>{"\u9ED8\u8BA4\u6A21\u578B"}</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--c-s500)", marginBottom: 4 }}>{"\u9ED8\u8BA4\u6A21\u578B"}</div>
                     <input value={customApi.model} onChange={e => setCustomApi(p => ({ ...p, model: e.target.value }))} placeholder="gpt-4o" style={{
                       width: "100%", padding: "10px 12px", borderRadius: 8,
-                      border: `1px solid ${C.p200}`, background: C.surface,
-                      fontSize: 13, color: C.p800, outline: "none",
+                      border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                      fontSize: 13, color: "var(--c-p800)", outline: "none",
                       fontFamily: "monospace", boxSizing: "border-box",
                     }} />
                   </div>
@@ -2768,10 +2869,10 @@ const ProfilePage = ({ userId, onLogout }) => {
                     setShowAddApi(false);
                     setCustomApi({ name: "", key: "", baseUrl: "", model: "" });
                   }} style={{
-                    padding: "13px 0", borderRadius: 12, background: C.p800,
+                    padding: "13px 0", borderRadius: 12, background: "var(--c-p800)",
                     color: "#fff", fontSize: 14, fontWeight: 600,
                     textAlign: "center", cursor: "pointer", marginTop: 4,
-                    fontFamily: "'Noto Sans SC', sans-serif",
+                    fontFamily: "'Noto Serif SC', sans-serif",
                   }}>{"\u4FDD\u5B58"}</div>
                 </div>
               </div>
@@ -2782,33 +2883,138 @@ const ProfilePage = ({ userId, onLogout }) => {
     );
   }
 
+  /* ── Font selection sub-page ── */
+  if (showFontPage) {
+    const FontCard = ({ family, label, preview, active, onClick }) => (
+      <div onClick={onClick} style={{
+        padding: "16px 18px", borderRadius: 14, position: "relative",
+        border: active ? "2px solid var(--c-teal)" : `1px solid ${"var(--c-p100)"}`,
+        background: active ? "color-mix(in srgb, var(--c-teal) 6%, transparent)" : "var(--c-surface)",
+        cursor: "pointer", transition: "all 0.2s",
+      }}>
+        {active && <div style={{
+          position: "absolute", top: 10, right: 10,
+          width: 10, height: 10, borderRadius: "50%", background: "var(--c-teal)",
+        }} />}
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)", marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: 20, color: "var(--c-p700)", fontFamily: `'${family}', sans-serif`, lineHeight: 1.4 }}>{preview}</div>
+      </div>
+    );
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div onClick={() => setShowFontPage(false)} style={{
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0,
+          }}>
+            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+          </div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>字体设置</h1>
+        </div>
+        <Card style={{ padding: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12 }}>中文</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {zhFonts.map(f => (
+              <FontCard key={f} family={f} label={f} preview="สวัสดี 你好世界" active={zhFont === f} onClick={() => setZhFont(f)} />
+            ))}
+          </div>
+        </Card>
+        <Card style={{ padding: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12 }}>泰文</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {thFonts.map(f => (
+              <FontCard key={f} family={f} label={f} preview="สวัสดีครับ ยินดีที่ได้รู้จัก" active={thFont === f} onClick={() => setThFont(f)} />
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
       {/* Profile card */}
       <Card style={{ padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {/* Avatar on left */}
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%", background: C.p100,
+          {/* Avatar with upload */}
+          <div onClick={() => fileInputRef.current?.click()} style={{
+            width: 56, height: 56, borderRadius: "50%", background: "var(--c-p100)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 22, fontWeight: 700, color: C.p600, flexShrink: 0,
-          }}>{(userId || "U").charAt(0).toUpperCase()}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {/* User ID display */}
-            <div style={{ fontSize: 17, fontWeight: 700, color: C.p800 }}>{userId ? (userId.length > 12 ? userId.slice(0, 12) + "..." : userId) : "User"}</div>
+            fontSize: 22, fontWeight: 700, color: "var(--c-p600)", flexShrink: 0,
+            cursor: "pointer", overflow: "hidden", position: "relative",
+          }}>
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              (user?.firstName || userId || "U").charAt(0).toUpperCase()
+            )}
+            {avatarUploading && <div style={{
+              position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <div style={{ width: 20, height: 20, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
+            </div>}
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file || !user) return;
+            setAvatarUploading(true);
+            try { await user.setProfileImage({ file }); } catch (err) { console.error("[avatar]", err); }
+            setAvatarUploading(false);
+            e.target.value = "";
+          }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+            {/* Nickname with inline edit */}
+            {editingNickname ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} autoFocus
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter" && nicknameInput.trim() && user) {
+                      try { await user.update({ firstName: nicknameInput.trim() }); } catch {}
+                      setEditingNickname(false);
+                    } else if (e.key === "Escape") { setEditingNickname(false); }
+                  }}
+                  style={{
+                    flex: 1, padding: "4px 8px", borderRadius: 8,
+                    border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)",
+                    fontSize: 17, fontWeight: 700, color: "var(--c-p800)",
+                    fontFamily: "'Noto Serif SC', sans-serif", outline: "none",
+                  }}
+                />
+                <div onClick={async () => {
+                  if (nicknameInput.trim() && user) {
+                    try { await user.update({ firstName: nicknameInput.trim() }); } catch {}
+                  }
+                  setEditingNickname(false);
+                }} style={{ cursor: "pointer", padding: 4 }}>
+                  <Check size={16} strokeWidth={2} color={"var(--c-teal)"} />
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)" }}>
+                  {user?.firstName || (userId ? (userId.length > 12 ? userId.slice(0, 12) + "..." : userId) : "User")}
+                </span>
+                <div onClick={() => { setNicknameInput(user?.firstName || ""); setEditingNickname(true); }}
+                  style={{ cursor: "pointer", display: "flex" }}>
+                  <Pencil size={13} strokeWidth={IW} color={"var(--c-s400)"} />
+                </div>
+              </div>
+            )}
             {/* Stats horizontal */}
             <div style={{ display: "flex", gap: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: C.gold }}>25</span>
-                <span style={{ fontSize: 11, color: C.s500 }}>{"\u5929\u6253\u5361"}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-gold)" }}>25</span>
+                <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u5929\u6253\u5361"}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: C.teal }}>680</span>
-                <span style={{ fontSize: 11, color: C.s500 }}>{"\u8BCD\u6C47"}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-teal)" }}>680</span>
+                <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u8BCD\u6C47"}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: C.amber }}>48</span>
-                <span style={{ fontSize: 11, color: C.s500 }}>{"\u5929\u5B66\u4E60"}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-amber)" }}>48</span>
+                <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u5929\u5B66\u4E60"}</span>
               </div>
             </div>
           </div>
@@ -2817,17 +3023,17 @@ const ProfilePage = ({ userId, onLogout }) => {
 
       {/* Settings */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.p100}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u57FA\u7840\u8BBE\u7F6E"}</h2>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u57FA\u7840\u8BBE\u7F6E"}</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
           <SettingRow icon={Globe} label={"\u754C\u9762\u8BED\u8A00"} desc={"\u5E94\u7528\u663E\u793A\u8BED\u8A00"}>
-            <select style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.p200}`, background: C.input, fontSize: 12, color: C.p700, outline: "none", fontFamily: "'Noto Sans SC', sans-serif" }}>
+            <select style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)", fontSize: 12, color: "var(--c-p700)", outline: "none", fontFamily: "'Noto Serif SC', sans-serif" }}>
               <option>{"\u4E2D\u6587"}</option><option>{"\u6CF0\u8BED"}</option>
             </select>
           </SettingRow>
           <SettingRow icon={BookOpen} label={"\u8BCD\u5178\u65B9\u5411"} desc={"\u4E2D\u6587\u67E5\u6CF0\u8BED\u91CA\u4E49"}>
-            <select value={dictDir} onChange={e => setDictDir(e.target.value)} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.p200}`, background: C.input, fontSize: 12, color: C.p700, outline: "none", fontFamily: "'Noto Sans SC', sans-serif" }}>
+            <select value={dictDir} onChange={e => setDictDir(e.target.value)} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)", fontSize: 12, color: "var(--c-p700)", outline: "none", fontFamily: "'Noto Serif SC', sans-serif" }}>
               <option value="zh-th">{"\u4E2D \u2192 \u6CF0"}</option>
               <option value="th-zh">{"\u6CF0 \u2192 \u4E2D"}</option>
             </select>
@@ -2837,14 +3043,14 @@ const ProfilePage = ({ userId, onLogout }) => {
               <div onClick={() => setShowColorDropdown(!showColorDropdown)} style={{
                 display: "flex", alignItems: "center", gap: 5,
                 padding: "6px 10px", borderRadius: 8,
-                border: `1px solid ${C.p200}`, background: C.input,
-                cursor: "pointer", fontSize: 12, color: C.p700,
-                fontFamily: "'Noto Sans SC', sans-serif",
+                border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)",
+                cursor: "pointer", fontSize: 12, color: "var(--c-p700)",
+                fontFamily: "'Noto Serif SC', sans-serif",
                 minWidth: 70,
               }}>
-                {colorMode === "light" && <Sun size={13} strokeWidth={1.5} color={C.p600} />}
-                {colorMode === "dark" && <Moon size={13} strokeWidth={1.5} color={C.p600} />}
-                {colorMode === "system" && <Smartphone size={13} strokeWidth={1.5} color={C.p600} />}
+                {colorMode === "light" && <Sun size={13} strokeWidth={1.5} color={"var(--c-p600)"} />}
+                {colorMode === "dark" && <Moon size={13} strokeWidth={1.5} color={"var(--c-p600)"} />}
+                {colorMode === "system" && <Smartphone size={13} strokeWidth={1.5} color={"var(--c-p600)"} />}
                 <span>{colorMode === "light" ? "\u660E\u4EAE" : colorMode === "dark" ? "\u591C\u95F4" : "\u7CFB\u7EDF"}</span>
               </div>
               {showColorDropdown && (
@@ -2852,9 +3058,9 @@ const ProfilePage = ({ userId, onLogout }) => {
                   <div onClick={() => setShowColorDropdown(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} />
                   <div style={{
                     position: "absolute", right: 0, top: "100%", marginTop: 4,
-                    background: C.surface, borderRadius: 10,
+                    background: "var(--c-surface)", borderRadius: 10,
                     boxShadow: "0 4px 16px rgba(61,43,31,0.14)",
-                    border: `1px solid ${C.p100}`, zIndex: 1000,
+                    border: `1px solid ${"var(--c-p100)"}`, zIndex: 1000,
                     minWidth: 110, overflow: "hidden",
                   }}>
                     {[
@@ -2868,14 +3074,14 @@ const ProfilePage = ({ userId, onLogout }) => {
                         <div key={opt.key} onClick={() => { setColorMode(opt.key); setShowColorDropdown(false); }} style={{
                           display: "flex", alignItems: "center", gap: 8,
                           padding: "9px 14px", cursor: "pointer",
-                          background: active ? C.p50 : "transparent",
-                          color: active ? C.p800 : C.s500,
+                          background: active ? "var(--c-p50)" : "transparent",
+                          color: active ? "var(--c-p800)" : "var(--c-s500)",
                           fontSize: 12, fontWeight: active ? 600 : 400,
-                          borderBottom: `1px solid ${C.p100}`,
+                          borderBottom: `1px solid ${"var(--c-p100)"}`,
                         }}>
-                          <Icon size={14} strokeWidth={1.5} color={active ? C.p700 : C.s400} />
+                          <Icon size={14} strokeWidth={1.5} color={active ? "var(--c-p700)" : "var(--c-s400)"} />
                           <span>{opt.label}</span>
-                          {active && <Check size={12} strokeWidth={2} color={C.teal} style={{ marginLeft: "auto" }} />}
+                          {active && <Check size={12} strokeWidth={2} color={"var(--c-teal)"} style={{ marginLeft: "auto" }} />}
                         </div>
                       );
                     })}
@@ -2887,37 +3093,111 @@ const ProfilePage = ({ userId, onLogout }) => {
           <SettingRow icon={Bell} label={"\u590D\u4E60\u63D0\u9192"} desc={"\u6BCF\u65E5\u5B9A\u65F6\u63D0\u9192"}>
             <Toggle on={reminderEnabled} onToggle={() => setReminderEnabled(!reminderEnabled)} />
           </SettingRow>
+          <SettingRow icon={Pencil} label="字体设置" desc={`${zhFont} / ${thFont}`}>
+            <div onClick={() => setShowFontPage(true)} style={{
+              display: "flex", alignItems: "center", gap: 4, cursor: "pointer",
+              fontSize: 12, color: "var(--c-p500)", fontWeight: 500,
+            }}>
+              <span>选择</span>
+              <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} />
+            </div>
+          </SettingRow>
         </div>
       </Card>
 
       {/* WebDAV */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.p100}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>WebDAV {"\u540C\u6B65"}</h2>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>WebDAV 同步</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
-          <SettingRow icon={Cloud} label={"\u670D\u52A1\u5668"} desc={webdavConnected ? "\u5DF2\u8FDE\u63A5: jianguoyun.com" : "\u672A\u8FDE\u63A5"}>
-            <Btn variant={webdavConnected ? "secondary" : "primary"} icon={webdavConnected ? Check : Plus} onClick={() => setWebdavConnected(!webdavConnected)} style={{ padding: "6px 12px", fontSize: 12 }}>
-              {webdavConnected ? "\u5DF2\u8FDE\u63A5" : "\u8FDE\u63A5"}
+          <SettingRow icon={Cloud} label="服务器" desc={webdavConnected ? `已连接: ${webdavConfig.serverUrl.replace(/https?:\/\//, "").split("/")[0]}` : "未连接"}>
+            <Btn variant={webdavConnected ? "secondary" : "primary"} icon={webdavConnected ? Check : Plus} onClick={() => setShowWebdavModal(true)} style={{ padding: "6px 12px", fontSize: 12 }}>
+              {webdavConnected ? "已连接" : "连接"}
             </Btn>
           </SettingRow>
-          <SettingRow icon={Upload} label={"\u4E0A\u4F20\u7B14\u8BB0"} desc={"\u540C\u6B65\u5230 WebDAV"}>
-            <Btn variant="secondary" icon={Upload} style={{ padding: "6px 12px", fontSize: 12 }}>{"\u4E0A\u4F20"}</Btn>
+          <SettingRow icon={Upload} label="上传笔记" desc="同步到 WebDAV">
+            <Btn variant="secondary" icon={Upload} onClick={() => !webdavConnected && setShowWebdavModal(true)} style={{ padding: "6px 12px", fontSize: 12, opacity: webdavConnected ? 1 : 0.5 }}>上传</Btn>
           </SettingRow>
-          <SettingRow icon={Download} label={"\u4E0B\u8F7D\u5907\u4EFD"} desc={"\u4ECE\u670D\u52A1\u5668\u6062\u590D"}>
-            <Btn variant="secondary" icon={Download} style={{ padding: "6px 12px", fontSize: 12 }}>{"\u4E0B\u8F7D"}</Btn>
+          <SettingRow icon={Download} label="下载备份" desc="从服务器恢复">
+            <Btn variant="secondary" icon={Download} onClick={() => !webdavConnected && setShowWebdavModal(true)} style={{ padding: "6px 12px", fontSize: 12, opacity: webdavConnected ? 1 : 0.5 }}>下载</Btn>
           </SettingRow>
         </div>
       </Card>
 
+      {/* WebDAV Config Modal */}
+      {showWebdavModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 2000, padding: 20,
+        }}>
+          <div style={{
+            width: "100%", maxWidth: 380, background: "var(--c-surface)",
+            borderRadius: 18, padding: "24px 20px",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>WebDAV 配置</h3>
+              <div onClick={() => setShowWebdavModal(false)} style={{ cursor: "pointer", padding: 4 }}>
+                <X size={18} strokeWidth={IW} color={"var(--c-s400)"} />
+              </div>
+            </div>
+            {[
+              { label: "服务器地址", key: "serverUrl", placeholder: "https://dav.jianguoyun.com/dav/", type: "url" },
+              { label: "用户名", key: "username", placeholder: "your@email.com", type: "text" },
+              { label: "密码", key: "password", placeholder: "应用密码", type: "password" },
+            ].map(field => (
+              <div key={field.key} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--c-s500)", marginBottom: 4 }}>{field.label}</div>
+                <input
+                  type={field.type}
+                  value={webdavConfig[field.key]}
+                  onChange={e => setWebdavConfig(prev => ({ ...prev, [field.key]: e.target.value }))}
+                  placeholder={field.placeholder}
+                  style={{
+                    width: "100%", padding: "10px 12px", borderRadius: 10,
+                    border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)",
+                    fontSize: 13, color: "var(--c-p800)", outline: "none",
+                    fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              {webdavConnected && (
+                <div onClick={() => { setWebdavConnected(false); setWebdavConfig({ serverUrl: "", username: "", password: "" }); setShowWebdavModal(false); }}
+                  style={{
+                    flex: 1, padding: "12px 0", borderRadius: 12,
+                    border: `1px solid ${"var(--c-errL)"}`, background: "var(--c-surface)",
+                    color: "var(--c-err)", fontSize: 13, fontWeight: 500,
+                    textAlign: "center", cursor: "pointer",
+                  }}>断开</div>
+              )}
+              <div onClick={() => {
+                if (webdavConfig.serverUrl && webdavConfig.username && webdavConfig.password) {
+                  setWebdavConnected(true);
+                  setShowWebdavModal(false);
+                }
+              }} style={{
+                flex: 1, padding: "12px 0", borderRadius: 12,
+                background: "var(--c-p800)", color: "#fff", fontSize: 13, fontWeight: 600,
+                textAlign: "center", cursor: "pointer",
+                opacity: (webdavConfig.serverUrl && webdavConfig.username && webdavConfig.password) ? 1 : 0.5,
+              }}>保存</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Data management */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.p100}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u6570\u636E\u7BA1\u7406"}</h2>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u6570\u636E\u7BA1\u7406"}</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
           <SettingRow icon={HardDrive} label={"\u5B58\u50A8\u7A7A\u95F4"} desc={"\u5DF2\u7528 12.4/50 MB"}>
-            <div style={{ width: 80 }}><ProgressBar value={12.4} max={50} color={C.teal} /></div>
+            <div style={{ width: 80 }}><ProgressBar value={12.4} max={50} color={"var(--c-teal)"} /></div>
           </SettingRow>
           <SettingRow icon={FileText} label={"\u5BFC\u51FA\u6570\u636E"} desc={"\u5BFC\u51FA\u4E3A JSON \u6587\u4EF6"}>
             <Btn variant="secondary" icon={Download} style={{ padding: "6px 12px", fontSize: 12 }}>{"\u5BFC\u51FA"}</Btn>
@@ -2927,17 +3207,17 @@ const ProfilePage = ({ userId, onLogout }) => {
 
       {/* AI API Management */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.p100}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>AI {"\u7BA1\u7406"}</h2>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>AI {"\u7BA1\u7406"}</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
           <SettingRow icon={Key} label={"API \u7BA1\u7406"} desc={`${apiKeys.length} \u4E2A\u5DF2\u914D\u7F6E`}>
             <div onClick={() => setShowApiMgmt(true)} style={{
               display: "flex", alignItems: "center", gap: 4, cursor: "pointer",
-              fontSize: 12, color: C.p500, fontWeight: 500,
+              fontSize: 12, color: "var(--c-p500)", fontWeight: 500,
             }}>
               <span>{"\u7BA1\u7406"}</span>
-              <ChevronRight size={14} strokeWidth={IW} color={C.s300} />
+              <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} />
             </div>
           </SettingRow>
         </div>
@@ -2945,10 +3225,10 @@ const ProfilePage = ({ userId, onLogout }) => {
 
       {/* Logout */}
       <div onClick={onLogout} style={{
-        padding: "14px 0", borderRadius: 12, background: C.surface,
-        border: `1px solid ${C.errL}`, textAlign: "center",
+        padding: "14px 0", borderRadius: 12, background: "var(--c-surface)",
+        border: `1px solid ${"var(--c-errL)"}`, textAlign: "center",
         cursor: "pointer", fontSize: 14, fontWeight: 500,
-        color: C.err, fontFamily: "'Noto Sans SC', sans-serif",
+        color: "var(--c-err)", fontFamily: "'Noto Serif SC', sans-serif",
         transition: "background 0.2s",
       }}>
         {"\u9000\u51FA\u767B\u5F55"}
@@ -2965,18 +3245,24 @@ const LoginPage = ({ onLogin }) => {
   const clerkSignUp = typeof useSignUp !== "undefined" ? (() => { try { return useSignUp(); } catch { return null; } })() : null;
   const clerk = typeof useClerk !== "undefined" ? (() => { try { return useClerk(); } catch { return null; } })() : null;
 
+  const [loginMode, setLoginMode] = useState("login"); // "login" | "register"
   const [loginTab, setLoginTab] = useState("email");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [verifyMessage, setVerifyMessage] = useState(""); // for email verification step
+
+  const isRegister = loginMode === "register";
 
   const handleCredentialLogin = async () => {
-    setError("");
+    setError(""); setVerifyMessage("");
     const id = loginTab === "email" ? email : username;
-    if (!id.trim() || !password.trim()) { setError("\u8BF7\u586B\u5199\u5B8C\u6574\u4FE1\u606F"); return; }
+    if (!id.trim() || !password.trim()) { setError("请填写完整信息"); return; }
     setLoading(true);
     try {
       if (clerkSignIn?.signIn) {
@@ -2990,13 +3276,43 @@ const LoginPage = ({ onLogin }) => {
         onLogin?.();
       }
     } catch (err) {
-      setError(err?.errors?.[0]?.message || "\u767B\u5F55\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u8D26\u53F7\u548C\u5BC6\u7801");
+      setError(err?.errors?.[0]?.message || "登录失败，请检查账号和密码");
+    }
+    setLoading(false);
+  };
+
+  const handleRegister = async () => {
+    setError(""); setVerifyMessage("");
+    const id = loginTab === "email" ? email : username;
+    if (!id.trim() || !password.trim()) { setError("请填写完整信息"); return; }
+    if (password !== confirmPwd) { setError("两次输入的密码不一致"); return; }
+    if (password.length < 8) { setError("密码至少需要 8 位"); return; }
+    setLoading(true);
+    try {
+      if (clerkSignUp?.signUp) {
+        const params = { password };
+        if (loginTab === "email") params.emailAddress = id;
+        else params.username = id;
+        const result = await clerkSignUp.signUp.create(params);
+        if (result.status === "complete") {
+          await clerk?.setActive?.({ session: result.createdSessionId });
+          onLogin?.();
+        } else {
+          // e.g. email verification needed
+          setVerifyMessage("注册请求已发送，请检查邮箱完成验证");
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 800));
+        onLogin?.();
+      }
+    } catch (err) {
+      setError(err?.errors?.[0]?.message || "注册失败，请重试");
     }
     setLoading(false);
   };
 
   const handleOAuth = async (provider) => {
-    setError("");
+    setError(""); setVerifyMessage("");
     try {
       if (clerkSignIn?.signIn) {
         await clerkSignIn.signIn.authenticateWithRedirect({
@@ -3008,37 +3324,17 @@ const LoginPage = ({ onLogin }) => {
         console.log(`[OAuth] ${provider} sign-in (Clerk not configured)`);
       }
     } catch (err) {
-      setError(`\u7B2C\u4E09\u65B9\u767B\u5F55\u5931\u8D25`);
+      setError(`第三方登录失败`);
     }
   };
 
-  const handleRegister = async () => {
-    setError("");
-    const id = loginTab === "email" ? email : username;
-    if (!id.trim() || !password.trim()) { setError("\u8BF7\u586B\u5199\u5B8C\u6574\u4FE1\u606F"); return; }
-    setLoading(true);
-    try {
-      if (clerkSignUp?.signUp) {
-        const params = { password };
-        if (loginTab === "email") params.emailAddress = id;
-        else params.username = id;
-        const result = await clerkSignUp.signUp.create(params);
-        if (result.status === "complete") {
-          await clerk?.setActive?.({ session: result.createdSessionId });
-          onLogin?.();
-        }
-      } else {
-        await new Promise(r => setTimeout(r, 800));
-        onLogin?.();
-      }
-    } catch (err) {
-      setError(err?.errors?.[0]?.message || "\u6CE8\u518C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
-    }
-    setLoading(false);
+  const switchMode = () => {
+    setLoginMode(isRegister ? "login" : "register");
+    setError(""); setVerifyMessage(""); setConfirmPwd("");
   };
 
   /* ── Custom SVG line icons for OAuth providers ── */
-  const AppleLineIcon = ({ size = 20, color = C.p600 }) => (
+  const AppleLineIcon = ({ size = 24, color = "var(--c-p600)" }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 2 1.5 3.5 3 4.5.5.3 1 .3 1.5.3s1 0 1.5-.3c1.5-1 3-2.5 3-4.5C16.5 4 14.5 2 12 2z" />
       <path d="M12 13c-3 0-6 2-6 5.5C6 20 7 22 9 22c1 0 1.5-.5 3-.5s2 .5 3 .5c2 0 3-2 3-3.5C18 15 15 13 12 13z" />
@@ -3046,14 +3342,14 @@ const LoginPage = ({ onLogin }) => {
     </svg>
   );
 
-  const GitHubLineIcon = ({ size = 20, color = C.p600 }) => (
+  const GitHubLineIcon = ({ size = 24, color = "var(--c-p600)" }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.4.4-.7 1-.9 1.5-.2.6-.2 1.2 0 2V22" />
       <path d="M9 18c-4.5 2-5-2-7-2" />
     </svg>
   );
 
-  const GoogleLineIcon = ({ size = 20, color = C.p600 }) => (
+  const GoogleLineIcon = ({ size = 24, color = "var(--c-p600)" }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8c-2.2 0-4 1.8-4 4s1.8 4 4 4c1.5 0 2.8-.8 3.5-2" />
@@ -3063,8 +3359,8 @@ const LoginPage = ({ onLogin }) => {
 
   const containerStyle = {
     maxWidth: 430, margin: "0 auto", minHeight: "100vh",
-    background: C.bg, fontFamily: "'Noto Sans SC', 'Noto Sans Thai', sans-serif",
-    color: C.p800, display: "flex", flexDirection: "column",
+    background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif",
+    color: "var(--c-p800)", display: "flex", flexDirection: "column",
   };
 
   const oauthProviders = [
@@ -3073,38 +3369,70 @@ const LoginPage = ({ onLogin }) => {
     { key: "google", label: "Google", Icon: GoogleLineIcon },
   ];
 
+  const inputStyle = {
+    width: "100%", padding: "14px 16px", borderRadius: 12,
+    border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+    fontSize: 15, color: "var(--c-p800)", outline: "none",
+    fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
+    transition: "border-color 0.2s",
+  };
+
   return (
     <div style={containerStyle}>
       <div style={{ height: 44, flexShrink: 0 }} />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "0 28px", gap: 0 }}>
         {/* Brand */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <Logo size={40} color={C.p600} />
-          <div style={{ fontSize: 26, fontWeight: 800, color: C.p900, marginTop: 10, fontFamily: "'Noto Serif SC', serif", letterSpacing: 2 }}>
-            {"\u8BCD\u7B3A"}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <Logo size={40} color={"var(--c-p600)"} />
+          <div style={{ fontSize: 26, fontWeight: 800, color: "var(--c-p900)", marginTop: 10, fontFamily: "'Noto Serif SC', serif", letterSpacing: 2 }}>
+            词笺
           </div>
-          <div style={{ fontSize: 13, color: C.s400, marginTop: 4 }}>
-            {"\u4E2D\u6CF0\u53CC\u8BED\u667A\u80FD\u8BCD\u5178"}
+          <div style={{ fontSize: 13, color: "var(--c-s400)", marginTop: 4 }}>
+            中泰双语智能词典
           </div>
         </div>
 
+        {/* ── OAuth circular buttons (above login form) ── */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20 }}>
+          {oauthProviders.map(({ key, label, Icon: OIcon }) => (
+            <div key={key} onClick={() => handleOAuth(key)} style={{
+              width: 56, height: 56, borderRadius: "50%",
+              border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", transition: "all 0.2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--c-p50)"; e.currentTarget.style.borderColor = "var(--c-p300)"; e.currentTarget.style.transform = "scale(1.05)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--c-surface)"; e.currentTarget.style.borderColor = "var(--c-p200)"; e.currentTarget.style.transform = "scale(1)"; }}
+            >
+              <OIcon size={24} color={"var(--c-p600)"} />
+            </div>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 20px 0" }}>
+          <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
+          <span style={{ fontSize: 12, color: "var(--c-s300)" }}>或使用邮箱登录</span>
+          <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
+        </div>
+
         {/* Login method tabs */}
-        <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: `2px solid ${C.p100}` }}>
+        <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: `2px solid ${"var(--c-p100)"}` }}>
           {[
             { key: "email", label: "Email" },
-            { key: "username", label: "\u7528\u6237\u540D" },
+            { key: "username", label: "用户名" },
           ].map(t => (
             <div key={t.key} onClick={() => { setLoginTab(t.key); setError(""); }} style={{
               flex: 1, textAlign: "center", padding: "10px 0 10px",
               fontSize: 14, fontWeight: loginTab === t.key ? 600 : 400,
-              color: loginTab === t.key ? C.p800 : C.s400,
+              color: loginTab === t.key ? "var(--c-p800)" : "var(--c-s400)",
               cursor: "pointer", position: "relative", transition: "all 0.2s",
             }}>
               {t.label}
               {loginTab === t.key && <div style={{
                 position: "absolute", bottom: -2, left: "20%", right: "20%",
-                height: 2.5, borderRadius: 2, background: C.p600,
+                height: 2.5, borderRadius: 2, background: "var(--c-p600)",
               }} />}
             </div>
           ))}
@@ -3116,109 +3444,110 @@ const LoginPage = ({ onLogin }) => {
             type={loginTab === "email" ? "email" : "text"}
             value={loginTab === "email" ? email : username}
             onChange={e => loginTab === "email" ? setEmail(e.target.value) : setUsername(e.target.value)}
-            placeholder={loginTab === "email" ? "\u90AE\u7BB1\u5730\u5740" : "\u7528\u6237\u540D"}
-            style={{
-              width: "100%", padding: "14px 16px", borderRadius: 12,
-              border: `1px solid ${C.p200}`, background: C.surface,
-              fontSize: 15, color: C.p800, outline: "none",
-              fontFamily: "'Noto Sans SC', sans-serif", boxSizing: "border-box",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={e => e.target.style.borderColor = C.p400}
-            onBlur={e => e.target.style.borderColor = C.p200}
+            placeholder={loginTab === "email" ? "邮箱地址" : "用户名"}
+            style={inputStyle}
+            onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+            onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
           />
         </div>
 
         {/* Password field */}
-        <div style={{ marginBottom: 8, position: "relative" }}>
+        <div style={{ marginBottom: 12, position: "relative" }}>
           <input
             type={showPwd ? "text" : "password"}
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder={"\u5BC6\u7801"}
-            onKeyDown={e => e.key === "Enter" && handleCredentialLogin()}
-            style={{
-              width: "100%", padding: "14px 44px 14px 16px", borderRadius: 12,
-              border: `1px solid ${C.p200}`, background: C.surface,
-              fontSize: 15, color: C.p800, outline: "none",
-              fontFamily: "'Noto Sans SC', sans-serif", boxSizing: "border-box",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={e => e.target.style.borderColor = C.p400}
-            onBlur={e => e.target.style.borderColor = C.p200}
+            placeholder="密码"
+            onKeyDown={e => e.key === "Enter" && !isRegister && handleCredentialLogin()}
+            style={{ ...inputStyle, paddingRight: 44 }}
+            onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+            onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
           />
           <div onClick={() => setShowPwd(!showPwd)} style={{
             position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
             cursor: "pointer", display: "flex", alignItems: "center",
           }}>
             {showPwd
-              ? <EyeOff size={18} strokeWidth={1.5} color={C.s400} />
-              : <Eye size={18} strokeWidth={1.5} color={C.s400} />}
+              ? <EyeOff size={18} strokeWidth={1.5} color={"var(--c-s400)"} />
+              : <Eye size={18} strokeWidth={1.5} color={"var(--c-s400)"} />}
           </div>
         </div>
+
+        {/* Confirm password (register mode only) */}
+        {isRegister && (
+          <div style={{ marginBottom: 12, position: "relative" }}>
+            <input
+              type={showConfirmPwd ? "text" : "password"}
+              value={confirmPwd}
+              onChange={e => setConfirmPwd(e.target.value)}
+              placeholder="确认密码"
+              onKeyDown={e => e.key === "Enter" && handleRegister()}
+              style={{ ...inputStyle, paddingRight: 44 }}
+              onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+              onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+            />
+            <div onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{
+              position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+              cursor: "pointer", display: "flex", alignItems: "center",
+            }}>
+              {showConfirmPwd
+                ? <EyeOff size={18} strokeWidth={1.5} color={"var(--c-s400)"} />
+                : <Eye size={18} strokeWidth={1.5} color={"var(--c-s400)"} />}
+            </div>
+          </div>
+        )}
 
         {/* Error */}
         {error && (
           <div style={{
-            fontSize: 12, color: C.err, textAlign: "center", padding: "8px 0",
-            background: C.errL, borderRadius: 8, marginBottom: 4,
+            fontSize: 12, color: "var(--c-err)", textAlign: "center", padding: "8px 12px",
+            background: "var(--c-errL)", borderRadius: 8, marginBottom: 4,
           }}>{error}</div>
         )}
 
-        {/* Login button */}
-        <button onClick={handleCredentialLogin} disabled={loading} style={{
-          width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
-          background: C.p800, color: "#fff", fontSize: 15, fontWeight: 600,
-          cursor: loading ? "wait" : "pointer", marginTop: 8,
-          fontFamily: "'Noto Sans SC', sans-serif", transition: "background 0.2s",
-          opacity: loading ? 0.7 : 1,
-        }}>
-          {loading ? "\u767B\u5F55\u4E2D..." : "\u767B\u5F55"}
+        {/* Verify message (registration needs email confirmation) */}
+        {verifyMessage && (
+          <div style={{
+            fontSize: 12, color: "var(--c-info)", textAlign: "center", padding: "8px 12px",
+            background: "var(--c-infoL)", borderRadius: 8, marginBottom: 4,
+          }}>{verifyMessage}</div>
+        )}
+
+        {/* Action button */}
+        <button
+          onClick={isRegister ? handleRegister : handleCredentialLogin}
+          disabled={loading}
+          style={{
+            width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
+            background: "var(--c-p800)", color: "#fff", fontSize: 15, fontWeight: 600,
+            cursor: loading ? "wait" : "pointer", marginTop: 8,
+            fontFamily: "'Noto Serif SC', sans-serif", transition: "background 0.2s",
+            opacity: loading ? 0.7 : 1,
+          }}
+        >
+          {loading
+            ? (isRegister ? "注册中..." : "登录中...")
+            : (isRegister ? "创建账号" : "登录")}
         </button>
 
-        {/* Register link */}
-        <div style={{ textAlign: "center", margin: "12px 0" }}>
-          <span style={{ fontSize: 13, color: C.s400 }}>{"\u8FD8\u6CA1\u6709\u8D26\u53F7\uFF1F"}</span>
-          <span onClick={handleRegister} style={{
-            fontSize: 13, color: C.p600, fontWeight: 600, cursor: "pointer", marginLeft: 4,
-          }}>{"\u521B\u5EFA\u8D26\u53F7"}</span>
-        </div>
-
-        {/* Divider */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-          <div style={{ flex: 1, height: 1, background: C.p100 }} />
-          <span style={{ fontSize: 12, color: C.s300 }}>{"\u6216\u4F7F\u7528\u7B2C\u4E09\u65B9\u767B\u5F55"}</span>
-          <div style={{ flex: 1, height: 1, background: C.p100 }} />
-        </div>
-
-        {/* OAuth buttons */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {oauthProviders.map(({ key, label, Icon: OIcon }) => (
-            <div key={key} onClick={() => handleOAuth(key)} style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              padding: "13px 0", borderRadius: 12,
-              border: `1px solid ${C.p200}`, background: C.surface,
-              cursor: "pointer", fontSize: 14, fontWeight: 500,
-              color: C.p700, fontFamily: "'Noto Sans SC', sans-serif",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.p50; e.currentTarget.style.borderColor = C.p300; }}
-            onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.borderColor = C.p200; }}
-            >
-              <OIcon size={20} color={C.p600} />
-              <span>{"\u4F7F\u7528"} {label} {"\u767B\u5F55"}</span>
-            </div>
-          ))}
+        {/* Mode toggle */}
+        <div style={{ textAlign: "center", margin: "16px 0" }}>
+          <span style={{ fontSize: 13, color: "var(--c-s400)" }}>
+            {isRegister ? "已有账号？" : "还没有账号？"}
+          </span>
+          <span onClick={switchMode} style={{
+            fontSize: 13, color: "var(--c-p600)", fontWeight: 600, cursor: "pointer", marginLeft: 4,
+          }}>{isRegister ? "立即登录" : "创建账号"}</span>
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: "center", marginTop: 28, marginBottom: 28 }}>
-          <span style={{ fontSize: 11, color: C.s300 }}>
-            {"\u767B\u5F55\u5373\u8868\u793A\u540C\u610F"}
+        <div style={{ textAlign: "center", marginTop: "auto", paddingBottom: 28, paddingTop: 20 }}>
+          <span style={{ fontSize: 11, color: "var(--c-s300)" }}>
+            {isRegister ? "注册" : "登录"}即表示同意
           </span>
-          <span style={{ fontSize: 11, color: C.p500, cursor: "pointer" }}>{"\u670D\u52A1\u6761\u6B3E"}</span>
-          <span style={{ fontSize: 11, color: C.s300 }}>{"\u00A0\u548C\u00A0"}</span>
-          <span style={{ fontSize: 11, color: C.p500, cursor: "pointer" }}>{"\u9690\u79C1\u653F\u7B56"}</span>
+          <span style={{ fontSize: 11, color: "var(--c-p500)", cursor: "pointer" }}> 服务条款</span>
+          <span style={{ fontSize: 11, color: "var(--c-s300)" }}> 和 </span>
+          <span style={{ fontSize: 11, color: "var(--c-p500)", cursor: "pointer" }}>隐私政策</span>
         </div>
       </div>
     </div>
@@ -3241,6 +3570,22 @@ export default function App() {
   const [generatedWords, setGeneratedWords] = useState({});
   const [dbWordData, setDbWordData] = useState({});
   const [detailLoading, setDetailLoading] = useState(false);
+
+  /* ── Theme (color mode) management ── */
+  const [colorMode, setColorMode] = useState(() => {
+    return localStorage.getItem('thaidict-color-mode') || 'light';
+  });
+  useEffect(() => {
+    if (colorMode === 'dark') {
+      document.documentElement.dataset.theme = 'dark';
+    } else if (colorMode === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light';
+    } else {
+      delete document.documentElement.dataset.theme;
+    }
+    localStorage.setItem('thaidict-color-mode', colorMode);
+  }, [colorMode]);
 
   const handleWordTap = async (word) => {
     if (!word) return;
@@ -3350,9 +3695,9 @@ export default function App() {
   /* ── Loading screen while Clerk initializes ── */
   if (!isLoaded) {
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
-        <div style={{ width: 32, height: 32, border: `3px solid ${C.p200}`, borderTopColor: C.teal, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-        <span style={{ fontSize: 13, color: C.s500 }}>{"\u52A0\u8F7D\u4E2D..."}</span>
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+        <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{"\u52A0\u8F7D\u4E2D..."}</span>
       </div>
     );
   }
@@ -3365,13 +3710,13 @@ export default function App() {
   /* ── Unknown word page takes priority ── */
   if (unknownWord) {
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: C.bg, fontFamily: "'Noto Sans SC', 'Noto Sans Thai', sans-serif", color: C.p800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ height: 22, background: C.bg, flexShrink: 0 }} />
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ height: 22, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10 }}>
-          <div onClick={() => setUnknownWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: C.p100, flexShrink: 0 }}>
-            <ChevronLeft size={18} strokeWidth={IW} color={C.p700} />
+          <div onClick={() => setUnknownWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u672A\u77E5\u8BCD\u6761"}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u672A\u77E5\u8BCD\u6761"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           <UnknownWordPage word={unknownWord} onBack={() => setUnknownWord(null)} onWordTap={handleWordTap} onGenerated={handleGenerated} />
@@ -3383,13 +3728,13 @@ export default function App() {
   /* ── Word detail page ── */
   if (detailWord) {
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: C.bg, fontFamily: "'Noto Sans SC', 'Noto Sans Thai', sans-serif", color: C.p800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ height: 22, background: C.bg, flexShrink: 0 }} />
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ height: 22, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10 }}>
-          <div onClick={() => setDetailWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: C.p100, flexShrink: 0 }}>
-            <ChevronLeft size={18} strokeWidth={IW} color={C.p700} />
+          <div onClick={() => setDetailWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           <WordDetailPage userId={userId} onBack={() => setDetailWord(null)} onWordTap={handleWordTap} wordData={dbWordData[detailWord] || generatedWords[detailWord] || null} />
@@ -3401,11 +3746,11 @@ export default function App() {
   return (
     <div style={{
       maxWidth: 430, margin: "0 auto", height: "100vh",
-      background: C.bg, fontFamily: "'Noto Sans SC', 'Noto Sans Thai', sans-serif",
-      color: C.p800, display: "flex", flexDirection: "column", overflow: "hidden",
+      background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif",
+      color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
       {/* Status bar placeholder */}
-      <div style={{ height: 22, background: C.bg, flexShrink: 0 }} />
+      <div style={{ height: 22, background: "var(--c-bg)", flexShrink: 0 }} />
 
       {/* Header */}
       <div style={{
@@ -3413,8 +3758,8 @@ export default function App() {
         justifyContent: "space-between", flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <PageIcon size={26} color={C.p600} />
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.p800, margin: 0, fontFamily: "'Noto Serif SC', serif" }}>
+          <PageIcon size={26} color={"var(--c-p600)"} />
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>
             {pageTitles[page]}
           </h1>
         </div>
@@ -3425,19 +3770,19 @@ export default function App() {
         {/* Loading overlay for word lookup */}
         {detailLoading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(250,247,244,0.85)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
-            <div style={{ width: 32, height: 32, border: `3px solid ${C.p200}`, borderTopColor: C.teal, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            <span style={{ fontSize: 13, color: C.s500 }}>{"查询词库中..."}</span>
+            <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{"查询词库中..."}</span>
           </div>
         )}
         {page === "home" && <HomePage userId={userId} onNavigate={setPage} onWordTap={handleWordTap} />}
         {page === "words" && <WordBookPage userId={userId} onWordTap={handleWordTap} />}
         {page === "learn" && <LearnPage userId={userId} onWordTap={handleWordTap} />}
-        {page === "me" && <ProfilePage userId={userId} onLogout={() => clerkSignOut()} />}
+        {page === "me" && <ProfilePage userId={userId} user={clerkUser} colorMode={colorMode} setColorMode={setColorMode} onLogout={() => clerkSignOut()} />}
       </div>
 
       {/* Bottom Navigation Bar */}
       <nav style={{
-        display: "flex", background: C.surface, borderTop: `1px solid ${C.p100}`,
+        display: "flex", background: "var(--c-surface)", borderTop: `1px solid ${"var(--c-p100)"}`,
         paddingBottom: 20, paddingTop: 8, flexShrink: 0,
       }}>
         {navItems.map(item => (
@@ -3449,10 +3794,10 @@ export default function App() {
               gap: 4, cursor: "pointer", transition: "all 0.2s",
             }}
           >
-            <item.icon size={22} strokeWidth={IW} color={page === item.key ? C.p600 : C.s300} />
+            <item.icon size={22} strokeWidth={IW} color={page === item.key ? "var(--c-p600)" : "var(--c-s300)"} />
             <span style={{
               fontSize: 11, fontWeight: page === item.key ? 600 : 400,
-              color: page === item.key ? C.p700 : C.s300,
+              color: page === item.key ? "var(--c-p700)" : "var(--c-s300)",
             }}>{item.label}</span>
           </div>
         ))}
