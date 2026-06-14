@@ -284,7 +284,7 @@ const Btn = ({ children, variant = "primary", icon: Icon, onClick, style }) => {
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     padding: "10px 18px", borderRadius: 12, fontSize: 14, fontWeight: 500,
     cursor: "pointer", transition: "all 0.2s ease", border: "none",
-    fontFamily: "'Noto Serif SC', sans-serif",
+    fontFamily: "var(--zh-font), sans-serif",
   };
   const variants = {
     primary: { background: "var(--c-p600)", color: "#fff" },
@@ -304,7 +304,7 @@ const Btn = ({ children, variant = "primary", icon: Icon, onClick, style }) => {
 
 const SectionTitle = ({ children, action, onAction }) => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-    <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{children}</h2>
+    <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{children}</h2>
     {action && (
       <span onClick={onAction} style={{ fontSize: 12, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
         {action} <ChevronRight size={14} strokeWidth={IW} />
@@ -409,7 +409,7 @@ const HeatCell = ({ level, size = 12 }) => {
 
 const PageHeader = ({ title, subtitle }) => (
   <div style={{ padding: "16px 20px 12px" }}>
-    <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{title}</h1>
+    <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{title}</h1>
     {subtitle && <p style={{ fontSize: 13, color: "var(--c-s500)", margin: "4px 0 0" }}>{subtitle}</p>}
   </div>
 );
@@ -466,7 +466,7 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
             width: "100%", padding: "14px 44px 14px 44px", borderRadius: 14,
             border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)", fontSize: 15,
             color: "var(--c-p800)", outline: "none", transition: "border-color 0.2s",
-            fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
+            fontFamily: "var(--zh-font), sans-serif", boxSizing: "border-box",
           }}
           onFocus={e => e.target.style.borderColor = "var(--c-p500)"}
           onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
@@ -487,7 +487,7 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{r.word}</span>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif" }}>{r.word}</span>
                   {r.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{r.pos}</Badge>}
                   {r.sense_count > 1 && <span style={{ fontSize: 10, color: "var(--c-s400)" }}>{r.sense_count}{"\u4E49"}</span>}
                 </div>
@@ -514,7 +514,7 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
               <Badge bg={"var(--c-goldL)"} fg={"var(--c-gold)"}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
               <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{new Date().toLocaleDateString("zh-CN")}</span>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--c-p900)", fontFamily: "'Sarabun', serif", letterSpacing: "0.04em" }}>{dw.word}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", letterSpacing: "0.04em" }}>{dw.word}</div>
             {dw.romanization && <div style={{ fontSize: 13, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", marginTop: 2 }}>{dw.romanization}</div>}
             {dwSense && (
               <>
@@ -546,7 +546,7 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
                 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{w.word}</span>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif" }}>{w.word}</span>
                       {w.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{w.pos}</Badge>}
                     </div>
                     {w.meaning && <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
@@ -647,7 +647,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
             color: tab === t.key ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 13, fontWeight: tab === t.key ? 600 : 400,
             boxShadow: tab === t.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-            fontFamily: "'Noto Serif SC', sans-serif", transition: "all 0.2s",
+            fontFamily: "var(--zh-font), sans-serif", transition: "all 0.2s",
           }}>{t.label}</button>
         ))}
       </div>
@@ -660,7 +660,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
             <input placeholder={tab === "recent" ? "\u641C\u7D22\u5386\u53F2\u67E5\u8BCD..." : "\u641C\u7D22\u6536\u85CF\u8BCD\u6C47..."} style={{
               width: "100%", padding: "12px 16px 12px 38px", borderRadius: 12,
               border: `1px solid ${"var(--c-p100)"}`, background: "var(--c-input)", fontSize: 14,
-              color: "var(--c-p800)", outline: "none", fontFamily: "'Noto Serif SC', sans-serif",
+              color: "var(--c-p800)", outline: "none", fontFamily: "var(--zh-font), sans-serif",
               boxSizing: "border-box",
             }} />
           </div>
@@ -681,7 +681,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{w.word}</span>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif" }}>{w.word}</span>
                       {w.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{w.pos}</Badge>}
                       {w.sense_count > 1 && <span style={{ fontSize: 10, color: "var(--c-s400)" }}>{w.sense_count}{"义"}</span>}
                     </div>
@@ -712,7 +712,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif" }}>{item.word}</span>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif" }}>{item.word}</span>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -775,7 +775,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
                     flex: 1, padding: "8px 12px", borderRadius: 8,
                     border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
                     fontSize: 13, color: "var(--c-p800)", outline: "none",
-                    fontFamily: "'Noto Serif SC', sans-serif",
+                    fontFamily: "var(--zh-font), sans-serif",
                   }}
                   onKeyDown={e => {
                     if (e.key === "Enter" && newFolderName.trim()) {
@@ -821,7 +821,7 @@ const WordBookPage = ({ userId, onWordTap }) => {
                       flex: 1, padding: "8px 12px", borderRadius: 8,
                       border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
                       fontSize: 14, color: "var(--c-p800)", outline: "none",
-                      fontFamily: "'Noto Serif SC', sans-serif", fontWeight: 600,
+                      fontFamily: "var(--zh-font), sans-serif", fontWeight: 600,
                     }}
                     onKeyDown={e => {
                       if (e.key === "Enter" && editName.trim()) {
@@ -902,6 +902,9 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
   const [bookmarked, setBookmarked] = useState(false);
   const [expandedSenses, setExpandedSenses] = useState([true, true, true]);
   const [freqTab, setFreqTab] = useState("ttc");
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [wordBookFolders, setWordBookFolders] = useState([]);
+  const [lastUsedFolder, setLastUsedFolder] = useState(null);
 
   // Check bookmark status and record lookup on mount
   useEffect(() => {
@@ -909,6 +912,34 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
     isBookmarked(userId, wd.word).then(setBookmarked);
     recordWordLookup(userId, wd.word);
   }, [wd?.word, userId]);
+
+  // Load word book folders for bookmark selection
+  useEffect(() => {
+    if (!userId || userId === 'anonymous') return;
+    getFolders(userId).then(rows => {
+      const mapped = (rows || []).map(f => ({
+        id: f.id, name: f.name, color: f.color, count: f.word_count || 0,
+      }));
+      if (mapped.length === 0) {
+        // Create default word book if none exist
+        if (isSupabaseConfigured) {
+          createFolder(userId, "默认单词本", "var(--c-teal)").then(folder => {
+            if (folder) {
+              setWordBookFolders([{ id: folder.id, name: folder.name, color: folder.color, count: 0 }]);
+              setLastUsedFolder(folder.id);
+            }
+          });
+        }
+      } else {
+        setWordBookFolders(mapped);
+        // Load last used folder from settings
+        getUserSettings(userId).then(s => {
+          if (s?.last_folder_id) setLastUsedFolder(s.last_folder_id);
+          else setLastUsedFolder(mapped[0].id);
+        });
+      }
+    });
+  }, [userId]);
 
   /* ── error report state ── */
   const [reportSection, setReportSection] = useState(null);
@@ -1033,26 +1064,21 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
       <Card style={{ padding: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 32, fontWeight: 700, color: "var(--c-p900)", fontFamily: "'Sarabun', serif", letterSpacing: "0.02em" }}>
-              {wd.word}
-            </div>
-            <div style={{ fontSize: 15, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", marginTop: 4, letterSpacing: "0.02em" }}>
-              {wd.romanization}
-              <span style={{ fontSize: 10, fontStyle: "normal", color: "var(--c-s300)", marginLeft: 6 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 32, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", letterSpacing: "0.02em" }}>
+                {wd.word}
+              </span>
+              <span style={{ fontSize: 15, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", letterSpacing: "0.02em" }}>
+                {wd.romanization}
+              </span>
+              <span style={{ fontSize: 10, fontStyle: "normal", color: "var(--c-s300)" }}>
                 {wd.romanization_source === "deepseek" ? "\uD83E\uDD16 AI" : "\uD83D\uDCD6 \u8BCD\u5178"}
               </span>
             </div>
           </div>
-          {/* 右侧：发音 + 来源标签 + 收藏 */}
+          {/* 右侧：收藏 */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0, marginLeft: 10 }}>
-            <TtsPlay text={wd.word} size={18} />
-            <div onClick={() => {
-              const next = !bookmarked;
-              setBookmarked(next);
-              if (userId && userId !== 'anonymous') {
-                next ? addBookmark(userId, wd.word) : removeBookmark(userId, wd.word);
-              }
-            }} style={{
+            <div onClick={() => setShowBookmarkModal(true)} style={{
               width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
               background: bookmarked ? "var(--c-goldL)" : "var(--c-p50)", cursor: "pointer",
             }}>
@@ -1066,14 +1092,8 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
             </div>
           </div>
         </div>
-        {/* 发音 + 义项数 — 简化为一行 */}
+        {/* 义项数 */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8, background: "color-mix(in srgb, var(--c-tealL) 25%, transparent)",
-            display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-          }}>
-            <Volume2 size={16} strokeWidth={IW} color={"var(--c-teal)"} />
-          </div>
           <Badge bg={"var(--c-surfaceAlt)"} fg={"var(--c-s500)"}>{wd.sense_count} {"\u4E2A\u4E49\u9879"}</Badge>
         </div>
       </Card>
@@ -1135,13 +1155,13 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                                       }}
                                       style={{
                                         fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
-                                        fontFamily: "'Sarabun', sans-serif",
+                                        fontFamily: "var(--th-font), sans-serif",
                                         borderBottom: `1px dashed ${"var(--c-teal)"}`,
                                         cursor: "pointer", padding: "0 2px", lineHeight: 1.8,
                                       }}
                                     >{tok.text}</span>
                                   )) : (
-                                    <span style={{ fontSize: 13, color: "var(--c-teal)", fontWeight: 500, fontFamily: "'Sarabun', sans-serif" }}>{ex.th}</span>
+                                    <span style={{ fontSize: 13, color: "var(--c-teal)", fontWeight: 500, fontFamily: "var(--th-font), sans-serif" }}>{ex.th}</span>
                                   )}
                                 </div>
                                 <TtsPlay text={ex.th} />
@@ -1203,7 +1223,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                 color: freqTab === f.key ? "var(--c-p800)" : "var(--c-s500)",
                 fontSize: 11, fontWeight: freqTab === f.key ? 600 : 400,
                 boxShadow: freqTab === f.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-                cursor: "pointer", fontFamily: "'Noto Serif SC', sans-serif",
+                cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
               }}>{f.label}</div>
             ))}
           </div>
@@ -1244,7 +1264,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                     <div key={i} onClick={() => onWordTap && onWordTap(w.word)} style={{
                       padding: "5px 12px", borderRadius: 20, background: "color-mix(in srgb, var(--c-tealL) 25%, transparent)",
                       border: `1px solid ${"var(--c-tealL)"}`, fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
-                      fontFamily: "'Sarabun', sans-serif", cursor: "pointer",
+                      fontFamily: "var(--th-font), sans-serif", cursor: "pointer",
                     }}>
                       {w.word}
                       <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
@@ -1261,7 +1281,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                     <div key={i} onClick={() => onWordTap && onWordTap(w.word)} style={{
                       padding: "5px 12px", borderRadius: 20, background: "color-mix(in srgb, var(--c-roseL) 25%, transparent)",
                       border: `1px solid ${"var(--c-roseL)"}`, fontSize: 13, color: "var(--c-rose)", fontWeight: 500,
-                      fontFamily: "'Sarabun', sans-serif", cursor: "pointer",
+                      fontFamily: "var(--th-font), sans-serif", cursor: "pointer",
                     }}>
                       {w.word}
                       <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
@@ -1295,7 +1315,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                 }}>
                   <div style={{
                     fontSize: 15, fontWeight: 700, color: "var(--c-p800)",
-                    fontFamily: "'Sarabun', sans-serif", flexShrink: 0, minWidth: 60,
+                    fontFamily: "var(--th-font), sans-serif", flexShrink: 0, minWidth: 60,
                   }}>{item.word}</div>
                   <div style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: "var(--c-p600)", lineHeight: 1.4,
@@ -1328,13 +1348,79 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
           </div>
         </Card>
       )}
+
+      {/* ── Bookmark Word Book Selection Modal ── */}
+      {showBookmarkModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center",
+        }}>
+          <div onClick={() => setShowBookmarkModal(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
+          <div style={{
+            position: "relative", zIndex: 1, width: "100%", maxWidth: 430,
+            background: "var(--c-surface)", borderRadius: "20px 20px 0 0",
+            padding: "20px 20px 32px", maxHeight: "60vh", overflow: "auto",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>
+                {bookmarked ? "管理收藏" : "添加到单词本"}
+              </h3>
+              <div onClick={() => setShowBookmarkModal(false)} style={{ cursor: "pointer", display: "flex" }}>
+                <X size={18} strokeWidth={IW} color={"var(--c-s400)"} />
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {wordBookFolders.map(folder => {
+                const isDefault = folder.name === "默认单词本";
+                return (
+                  <div key={folder.id} onClick={async () => {
+                    if (!bookmarked) {
+                      // Add bookmark + add to folder
+                      setBookmarked(true);
+                      if (userId && userId !== 'anonymous') {
+                        await addBookmark(userId, wd.word);
+                        addWordToFolder(folder.id, wd.word);
+                        setLastUsedFolder(folder.id);
+                        saveUserSettings(userId, { last_folder_id: folder.id });
+                      }
+                    }
+                    setShowBookmarkModal(false);
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                    borderRadius: 12, background: "var(--c-surfaceAlt)",
+                    border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
+                  }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: folder.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 14, color: "var(--c-p800)", fontWeight: 500 }}>
+                      {folder.name}{isDefault ? " (默认)" : ""}
+                    </span>
+                    {lastUsedFolder === folder.id && (
+                      <span style={{ fontSize: 10, color: "var(--c-s400)" }}>上次使用</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {bookmarked && (
+              <div onClick={async () => {
+                setBookmarked(false);
+                if (userId && userId !== 'anonymous') {
+                  await removeBookmark(userId, wd.word);
+                }
+                setShowBookmarkModal(false);
+              }} style={{
+                marginTop: 16, padding: "12px 0", borderRadius: 12, textAlign: "center",
+                fontSize: 14, fontWeight: 600, color: "var(--c-err)",
+                background: "var(--c-errL)", cursor: "pointer",
+              }}>
+                取消收藏
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-/* ────────────────────────────────────────────
-   PAGE: UNKNOWN WORD — when word is not found
-   ──────────────────────────────────────────── */
 const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
   const [generating, setGenerating] = useState(false);
 
@@ -1356,7 +1442,7 @@ const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
       <Card style={{ padding: 14, textAlign: "center" }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>{"\uD83D\uDD0D"}</div>
         <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", marginBottom: 4 }}>{"\u672A\u627E\u5230\u8BE5\u8BCD"}</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--c-teal)", fontFamily: "'Sarabun', sans-serif", marginBottom: 4 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif", marginBottom: 4 }}>
           {word}
         </div>
         <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 16 }}>{"\u8BCD\u5E93\u4E2D\u6682\u65E0\u6B64\u8BCD\u6761"}</div>
@@ -1364,7 +1450,7 @@ const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
           display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
           padding: "10px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
           background: generating ? "var(--c-p100)" : "var(--c-teal)", color: generating ? "var(--c-s500)" : "#fff",
-          cursor: generating ? "default" : "pointer", fontFamily: "'Noto Serif SC', sans-serif",
+          cursor: generating ? "default" : "pointer", fontFamily: "var(--zh-font), sans-serif",
         }}>
           {generating ? (
             <span>{"\u751F\u6210\u4E2D..."}</span>
@@ -1387,12 +1473,47 @@ const LearnPage = ({ userId, onWordTap }) => {
   const [selectedPhrase, setSelectedPhrase] = useState(null);
   const [planData, setPlanData] = useState(null);
   const [notesData, setNotesData] = useState([]);
+  const [todayTasks, setTodayTasks] = useState([
+    { icon: Target, text: "\u590D\u4E60 20 \u4E2A\u65E7\u8BCD", done: false, color: "var(--c-teal)" },
+    { icon: BookOpen, text: "\u5B66\u4E60 10 \u4E2A\u65B0\u8BCD", done: false, color: "var(--c-rose)" },
+    { icon: BookOpen, text: "\u5B8C\u6210 1 \u7BC7\u9605\u8BFB\u7406\u89E3", done: false, color: "var(--c-gold)" },
+    { icon: PenTool, text: "\u5B8C\u6210 5 \u9053\u9020\u53E5\u7EC3\u4E60", done: false, color: "var(--c-amber)" },
+  ]);
 
   useEffect(() => {
     if (!userId || userId === 'anonymous') return;
     getLearningPlan(userId).then(setPlanData);
     getNotes(userId).then(setNotesData);
+    // Load today's task progress
+    const today = new Date().toISOString().split('T')[0];
+    getLearningProgress(userId, 1).then(rows => {
+      const todayRow = (rows || []).find(r => r.date === today);
+      if (todayRow?.tasks_completed) {
+        setTodayTasks(prev => prev.map((t, i) => ({
+          ...t,
+          done: todayRow.tasks_completed.includes(i),
+        })));
+      }
+    });
   }, [userId]);
+
+  const toggleTask = async (idx) => {
+    setTodayTasks(prev => {
+      const next = prev.map((t, i) => i === idx ? { ...t, done: !t.done } : t);
+      // Save to Supabase
+      if (userId && userId !== 'anonymous') {
+        const doneIndices = next.filter(t => t.done).map((_, i) => i);
+        const today = new Date().toISOString().split('T')[0];
+        const allDone = doneIndices.length === next.length;
+        updateDailyProgress(userId, today, {
+          tasks_completed: doneIndices,
+          checked_in: allDone,
+          streak_days: allDone ? undefined : 0, // let server calculate streak
+        });
+      }
+      return next;
+    });
+  };
 
   /* ── Sub-page fixed header config ── */
   const subPageInfo = {
@@ -1412,7 +1533,7 @@ const LearnPage = ({ userId, onWordTap }) => {
           <div onClick={info.onBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
             <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{info.title}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{info.title}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           {section === "adjustPlan" && <AdjustPlanSection onBack={info.onBack} userId={userId} />}
@@ -1433,7 +1554,7 @@ const LearnPage = ({ userId, onWordTap }) => {
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u8BA1\u5212"}</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u5B66\u4E60\u8BA1\u5212"}</h2>
           </div>
           <span onClick={() => setSection("adjustPlan")} style={{ fontSize: 12, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
             {"\u8C03\u6574\u8BA1\u5212"} <ChevronRight size={14} strokeWidth={IW} />
@@ -1445,20 +1566,18 @@ const LearnPage = ({ userId, onWordTap }) => {
               <Calendar size={14} strokeWidth={IW} color={"var(--c-s500)"} />
               <span style={{ fontSize: 13, color: "var(--c-s500)", fontWeight: 500 }}>{"\u4ECA\u65E5\u4EFB\u52A1"}</span>
             </div>
-            <span style={{ fontSize: 12, color: "var(--c-teal)", fontWeight: 600 }}>2/4 {"\u5DF2\u5B8C\u6210"}</span>
+            <span style={{ fontSize: 12, color: "var(--c-teal)", fontWeight: 600 }}>
+              {todayTasks.filter(t => t.done).length}/{todayTasks.length} {"\u5DF2\u5B8C\u6210"}
+            </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[
-              { icon: Target, text: "\u590D\u4E60 20 \u4E2A\u65E7\u8BCD", done: true, color: "var(--c-teal)" },
-              { icon: BookOpen, text: "\u5B66\u4E60 10 \u4E2A\u65B0\u8BCD", done: true, color: "var(--c-rose)" },
-              { icon: BookOpen, text: "\u5B8C\u6210 1 \u7BC7\u9605\u8BFB\u7406\u89E3", done: false, color: "var(--c-gold)" },
-              { icon: PenTool, text: "\u5B8C\u6210 5 \u9053\u9020\u53E5\u7EC3\u4E60", done: false, color: "var(--c-amber)" },
-            ].map((task, i) => (
-              <div key={i} style={{
+            {todayTasks.map((task, i) => (
+              <div key={i} onClick={() => toggleTask(i)} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "10px 12px", borderRadius: 10,
+                padding: "10px 12px", borderRadius: 10, cursor: "pointer",
                 background: task.done ? "color-mix(in srgb, var(--c-okL) 19%, transparent)" : "var(--c-surfaceAlt)",
                 border: `1px solid ${task.done ? "color-mix(in srgb, var(--c-ok) 19%, transparent)" : "var(--c-p100)"}`,
+                transition: "all 0.2s",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                   <div style={{
@@ -1466,6 +1585,7 @@ const LearnPage = ({ userId, onWordTap }) => {
                     background: task.done ? "var(--c-ok)" : "transparent",
                     border: task.done ? "none" : `1.5px solid ${"var(--c-p200)"}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.2s",
                   }}>
                     {task.done && <Check size={13} strokeWidth={2} color="#fff" />}
                   </div>
@@ -1482,9 +1602,16 @@ const LearnPage = ({ userId, onWordTap }) => {
           <div style={{ marginTop: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u4ECA\u65E5\u8FDB\u5EA6"}</span>
-              <span style={{ fontSize: 11, color: "var(--c-teal)", fontWeight: 600 }}>50%</span>
+              <span style={{ fontSize: 11, color: "var(--c-teal)", fontWeight: 600 }}>
+                {Math.round((todayTasks.filter(t => t.done).length / todayTasks.length) * 100)}%
+              </span>
             </div>
-            <ProgressBar value={2} max={4} color={"var(--c-teal)"} height={6} />
+            <ProgressBar value={todayTasks.filter(t => t.done).length} max={todayTasks.length} color={"var(--c-teal)"} height={6} />
+            {todayTasks.filter(t => t.done).length === todayTasks.length && (
+              <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: "color-mix(in srgb, var(--c-ok) 12%, transparent)", textAlign: "center" }}>
+                <span style={{ fontSize: 12, color: "var(--c-ok)", fontWeight: 600 }}>{"✓ 今日已打卡！"}</span>
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -1509,7 +1636,7 @@ const LearnPage = ({ userId, onWordTap }) => {
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
           </div>
           <span style={{ fontSize: 12, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
             {"\u5168\u90E8"} <ChevronRight size={14} strokeWidth={IW} />
@@ -1706,7 +1833,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
               background: time === m ? s.color + "12" : "var(--c-surface)",
               color: time === m ? "var(--c-p800)" : "var(--c-s500)",
               fontSize: 12, fontWeight: time === m ? 600 : 400,
-              cursor: "pointer", fontFamily: "'Noto Serif SC', sans-serif",
+              cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
             }}>{m}{"\u5206\u949F"}</button>
           ))}
           <button onClick={() => { setCustomFor(s.key); setCustomMin(""); }} style={{
@@ -1715,7 +1842,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
             background: (time !== "15" && time !== "30") ? s.color + "12" : "var(--c-surface)",
             color: (time !== "15" && time !== "30") ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 12, fontWeight: (time !== "15" && time !== "30") ? 600 : 400,
-            cursor: "pointer", fontFamily: "'Noto Serif SC', sans-serif",
+            cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
           }}>
             {(time !== "15" && time !== "30") ? `${time}\u5206\u949F` : "\u81EA\u5B9A\u4E49"}
           </button>
@@ -1802,7 +1929,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
                   flex: 1, padding: "10px 14px", borderRadius: 10,
                   border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
                   fontSize: 18, fontWeight: 600, color: "var(--c-p800)",
-                  outline: "none", fontFamily: "'Noto Serif SC', sans-serif",
+                  outline: "none", fontFamily: "var(--zh-font), sans-serif",
                   textAlign: "center",
                 }}
               />
@@ -1813,7 +1940,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
                 flex: 1, padding: "10px 0", borderRadius: 10,
                 border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
                 color: "var(--c-s500)", fontSize: 14, cursor: "pointer",
-                fontFamily: "'Noto Serif SC', sans-serif",
+                fontFamily: "var(--zh-font), sans-serif",
               }}>{"\u53D6\u6D88"}</button>
               <button onClick={() => {
                 const v = parseInt(customMin);
@@ -1823,7 +1950,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
                 flex: 1, padding: "10px 0", borderRadius: 10,
                 border: "none", background: "var(--c-p600)",
                 color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
-                fontFamily: "'Noto Serif SC', sans-serif",
+                fontFamily: "var(--zh-font), sans-serif",
               }}>{"\u786E\u5B9A"}</button>
             </div>
           </div>
@@ -1856,7 +1983,7 @@ const NotesDetailSection = ({ onBack, onEditNote, notes = [] }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u5B66\u4E60\u7B14\u8BB0"}</h2>
 
       {/* Date picker */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1943,7 +2070,7 @@ const NoteEditorSection = ({ onBack, userId, webdavConnected }) => {
         value={noteTitle}
         onChange={e => setNoteTitle(e.target.value)}
         style={{
-          fontSize: 22, fontWeight: 700, color: "var(--c-p800)", fontFamily: "'Noto Serif SC', serif",
+          fontSize: 22, fontWeight: 700, color: "var(--c-p800)", fontFamily: "var(--zh-font), serif",
           padding: "4px 0", border: "none", background: "transparent", outline: "none",
           width: "100%",
         }}
@@ -1992,7 +2119,7 @@ const NoteEditorSection = ({ onBack, userId, webdavConnected }) => {
             width: "100%", minHeight: 280, border: "none", outline: "none",
             background: "transparent", resize: "none",
             fontSize: 14, color: "var(--c-p700)", lineHeight: 1.8,
-            fontFamily: "'Noto Serif SC', sans-serif",
+            fontFamily: "var(--zh-font), sans-serif",
           }}
         />
       </Card>
@@ -2024,7 +2151,7 @@ const MorphologySection = ({ onBack }) => {
             color: tab === t.key ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 13, fontWeight: tab === t.key ? 600 : 400,
             boxShadow: tab === t.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-            fontFamily: "'Noto Serif SC', sans-serif",
+            fontFamily: "var(--zh-font), sans-serif",
           }}>{t.label}</button>
         ))}
       </div>
@@ -2037,7 +2164,7 @@ const MorphologySection = ({ onBack }) => {
                 <div style={{
                   width: 48, height: 48, borderRadius: 12, background: "color-mix(in srgb, var(--c-tealL) 38%, transparent)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, fontWeight: 700, color: "var(--c-teal)", fontFamily: "'Sarabun', serif",
+                  fontSize: 22, fontWeight: 700, color: "var(--c-teal)", fontFamily: "var(--th-font), serif",
                 }}>{m.char}</div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{m.meaning}</div>
@@ -2109,7 +2236,7 @@ const StatsSection = ({ onBack }) => {
       {/* Heatmap */}
       <Card>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B66\u4E60\u65E5\u5386"}</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u5B66\u4E60\u65E5\u5386"}</h2>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--c-s300)" }}>
             {"\u5C11"}
             {[0, 1, 2, 3, 4].map(l => <HeatCell key={l} level={l} size={10} />)}
@@ -2315,7 +2442,7 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
             color: cat === c.key ? "var(--c-p800)" : "var(--c-s500)",
             fontSize: 13, fontWeight: cat === c.key ? 600 : 400,
             boxShadow: cat === c.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
-            fontFamily: "'Noto Serif SC', sans-serif",
+            fontFamily: "var(--zh-font), sans-serif",
           }}>{c.label}</button>
         ))}
       </div>
@@ -2337,7 +2464,7 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
             {/* Thai phrase + action buttons */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
               <div onClick={() => onSelectPhrase(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "'Sarabun', sans-serif", lineHeight: 1.5 }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", lineHeight: 1.5 }}>
                   {p.segmented.map((seg, j) => (
                     <span key={j} style={{ position: "relative", display: "inline" }}>
                       <span onClick={(e) => { e.stopPropagation(); setWordTip(wordTip?.id === `${p.id}-${j}` ? null : { id: `${p.id}-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
@@ -2416,7 +2543,7 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
       {/* Phrase text */}
       <Card style={{ padding: 16, background: `linear-gradient(135deg, ${`color-mix(in srgb, var(--c-teal) 3%, transparent)`}, ${`color-mix(in srgb, var(--c-gold) 2%, transparent)`})`, border: `1px solid ${`color-mix(in srgb, var(--c-teal) 9%, transparent)`}` }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p900)", fontFamily: "'Sarabun', serif", lineHeight: 1.5, flex: 1 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", lineHeight: 1.5, flex: 1 }}>
             {phrase.text}
           </div>
           <TtsPlay text={phrase.text} size={16} />
@@ -2426,14 +2553,14 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
 
       {/* Word-by-word analysis */}
       <Card style={{ padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14, fontFamily: "'Noto Serif SC', serif" }}>{"\u9010\u8BCD\u5206\u6790"}</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14, fontFamily: "var(--zh-font), serif" }}>{"\u9010\u8BCD\u5206\u6790"}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {phrase.segmented.map((seg, i) => (
             <div key={i}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0" }}>
                 <span onClick={() => onWordTap(seg.text)} style={{
                   fontSize: 16, fontWeight: 600, color: "var(--c-teal)",
-                  fontFamily: "'Sarabun', sans-serif",
+                  fontFamily: "var(--th-font), sans-serif",
                   cursor: "pointer", textDecoration: "underline",
                   textDecorationStyle: "dashed", textUnderlineOffset: 3,
                 }}>{seg.text}</span>
@@ -2468,7 +2595,7 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
       {/* Idiom: literal vs actual */}
       {isIdiom && (
         <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12, fontFamily: "'Noto Serif SC', serif" }}>{"\u5B57\u9762\u610F\u4E49 vs \u5B9E\u9645\u610F\u4E49"}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12, fontFamily: "var(--zh-font), serif" }}>{"\u5B57\u9762\u610F\u4E49 vs \u5B9E\u9645\u610F\u4E49"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ padding: 12, borderRadius: 10, background: "color-mix(in srgb, var(--c-gold) 7%, transparent)", border: `1px solid ${`color-mix(in srgb, var(--c-gold) 15%, transparent)`}` }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-gold)", marginBottom: 4 }}>{"\u5B57\u9762\u610F\u4E49"}</div>
@@ -2501,11 +2628,17 @@ const PhraseDetailSection = ({ phrase, onBack, onWordTap }) => {
 /* ────────────────────────────────────────────
    PAGE: MY PROFILE (我的)
    ──────────────────────────────────────────── */
-const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
+const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNavigateToWords }) => {
   const [dictDir, setDictDir] = useState("zh-th");
   const [webdavConnected, setWebdavConnected] = useState(false);
   const [showColorDropdown, setShowColorDropdown] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
+
+  /* ── Stats state ── */
+  const [streak, setStreak] = useState(0);
+  const [bookmarkCount, setBookmarkCount] = useState(0);
+  const [checkinHistory, setCheckinHistory] = useState([]);
+  const [showCheckinHistory, setShowCheckinHistory] = useState(false);
 
   /* ── Font selection state ── */
   const [showFontPage, setShowFontPage] = useState(false);
@@ -2552,6 +2685,16 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
         key: k.key_masked || '****',
         baseUrl: k.base_url || '',
         model: k.model || '',
+      })));
+    });
+    // Fetch streak and bookmark count
+    getStreak(userId).then(setStreak);
+    getBookmarks(userId).then(rows => setBookmarkCount((rows || []).length));
+    // Fetch check-in history (last 30 days)
+    getLearningProgress(userId, 30).then(rows => {
+      setCheckinHistory((rows || []).filter(r => r.checked_in).map(r => ({
+        date: r.date,
+        tasks: r.tasks_completed || [],
       })));
     });
   }, [userId]);
@@ -2652,7 +2795,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
           }}>
             <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>AI API {"\u7BA1\u7406"}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>AI API {"\u7BA1\u7406"}</h2>
         </div>
 
         {/* Existing keys */}
@@ -2713,7 +2856,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
                           <input value={customApi.model} onChange={e => setCustomApi(p => ({ ...p, model: e.target.value }))} placeholder={"\u6A21\u578B"} style={{
                             flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`,
                             background: "var(--c-surface)", fontSize: 12, color: "var(--c-p800)", outline: "none",
-                            fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
+                            fontFamily: "var(--zh-font), sans-serif", boxSizing: "border-box",
                           }} />
                           <div onClick={() => {
                             setApiKeys(prev => prev.map(k => k.id === ak.id ? {
@@ -2742,7 +2885,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
           padding: "14px 0", borderRadius: 12,
           border: `1.5px dashed ${"var(--c-p300)"}`, background: "var(--c-surface)",
           cursor: "pointer", fontSize: 14, fontWeight: 500,
-          color: "var(--c-p600)", fontFamily: "'Noto Serif SC', sans-serif",
+          color: "var(--c-p600)", fontFamily: "var(--zh-font), sans-serif",
           transition: "all 0.2s",
         }}>
           <Plus size={16} strokeWidth={IW} color={"var(--c-p500)"} />
@@ -2768,7 +2911,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   position: "sticky", top: 0, background: "var(--c-surface)", zIndex: 1, borderRadius: "16px 16px 0 0",
                 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u6DFB\u52A0 API"}</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u6DFB\u52A0 API"}</h3>
                   <div onClick={() => { setShowAddApi(false); setCustomApi({ name: "", key: "", baseUrl: "", model: "" }); }} style={{
                     width: 28, height: 28, borderRadius: "50%", background: "var(--c-surfaceAlt)",
                     display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
@@ -2812,7 +2955,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
                       width: "100%", padding: "10px 12px", borderRadius: 8,
                       border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
                       fontSize: 13, color: "var(--c-p800)", outline: "none",
-                      fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
+                      fontFamily: "var(--zh-font), sans-serif", boxSizing: "border-box",
                     }} />
                   </div>
                   <div>
@@ -2872,12 +3015,64 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
                     padding: "13px 0", borderRadius: 12, background: "var(--c-p800)",
                     color: "#fff", fontSize: 14, fontWeight: 600,
                     textAlign: "center", cursor: "pointer", marginTop: 4,
-                    fontFamily: "'Noto Serif SC', sans-serif",
+                    fontFamily: "var(--zh-font), sans-serif",
                   }}>{"\u4FDD\u5B58"}</div>
                 </div>
               </div>
             </div>
           </>
+        )}
+      </div>
+    );
+  }
+
+  /* ── Check-in history sub-page ── */
+  if (showCheckinHistory) {
+    const taskNames = ["复习旧词", "学习新词", "阅读理解", "造句练习"];
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div onClick={() => setShowCheckinHistory(false)} style={{
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0,
+          }}>
+            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+          </div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>打卡记录</h1>
+        </div>
+        <Card style={{ padding: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 32, fontWeight: 700, color: "var(--c-gold)" }}>{streak}</div>
+          <div style={{ fontSize: 13, color: "var(--c-s500)", marginTop: 4 }}>连续打卡天数</div>
+        </Card>
+        {checkinHistory.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 24, color: "var(--c-s400)", fontSize: 13 }}>
+            暂无打卡记录
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {checkinHistory.sort((a, b) => b.date.localeCompare(a.date)).map((entry, i) => (
+              <Card key={i} style={{ padding: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>{entry.date}</div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                      {(entry.tasks || []).map((tIdx, j) => (
+                        <Badge key={j} bg={"color-mix(in srgb, var(--c-ok) 15%, transparent)"} fg={"var(--c-ok)"} style={{ fontSize: 10 }}>
+                          {taskNames[tIdx] || `任务${tIdx + 1}`}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: "50%", background: "var(--c-ok)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <Check size={14} strokeWidth={2} color="#fff" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
     );
@@ -2910,7 +3105,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
           }}>
             <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>字体设置</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>字体设置</h1>
         </div>
         <Card style={{ padding: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12 }}>中文</div>
@@ -2979,7 +3174,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
                     flex: 1, padding: "4px 8px", borderRadius: 8,
                     border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)",
                     fontSize: 17, fontWeight: 700, color: "var(--c-p800)",
-                    fontFamily: "'Noto Serif SC', sans-serif", outline: "none",
+                    fontFamily: "var(--zh-font), sans-serif", outline: "none",
                   }}
                 />
                 <div onClick={async () => {
@@ -3004,16 +3199,16 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
             )}
             {/* Stats horizontal */}
             <div style={{ display: "flex", gap: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-gold)" }}>25</span>
+              <div onClick={() => setShowCheckinHistory(true)} style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer" }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-gold)" }}>{streak}</span>
                 <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u5929\u6253\u5361"}</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-teal)" }}>680</span>
+              <div onClick={() => onNavigateToWords?.()} style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer" }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-teal)" }}>{bookmarkCount}</span>
                 <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u8BCD\u6C47"}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-amber)" }}>48</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-amber)" }}>{checkinHistory.length}</span>
                 <span style={{ fontSize: 11, color: "var(--c-s500)" }}>{"\u5929\u5B66\u4E60"}</span>
               </div>
             </div>
@@ -3024,16 +3219,16 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
       {/* Settings */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u57FA\u7840\u8BBE\u7F6E"}</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u57FA\u7840\u8BBE\u7F6E"}</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
           <SettingRow icon={Globe} label={"\u754C\u9762\u8BED\u8A00"} desc={"\u5E94\u7528\u663E\u793A\u8BED\u8A00"}>
-            <select style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)", fontSize: 12, color: "var(--c-p700)", outline: "none", fontFamily: "'Noto Serif SC', sans-serif" }}>
+            <select style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)", fontSize: 12, color: "var(--c-p700)", outline: "none", fontFamily: "var(--zh-font), sans-serif" }}>
               <option>{"\u4E2D\u6587"}</option><option>{"\u6CF0\u8BED"}</option>
             </select>
           </SettingRow>
           <SettingRow icon={BookOpen} label={"\u8BCD\u5178\u65B9\u5411"} desc={"\u4E2D\u6587\u67E5\u6CF0\u8BED\u91CA\u4E49"}>
-            <select value={dictDir} onChange={e => setDictDir(e.target.value)} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)", fontSize: 12, color: "var(--c-p700)", outline: "none", fontFamily: "'Noto Serif SC', sans-serif" }}>
+            <select value={dictDir} onChange={e => setDictDir(e.target.value)} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)", fontSize: 12, color: "var(--c-p700)", outline: "none", fontFamily: "var(--zh-font), sans-serif" }}>
               <option value="zh-th">{"\u4E2D \u2192 \u6CF0"}</option>
               <option value="th-zh">{"\u6CF0 \u2192 \u4E2D"}</option>
             </select>
@@ -3045,7 +3240,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
                 padding: "6px 10px", borderRadius: 8,
                 border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)",
                 cursor: "pointer", fontSize: 12, color: "var(--c-p700)",
-                fontFamily: "'Noto Serif SC', sans-serif",
+                fontFamily: "var(--zh-font), sans-serif",
                 minWidth: 70,
               }}>
                 {colorMode === "light" && <Sun size={13} strokeWidth={1.5} color={"var(--c-p600)"} />}
@@ -3108,7 +3303,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
       {/* WebDAV */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>WebDAV 同步</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>WebDAV 同步</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
           <SettingRow icon={Cloud} label="服务器" desc={webdavConnected ? `已连接: ${webdavConfig.serverUrl.replace(/https?:\/\//, "").split("/")[0]}` : "未连接"}>
@@ -3138,7 +3333,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
             boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>WebDAV 配置</h3>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>WebDAV 配置</h3>
               <div onClick={() => setShowWebdavModal(false)} style={{ cursor: "pointer", padding: 4 }}>
                 <X size={18} strokeWidth={IW} color={"var(--c-s400)"} />
               </div>
@@ -3159,7 +3354,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
                     width: "100%", padding: "10px 12px", borderRadius: 10,
                     border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-input)",
                     fontSize: 13, color: "var(--c-p800)", outline: "none",
-                    fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
+                    fontFamily: "var(--zh-font), sans-serif", boxSizing: "border-box",
                   }}
                 />
               </div>
@@ -3193,7 +3388,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
       {/* Data management */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u6570\u636E\u7BA1\u7406"}</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u6570\u636E\u7BA1\u7406"}</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
           <SettingRow icon={HardDrive} label={"\u5B58\u50A8\u7A7A\u95F4"} desc={"\u5DF2\u7528 12.4/50 MB"}>
@@ -3208,7 +3403,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
       {/* AI API Management */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 18px", borderBottom: `1px solid ${"var(--c-p100)"}` }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>AI {"\u7BA1\u7406"}</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>AI {"\u7BA1\u7406"}</h2>
         </div>
         <div style={{ padding: "0 18px" }}>
           <SettingRow icon={Key} label={"API \u7BA1\u7406"} desc={`${apiKeys.length} \u4E2A\u5DF2\u914D\u7F6E`}>
@@ -3228,7 +3423,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout }) => {
         padding: "14px 0", borderRadius: 12, background: "var(--c-surface)",
         border: `1px solid ${"var(--c-errL)"}`, textAlign: "center",
         cursor: "pointer", fontSize: 14, fontWeight: 500,
-        color: "var(--c-err)", fontFamily: "'Noto Serif SC', sans-serif",
+        color: "var(--c-err)", fontFamily: "var(--zh-font), sans-serif",
         transition: "background 0.2s",
       }}>
         {"\u9000\u51FA\u767B\u5F55"}
@@ -3255,9 +3450,17 @@ const LoginPage = ({ onLogin }) => {
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [verifyMessage, setVerifyMessage] = useState(""); // for email verification step
+  const [verifyMessage, setVerifyMessage] = useState("");
+  const [registerStep, setRegisterStep] = useState("form"); // "form" | "verify"
+  const [verifyCode, setVerifyCode] = useState("");
 
   const isRegister = loginMode === "register";
+
+  const switchMode = () => {
+    setLoginMode(isRegister ? "login" : "register");
+    setError(""); setVerifyMessage(""); setConfirmPwd("");
+    setRegisterStep("form"); setVerifyCode("");
+  };
 
   const handleCredentialLogin = async () => {
     setError(""); setVerifyMessage("");
@@ -3283,23 +3486,23 @@ const LoginPage = ({ onLogin }) => {
 
   const handleRegister = async () => {
     setError(""); setVerifyMessage("");
-    const id = loginTab === "email" ? email : username;
-    if (!id.trim() || !password.trim()) { setError("请填写完整信息"); return; }
+    if (!email.trim() || !password.trim()) { setError("请填写完整信息"); return; }
     if (password !== confirmPwd) { setError("两次输入的密码不一致"); return; }
     if (password.length < 8) { setError("密码至少需要 8 位"); return; }
     setLoading(true);
     try {
       if (clerkSignUp?.signUp) {
-        const params = { password };
-        if (loginTab === "email") params.emailAddress = id;
-        else params.username = id;
-        const result = await clerkSignUp.signUp.create(params);
+        const result = await clerkSignUp.signUp.create({
+          emailAddress: email.trim(),
+          password,
+        });
         if (result.status === "complete") {
           await clerk?.setActive?.({ session: result.createdSessionId });
           onLogin?.();
         } else {
-          // e.g. email verification needed
-          setVerifyMessage("注册请求已发送，请检查邮箱完成验证");
+          // Email verification needed
+          setRegisterStep("verify");
+          setVerifyMessage("验证码已发送到您的邮箱，请查收并输入");
         }
       } else {
         await new Promise(r => setTimeout(r, 800));
@@ -3307,6 +3510,28 @@ const LoginPage = ({ onLogin }) => {
       }
     } catch (err) {
       setError(err?.errors?.[0]?.message || "注册失败，请重试");
+    }
+    setLoading(false);
+  };
+
+  const handleVerify = async () => {
+    setError(""); setVerifyMessage("");
+    if (!verifyCode.trim()) { setError("请输入验证码"); return; }
+    setLoading(true);
+    try {
+      if (clerkSignUp?.signUp) {
+        const result = await clerkSignUp.signUp.attemptEmailAddressVerification({
+          code: verifyCode.trim(),
+        });
+        if (result.status === "complete") {
+          await clerk?.setActive?.({ session: result.createdSessionId });
+          onLogin?.();
+        } else {
+          setVerifyMessage("验证码验证未通过，请重试");
+        }
+      }
+    } catch (err) {
+      setError(err?.errors?.[0]?.message || "验证码错误，请重试");
     }
     setLoading(false);
   };
@@ -3328,17 +3553,10 @@ const LoginPage = ({ onLogin }) => {
     }
   };
 
-  const switchMode = () => {
-    setLoginMode(isRegister ? "login" : "register");
-    setError(""); setVerifyMessage(""); setConfirmPwd("");
-  };
-
   /* ── Custom SVG line icons for OAuth providers ── */
   const AppleLineIcon = ({ size = 24, color = "var(--c-p600)" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 2 1.5 3.5 3 4.5.5.3 1 .3 1.5.3s1 0 1.5-.3c1.5-1 3-2.5 3-4.5C16.5 4 14.5 2 12 2z" />
-      <path d="M12 13c-3 0-6 2-6 5.5C6 20 7 22 9 22c1 0 1.5-.5 3-.5s2 .5 3 .5c2 0 3-2 3-3.5C18 15 15 13 12 13z" />
-      <path d="M14.5 2c0 1.5-1 3-2.5 3" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.07-.5-2.05-.52-3.18 0-1.42.66-2.17.49-3.05-.4C3.79 16.17 4.36 9.53 8.9 9.28c1.26.06 2.14.72 2.88.76.99-.2 1.94-.77 3-.7 1.27.1 2.23.6 2.86 1.5-2.63 1.58-2.01 5.04.37 5.99-.47 1.25-.68 1.82-1.4 3.02l.44.43zM12.04 9.2c-.14-2.25 1.74-4.2 3.96-4.2.29 2.5-2.34 4.38-3.96 4.2z"/>
     </svg>
   );
 
@@ -3359,7 +3577,7 @@ const LoginPage = ({ onLogin }) => {
 
   const containerStyle = {
     maxWidth: 430, margin: "0 auto", minHeight: "100vh",
-    background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif",
+    background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif",
     color: "var(--c-p800)", display: "flex", flexDirection: "column",
   };
 
@@ -3373,7 +3591,7 @@ const LoginPage = ({ onLogin }) => {
     width: "100%", padding: "14px 16px", borderRadius: 12,
     border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
     fontSize: 15, color: "var(--c-p800)", outline: "none",
-    fontFamily: "'Noto Serif SC', sans-serif", boxSizing: "border-box",
+    fontFamily: "var(--zh-font), sans-serif", boxSizing: "border-box",
     transition: "border-color 0.2s",
   };
 
@@ -3385,7 +3603,7 @@ const LoginPage = ({ onLogin }) => {
         {/* Brand */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <Logo size={40} color={"var(--c-p600)"} />
-          <div style={{ fontSize: 26, fontWeight: 800, color: "var(--c-p900)", marginTop: 10, fontFamily: "'Noto Serif SC', serif", letterSpacing: 2 }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "var(--c-p900)", marginTop: 10, fontFamily: "var(--zh-font), serif", letterSpacing: 2 }}>
             词笺
           </div>
           <div style={{ fontSize: 13, color: "var(--c-s400)", marginTop: 4 }}>
@@ -3417,7 +3635,8 @@ const LoginPage = ({ onLogin }) => {
           <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
         </div>
 
-        {/* Login method tabs */}
+        {/* Login method tabs (only for login mode) */}
+        {!isRegister && (
         <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: `2px solid ${"var(--c-p100)"}` }}>
           {[
             { key: "email", label: "Email" },
@@ -3437,91 +3656,151 @@ const LoginPage = ({ onLogin }) => {
             </div>
           ))}
         </div>
+        )}
 
-        {/* Input field */}
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type={loginTab === "email" ? "email" : "text"}
-            value={loginTab === "email" ? email : username}
-            onChange={e => loginTab === "email" ? setEmail(e.target.value) : setUsername(e.target.value)}
-            placeholder={loginTab === "email" ? "邮箱地址" : "用户名"}
-            style={inputStyle}
-            onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
-            onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
-          />
-        </div>
-
-        {/* Password field */}
-        <div style={{ marginBottom: 12, position: "relative" }}>
-          <input
-            type={showPwd ? "text" : "password"}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="密码"
-            onKeyDown={e => e.key === "Enter" && !isRegister && handleCredentialLogin()}
-            style={{ ...inputStyle, paddingRight: 44 }}
-            onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
-            onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
-          />
-          <div onClick={() => setShowPwd(!showPwd)} style={{
-            position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
-            cursor: "pointer", display: "flex", alignItems: "center",
-          }}>
-            {showPwd
-              ? <EyeOff size={18} strokeWidth={1.5} color={"var(--c-s400)"} />
-              : <Eye size={18} strokeWidth={1.5} color={"var(--c-s400)"} />}
-          </div>
-        </div>
-
-        {/* Confirm password (register mode only) */}
-        {isRegister && (
-          <div style={{ marginBottom: 12, position: "relative" }}>
-            <input
-              type={showConfirmPwd ? "text" : "password"}
-              value={confirmPwd}
-              onChange={e => setConfirmPwd(e.target.value)}
-              placeholder="确认密码"
-              onKeyDown={e => e.key === "Enter" && handleRegister()}
-              style={{ ...inputStyle, paddingRight: 44 }}
-              onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
-              onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
-            />
-            <div onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{
-              position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
-              cursor: "pointer", display: "flex", alignItems: "center",
-            }}>
-              {showConfirmPwd
-                ? <EyeOff size={18} strokeWidth={1.5} color={"var(--c-s400)"} />
-                : <Eye size={18} strokeWidth={1.5} color={"var(--c-s400)"} />}
+        {/* ── Verify step (after registration email sent) ── */}
+        {isRegister && registerStep === "verify" ? (
+          <>
+            <div style={{ textAlign: "center", padding: "12px 16px", marginBottom: 16, borderRadius: 10, background: "var(--c-infoL)" }}>
+              <div style={{ fontSize: 13, color: "var(--c-info)", fontWeight: 500 }}>
+                验证码已发送到 <strong>{email}</strong>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--c-s400)", marginTop: 4 }}>
+                请查收邮箱并输入6位验证码
+              </div>
             </div>
-          </div>
-        )}
+            <div style={{ marginBottom: 12 }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verifyCode}
+                onChange={e => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="请输入6位验证码"
+                onKeyDown={e => e.key === "Enter" && handleVerify()}
+                style={{ ...inputStyle, textAlign: "center", fontSize: 20, letterSpacing: 8, fontWeight: 700 }}
+                onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+                autoFocus
+              />
+            </div>
+            {error && (
+              <div style={{
+                fontSize: 12, color: "var(--c-err)", textAlign: "center", padding: "8px 12px",
+                background: "var(--c-errL)", borderRadius: 8, marginBottom: 4,
+              }}>{error}</div>
+            )}
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              style={{
+                width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
+                background: "var(--c-p800)", color: "#fff", fontSize: 15, fontWeight: 600,
+                cursor: loading ? "wait" : "pointer", marginTop: 8,
+                fontFamily: "var(--zh-font), sans-serif", transition: "background 0.2s",
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? "验证中..." : "验证并注册"}
+            </button>
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--c-s400)" }}>没有收到？</span>
+              <span onClick={() => handleRegister()} style={{
+                fontSize: 12, color: "var(--c-p600)", fontWeight: 600, cursor: "pointer", marginLeft: 4,
+              }}>重新发送</span>
+            </div>
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <span onClick={() => { setRegisterStep("form"); setVerifyCode(""); setError(""); }} style={{
+                fontSize: 12, color: "var(--c-s400)", cursor: "pointer",
+              }}>返回修改信息</span>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Input field */}
+            <div style={{ marginBottom: 12 }}>
+              <input
+                type={isRegister ? "email" : (loginTab === "email" ? "email" : "text")}
+                value={isRegister ? email : (loginTab === "email" ? email : username)}
+                onChange={e => isRegister ? setEmail(e.target.value) : (loginTab === "email" ? setEmail(e.target.value) : setUsername(e.target.value))}
+                placeholder={isRegister ? "邮箱地址" : (loginTab === "email" ? "邮箱地址" : "用户名")}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+              />
+            </div>
 
-        {/* Error */}
-        {error && (
-          <div style={{
-            fontSize: 12, color: "var(--c-err)", textAlign: "center", padding: "8px 12px",
-            background: "var(--c-errL)", borderRadius: 8, marginBottom: 4,
-          }}>{error}</div>
-        )}
+            {/* Password field */}
+            <div style={{ marginBottom: 12, position: "relative" }}>
+              <input
+                type={showPwd ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="密码"
+                onKeyDown={e => e.key === "Enter" && !isRegister && handleCredentialLogin()}
+                style={{ ...inputStyle, paddingRight: 44 }}
+                onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+              />
+              <div onClick={() => setShowPwd(!showPwd)} style={{
+                position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+                cursor: "pointer", display: "flex", alignItems: "center",
+              }}>
+                {showPwd
+                  ? <EyeOff size={18} strokeWidth={1.5} color={"var(--c-s400)"} />
+                  : <Eye size={18} strokeWidth={1.5} color={"var(--c-s400)"} />}
+              </div>
+            </div>
 
-        {/* Verify message (registration needs email confirmation) */}
-        {verifyMessage && (
-          <div style={{
-            fontSize: 12, color: "var(--c-info)", textAlign: "center", padding: "8px 12px",
-            background: "var(--c-infoL)", borderRadius: 8, marginBottom: 4,
-          }}>{verifyMessage}</div>
-        )}
+            {/* Confirm password (register mode only) */}
+            {isRegister && (
+              <div style={{ marginBottom: 12, position: "relative" }}>
+                <input
+                  type={showConfirmPwd ? "text" : "password"}
+                  value={confirmPwd}
+                  onChange={e => setConfirmPwd(e.target.value)}
+                  placeholder="确认密码"
+                  onKeyDown={e => e.key === "Enter" && handleRegister()}
+                  style={{ ...inputStyle, paddingRight: 44 }}
+                  onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                  onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+                />
+                <div onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{
+                  position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+                  cursor: "pointer", display: "flex", alignItems: "center",
+                }}>
+                  {showConfirmPwd
+                    ? <EyeOff size={18} strokeWidth={1.5} color={"var(--c-s400)"} />
+                    : <Eye size={18} strokeWidth={1.5} color={"var(--c-s400)"} />}
+                </div>
+              </div>
+            )}
 
-        {/* Action button */}
-        <button
-          onClick={isRegister ? handleRegister : handleCredentialLogin}
-          disabled={loading}
-          style={{
+            {/* Error */}
+            {error && (
+              <div style={{
+                fontSize: 12, color: "var(--c-err)", textAlign: "center", padding: "8px 12px",
+                background: "var(--c-errL)", borderRadius: 8, marginBottom: 4,
+              }}>{error}</div>
+            )}
+
+            {/* Verify message */}
+            {verifyMessage && (
+              <div style={{
+                fontSize: 12, color: "var(--c-info)", textAlign: "center", padding: "8px 12px",
+                background: "var(--c-infoL)", borderRadius: 8, marginBottom: 4,
+              }}>{verifyMessage}</div>
+            )}
+
+            {/* Action button */}
+            <button
+              onClick={isRegister ? handleRegister : handleCredentialLogin}
+              disabled={loading}
+              style={{
             width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
             background: "var(--c-p800)", color: "#fff", fontSize: 15, fontWeight: 600,
             cursor: loading ? "wait" : "pointer", marginTop: 8,
-            fontFamily: "'Noto Serif SC', sans-serif", transition: "background 0.2s",
+            fontFamily: "var(--zh-font), sans-serif", transition: "background 0.2s",
             opacity: loading ? 0.7 : 1,
           }}
         >
@@ -3529,6 +3808,8 @@ const LoginPage = ({ onLogin }) => {
             ? (isRegister ? "注册中..." : "登录中...")
             : (isRegister ? "创建账号" : "登录")}
         </button>
+          </>
+        )}
 
         {/* Mode toggle */}
         <div style={{ textAlign: "center", margin: "16px 0" }}>
@@ -3710,13 +3991,13 @@ export default function App() {
   /* ── Unknown word page takes priority ── */
   if (unknownWord) {
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ height: 22, background: "var(--c-bg)", flexShrink: 0 }} />
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ height: 44, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10 }}>
           <div onClick={() => setUnknownWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
             <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u672A\u77E5\u8BCD\u6761"}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u672A\u77E5\u8BCD\u6761"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           <UnknownWordPage word={unknownWord} onBack={() => setUnknownWord(null)} onWordTap={handleWordTap} onGenerated={handleGenerated} />
@@ -3728,13 +4009,13 @@ export default function App() {
   /* ── Word detail page ── */
   if (detailWord) {
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ height: 22, background: "var(--c-bg)", flexShrink: 0 }} />
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ height: 44, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10 }}>
           <div onClick={() => setDetailWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
             <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           <WordDetailPage userId={userId} onBack={() => setDetailWord(null)} onWordTap={handleWordTap} wordData={dbWordData[detailWord] || generatedWords[detailWord] || null} />
@@ -3746,11 +4027,11 @@ export default function App() {
   return (
     <div style={{
       maxWidth: 430, margin: "0 auto", height: "100vh",
-      background: "var(--c-bg)", fontFamily: "'Noto Serif SC', 'Sarabun', sans-serif",
+      background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif",
       color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
       {/* Status bar placeholder */}
-      <div style={{ height: 22, background: "var(--c-bg)", flexShrink: 0 }} />
+      <div style={{ height: 44, background: "var(--c-bg)", flexShrink: 0 }} />
 
       {/* Header */}
       <div style={{
@@ -3759,7 +4040,7 @@ export default function App() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <PageIcon size={26} color={"var(--c-p600)"} />
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>
             {pageTitles[page]}
           </h1>
         </div>
@@ -3777,7 +4058,7 @@ export default function App() {
         {page === "home" && <HomePage userId={userId} onNavigate={setPage} onWordTap={handleWordTap} />}
         {page === "words" && <WordBookPage userId={userId} onWordTap={handleWordTap} />}
         {page === "learn" && <LearnPage userId={userId} onWordTap={handleWordTap} />}
-        {page === "me" && <ProfilePage userId={userId} user={clerkUser} colorMode={colorMode} setColorMode={setColorMode} onLogout={() => clerkSignOut()} />}
+        {page === "me" && <ProfilePage userId={userId} user={clerkUser} colorMode={colorMode} setColorMode={setColorMode} onLogout={() => clerkSignOut()} onNavigateToWords={() => { setPage("words"); }} />}
       </div>
 
       {/* Bottom Navigation Bar */}
