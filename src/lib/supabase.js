@@ -535,13 +535,20 @@ export async function getUserSettings(userId) {
 
 export async function saveUserSettings(userId, settings) {
   if (!supabase || !userId) return null
+  // Merge with existing settings to avoid overwriting other fields
+  let existing = {}
+  try {
+    const { data } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    if (data) existing = data
+  } catch (e) { /* ignore - row may not exist yet */ }
+  const merged = { ...existing, ...settings, user_id: userId, updated_at: new Date().toISOString() }
   const { data, error } = await supabase
     .from('user_settings')
-    .upsert({
-      user_id: userId,
-      ...settings,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' })
+    .upsert(merged, { onConflict: 'user_id' })
     .select()
     .single()
   if (error) { console.error('[supabase] saveUserSettings:', error.message); return null }
@@ -596,4 +603,68 @@ export async function getDictionaryCount() {
     .eq('enrichment_status', 'enriched')
   if (error) return 0
   return count || 0
+}
+
+// ── AI Proxy: Call system or user AI API via Edge Function ──
+
+/**
+ * Call AI via Supabase Edge Function (keeps API keys server-side)
+ * @param {string} prompt - The prompt to send to the AI
+ * @param {object} userApi - Optional user API config { key, base_url, model }
+ * @returns {object} Parsed AI response data
+ */
+export async function callAiProxy(prompt, userApi = null) {
+  if (!supabase) return { error: 'Supabase not configured' }
+
+  const fnUrl = `${supabaseUrl}/functions/v1/ai-proxy`
+  const { data: { session } } = await supabase.auth.getSession()
+
+  const body = { prompt }
+  if (userApi?.key && userApi?.base_url) {
+    body.user_api_key = userApi.key
+    body.user_base_url = userApi.base_url
+    body.user_model = userApi.model || 'gpt-4o'
+    body.provider = 'user'
+  } else {
+    body.provider = 'system'
+  }
+
+  try {
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': session ? `Bearer ${session.access_token}` : '',
+      },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error || 'AI proxy failed' }
+    return data
+  } catch (e) {
+    console.error('[callAiProxy]', e)
+    return { error: e.message }
+  }
+}
+
+/**
+ * Get user's default API preference
+ * Returns: 'system' | apiKeyId
+ */
+export async function getDefaultApi(userId) {
+  if (!supabase || !userId) return 'system'
+  const { data } = await supabase
+    .from('user_settings')
+    .select('default_api_id')
+    .eq('user_id', userId)
+    .single()
+  return data?.default_api_id || 'system'
+}
+
+/**
+ * Set user's default API preference
+ */
+export async function setDefaultApi(userId, apiId) {
+  if (!supabase || !userId) return null
+  return saveUserSettings(userId, { default_api_id: apiId || 'system' })
 }

@@ -14,6 +14,7 @@ import {
   getUserSettings, saveUserSettings,
   getApiKeys, saveApiKey, deleteApiKey,
   getDictionaryCount,
+  callAiProxy, getDefaultApi, setDefaultApi,
 } from "./lib/supabase.js";
 import {
   Search, BookOpen,
@@ -478,7 +479,20 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
       {query.trim() && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {searchLoading && <div style={{ textAlign: "center", padding: 16, color: "var(--c-s500)", fontSize: 13 }}>{"\u641C\u7D22\u4E2D..."}</div>}
-          {!searchLoading && searchResults.length === 0 && <div style={{ textAlign: "center", padding: 16, color: "var(--c-s500)", fontSize: 13 }}>{"\u672A\u627E\u5230\u7ED3\u679C"}</div>}
+          {!searchLoading && searchResults.length === 0 && (
+            <div style={{ textAlign: "center", padding: "20px 16px" }}>
+              <div style={{ fontSize: 13, color: "var(--c-s500)", marginBottom: 12 }}>{"未找到「" + query.trim() + "」"}</div>
+              <div onClick={() => onWordTap(query.trim())} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 20px", borderRadius: 12, cursor: "pointer",
+                background: "var(--c-teal)", color: "#fff", fontSize: 13, fontWeight: 600,
+                fontFamily: "var(--zh-font), sans-serif",
+              }}>
+                <Sparkles size={14} strokeWidth={IW} />
+                {"通过 AI 新增词条信息"}
+              </div>
+            </div>
+          )}
           {searchResults.map((r, i) => (
             <div key={r.word + i} onClick={() => onWordTap(r.word)} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -948,6 +962,28 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
 
   /* ── word popover state (segmentation) ── */
   const [wordPopover, setWordPopover] = useState(null);
+  const [popoverWordData, setPopoverWordData] = useState({}); // cache: { "word": { pos, meaning, loading, notFound } }
+
+  const handlePopoverWordClick = async (tokText, senseIdx, exIdx, tokenIdx) => {
+    const isOpen = wordPopover && wordPopover.senseIdx === senseIdx && wordPopover.exIdx === exIdx && wordPopover.tokenIdx === tokenIdx;
+    if (isOpen) { setWordPopover(null); return; }
+    setWordPopover({ senseIdx, exIdx, tokenIdx, text: tokText });
+    // If already cached, skip fetch
+    if (popoverWordData[tokText]) return;
+    // Mark as loading
+    setPopoverWordData(prev => ({ ...prev, [tokText]: { loading: true } }));
+    try {
+      const row = await getWordByThai(tokText);
+      if (row) {
+        const firstSense = Array.isArray(row.senses) && row.senses[0] ? row.senses[0] : {};
+        setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: firstSense.pos || "", meaning: firstSense.meaning || "", loading: false } }));
+      } else {
+        setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: "", meaning: "", loading: false, notFound: true } }));
+      }
+    } catch (e) {
+      setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: "", meaning: "", loading: false, notFound: true } }));
+    }
+  };
 
   const toggleSense = (idx) => {
     const next = [...expandedSenses];
@@ -1071,29 +1107,37 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
               <span style={{ fontSize: 15, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", letterSpacing: "0.02em" }}>
                 {wd.romanization}
               </span>
-              <span style={{ fontSize: 10, fontStyle: "normal", color: "var(--c-s300)" }}>
-                {wd.romanization_source === "deepseek" ? "\uD83E\uDD16 AI" : "\uD83D\uDCD6 \u8BCD\u5178"}
-              </span>
             </div>
           </div>
-          {/* 右侧：收藏 */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0, marginLeft: 10 }}>
+          {/* 右侧：播放 + 收藏（统一风格） */}
+          <div style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: 10 }}>
+            <div onClick={(e) => { e.stopPropagation(); speak(wd.word, "th-TH", 0.85); }} style={{
+              width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "var(--c-p50)", border: `1px solid ${"var(--c-p200)"}`, cursor: "pointer",
+            }}>
+              <Play size={16} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+            </div>
             <div onClick={() => setShowBookmarkModal(true)} style={{
-              width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
-              background: bookmarked ? "var(--c-goldL)" : "var(--c-p50)", cursor: "pointer",
+              width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+              background: bookmarked ? "var(--c-goldL)" : "var(--c-p50)",
+              border: `1px solid ${bookmarked ? "var(--c-gold)" : "var(--c-p200)"}`, cursor: "pointer",
             }}>
               <Bookmark size={15} strokeWidth={IW} color={bookmarked ? "var(--c-gold)" : "var(--c-s500)"} fill={bookmarked ? "var(--c-gold)" : "none"} />
             </div>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              {wd.sources.map((s, i) => {
-                const info = sourceMap[s] || { label: s, bg: "var(--c-p100)", fg: "var(--c-p700)" };
-                return <Badge key={i} bg={info.bg} fg={info.fg} style={{ fontSize: 9, padding: "1px 6px" }}>{info.label}</Badge>;
-              })}
-            </div>
           </div>
         </div>
+        {/* 来源标签 */}
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8 }}>
+          {wd.romanization_source === "deepseek" && (
+            <Badge bg={"var(--c-infoL)"} fg={"var(--c-info)"} style={{ fontSize: 9, padding: "1px 6px" }}>{"🤖 AI"}</Badge>
+          )}
+          {wd.sources.map((s, i) => {
+            const info = sourceMap[s] || { label: s, bg: "var(--c-p100)", fg: "var(--c-p700)" };
+            return <Badge key={i} bg={info.bg} fg={info.fg} style={{ fontSize: 9, padding: "1px 6px" }}>{info.label}</Badge>;
+          })}
+        </div>
         {/* 义项数 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
           <Badge bg={"var(--c-surfaceAlt)"} fg={"var(--c-s500)"}>{wd.sense_count} {"\u4E2A\u4E49\u9879"}</Badge>
         </div>
       </Card>
@@ -1104,6 +1148,23 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
           <SectionTitle>{"\u4E49\u9879"}</SectionTitle>
           <AlertCircle size={15} strokeWidth={IW} color={reportSection === "sense" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("sense")} />
         </div>
+        {/* Show AI generate button when word lacks data */}
+        {(!wd.senses || wd.senses.length === 0 || wd.sense_count === 0) && (
+          <Card style={{ padding: 16, textAlign: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: 13, color: "var(--c-s500)", marginBottom: 12 }}>{"该词条暂无释义数据"}</div>
+            <div onClick={() => {
+              if (isSupabaseConfigured) submitWord(wd.word).catch(err => console.error("[submitWord]", err));
+            }} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 20px", borderRadius: 12, cursor: "pointer",
+              background: "var(--c-teal)", color: "#fff", fontSize: 13, fontWeight: 600,
+              fontFamily: "var(--zh-font), sans-serif",
+            }}>
+              <Sparkles size={14} strokeWidth={IW} />
+              {"通过 AI 新增词条信息"}
+            </div>
+          </Card>
+        )}
         {reportSection === "sense" && (
           <div style={{ position: "relative", marginBottom: 8 }}>
             <ReportPopover items={wd.senses.map((s, i) => `${senseNums[i]} ${s.meaning}`)} />
@@ -1150,8 +1211,7 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                                       key={ti}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        const isOpen = wordPopover && wordPopover.senseIdx === i && wordPopover.exIdx === j && wordPopover.tokenIdx === ti;
-                                        setWordPopover(isOpen ? null : { senseIdx: i, exIdx: j, tokenIdx: ti });
+                                        handlePopoverWordClick(tok.text, i, j, ti);
                                       }}
                                       style={{
                                         fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
@@ -1165,25 +1225,49 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
                                   )}
                                 </div>
                                 <TtsPlay text={ex.th} />
-                                {/* Word token popover */}
+                                {/* Word token popover — enhanced with DB fetch */}
                                 {wordPopover && wordPopover.senseIdx === i && wordPopover.exIdx === j && (() => {
                                   const tok = segTokens ? segTokens[wordPopover.tokenIdx] : null;
-                                  if (!tok) return null;
+                                  const tokText = wordPopover.text || (tok ? tok.text : "");
+                                  const cached = popoverWordData[tokText];
+                                  const dbPos = cached?.pos || (tok?.pos || "");
+                                  const dbMeaning = cached?.meaning || (tok?.meaning || "");
+                                  const isLoading = cached?.loading;
+                                  const notFound = cached?.notFound && !tok?.pos;
                                   return (
                                     <div style={{
-                                      position: "absolute", top: "100%", left: Math.min(wordPopover.tokenIdx * 48, 200),
-                                      zIndex: 100, background: "var(--c-surface)", borderRadius: 8,
-                                      border: `1px solid ${"var(--c-p100)"}`, boxShadow: "0 2px 10px rgba(61,43,31,0.12)",
-                                      padding: "6px 10px", marginTop: 2, whiteSpace: "nowrap",
+                                      position: "absolute", top: "100%", left: Math.min(wordPopover.tokenIdx * 48, 180),
+                                      zIndex: 100, background: "var(--c-surface)", borderRadius: 10,
+                                      border: `1px solid ${"var(--c-p100)"}`, boxShadow: "0 4px 16px rgba(61,43,31,0.15)",
+                                      padding: "8px 12px", marginTop: 4, minWidth: 120, maxWidth: 220,
                                     }}>
-                                      {tok.pos && tok.meaning ? (
-                                        <span style={{ fontSize: 11, color: "var(--c-p700)" }}>
-                                          <span style={{ color: "var(--c-teal)", fontWeight: 600 }}>{tok.pos}</span>
-                                          {" \u00B7 "}
-                                          {tok.meaning}
-                                        </span>
+                                      {/* Word header */}
+                                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif", marginBottom: 4 }}>{tokText}</div>
+                                      {isLoading ? (
+                                        <div style={{ fontSize: 11, color: "var(--c-s400)", padding: "2px 0" }}>{"查询中..."}</div>
+                                      ) : notFound && !dbPos ? (
+                                        <div style={{ fontSize: 11, color: "var(--c-s400)" }}>{"未找到词条"}</div>
                                       ) : (
-                                        <span style={{ fontSize: 11, color: "var(--c-teal)", cursor: "pointer", fontWeight: 600 }}>{"AI \u641C\u7D22"}</span>
+                                        <div style={{ fontSize: 12, color: "var(--c-p700)", lineHeight: 1.5 }}>
+                                          {dbPos && <span style={{ color: "var(--c-teal)", fontWeight: 600, fontSize: 11 }}>{dbPos}</span>}
+                                          {dbPos && dbMeaning && <span style={{ color: "var(--c-s300)" }}>{" · "}</span>}
+                                          {dbMeaning && <span>{dbMeaning}</span>}
+                                        </div>
+                                      )}
+                                      {/* 查看详情 button */}
+                                      {!isLoading && (
+                                        <div onClick={(e) => {
+                                          e.stopPropagation();
+                                          setWordPopover(null);
+                                          if (onWordTap) onWordTap(tokText);
+                                        }} style={{
+                                          marginTop: 6, padding: "4px 8px", borderRadius: 6,
+                                          background: "var(--c-p50)", border: `1px solid ${"var(--c-p200)"}`,
+                                          cursor: "pointer", textAlign: "center",
+                                        }}>
+                                          <span style={{ fontSize: 11, color: "var(--c-teal)", fontWeight: 600 }}>{"查看详情"}</span>
+                                          <ChevronRight size={10} strokeWidth={IW} color={"var(--c-teal)"} style={{ marginLeft: 2, verticalAlign: "middle" }} />
+                                        </div>
                                       )}
                                     </div>
                                   );
@@ -1422,42 +1506,95 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
   );
 };
 const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
+  const [step, setStep] = useState("input"); // "input" | "generating" | "preview"
+  const [thaiWord, setThaiWord] = useState(word || "");
+  const [zhHint, setZhHint] = useState("");
   const [generating, setGenerating] = useState(false);
 
-  const handleGenerate = async () => {
+  const handleConfirmWord = () => {
+    if (!thaiWord.trim()) return;
     setGenerating(true);
-    console.log("[AI generate] requesting entry for:", word);
-    // Submit to Supabase user_submissions table
+    setStep("generating");
+    // Submit to Supabase
     if (isSupabaseConfigured) {
-      await submitWord(word).catch(err => console.error("[submitWord]", err));
+      submitWord(thaiWord.trim(), zhHint.trim()).catch(err => console.error("[submitWord]", err));
     }
     setTimeout(() => {
       setGenerating(false);
-      onGenerated(word);
-    }, 1800);
+      setStep("preview");
+      onGenerated(thaiWord.trim());
+    }, 2000);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 16px" }}>
-      <Card style={{ padding: 14, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>{"\uD83D\uDD0D"}</div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", marginBottom: 4 }}>{"\u672A\u627E\u5230\u8BE5\u8BCD"}</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif", marginBottom: 4 }}>
-          {word}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 16 }}>{"\u8BCD\u5E93\u4E2D\u6682\u65E0\u6B64\u8BCD\u6761"}</div>
-        <div onClick={!generating ? handleGenerate : undefined} style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-          padding: "10px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
-          background: generating ? "var(--c-p100)" : "var(--c-teal)", color: generating ? "var(--c-s500)" : "#fff",
-          cursor: generating ? "default" : "pointer", fontFamily: "var(--zh-font), sans-serif",
-        }}>
-          {generating ? (
-            <span>{"\u751F\u6210\u4E2D..."}</span>
-          ) : (
-            <><Sparkles size={14} strokeWidth={IW} />{"\u7ACB\u5373\u901A\u8FC7 AI \u751F\u6210"}</>
-          )}
-        </div>
+      <Card style={{ padding: 16, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>{"🔍"}</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", marginBottom: 4 }}>{"未找到该词"}</div>
+        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 16 }}>{"词库中暂无此词条，可通过 AI 自动生成词条信息"}</div>
+
+        {/* Step 1: Input / confirm word */}
+        {step === "input" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 6, fontWeight: 500 }}>{"泰语词语"}</div>
+              <input
+                value={thaiWord}
+                onChange={e => setThaiWord(e.target.value)}
+                placeholder="请输入完整的泰语词语"
+                style={{
+                  width: "100%", padding: "12px 14px", borderRadius: 10,
+                  border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                  fontSize: 18, fontWeight: 600, color: "var(--c-teal)",
+                  fontFamily: "var(--th-font), sans-serif", outline: "none",
+                  textAlign: "center", boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 6, fontWeight: 500 }}>{"中文提示（选填）"}</div>
+              <input
+                value={zhHint}
+                onChange={e => setZhHint(e.target.value)}
+                placeholder="如有已知中文意思可填入，帮助AI更准确生成"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: 10,
+                  border: `1.5px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+                  fontSize: 14, color: "var(--c-p800)",
+                  fontFamily: "var(--zh-font), sans-serif", outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div onClick={thaiWord.trim() ? handleConfirmWord : undefined} style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
+              background: thaiWord.trim() ? "var(--c-teal)" : "var(--c-p100)",
+              color: thaiWord.trim() ? "#fff" : "var(--c-s400)",
+              cursor: thaiWord.trim() ? "pointer" : "default",
+              fontFamily: "var(--zh-font), sans-serif", marginTop: 4,
+            }}>
+              <Sparkles size={14} strokeWidth={IW} />
+              {"通过 AI 新增词条信息"}
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Generating */}
+        {step === "generating" && (
+          <div style={{ padding: "20px 0" }}>
+            <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+            <div style={{ fontSize: 14, color: "var(--c-s500)" }}>{"AI 正在生成词条内容..."}</div>
+          </div>
+        )}
+
+        {/* Step 3: Preview generated */}
+        {step === "preview" && (
+          <div style={{ padding: "12px 0" }}>
+            <div style={{ fontSize: 14, color: "var(--c-ok)", fontWeight: 600, marginBottom: 8 }}>{"✓ 词条已生成"}</div>
+            <div style={{ fontSize: 12, color: "var(--c-s500)" }}>{"已同步到词库数据库，可点击查看详情查看"}</div>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -1495,24 +1632,26 @@ const LearnPage = ({ userId, onWordTap }) => {
         })));
       }
     });
-  }, [userId]);
+  }, [userId]); // eslint-disable-line
 
   const toggleTask = async (idx) => {
-    setTodayTasks(prev => {
-      const next = prev.map((t, i) => i === idx ? { ...t, done: !t.done } : t);
-      // Save to Supabase
-      if (userId && userId !== 'anonymous') {
-        const doneIndices = next.filter(t => t.done).map((_, i) => i);
-        const today = new Date().toISOString().split('T')[0];
-        const allDone = doneIndices.length === next.length;
-        updateDailyProgress(userId, today, {
+    const next = todayTasks.map((t, i) => i === idx ? { ...t, done: !t.done } : t);
+    setTodayTasks(next);
+    // Save to Supabase
+    if (userId && userId !== 'anonymous') {
+      const doneIndices = next.filter(t => t.done).map((_, i) => i);
+      const today = new Date().toISOString().split('T')[0];
+      const allDone = doneIndices.length === next.length;
+      try {
+        await updateDailyProgress(userId, today, {
           tasks_completed: doneIndices,
           checked_in: allDone,
-          streak_days: allDone ? undefined : 0, // let server calculate streak
+          streak_days: allDone ? undefined : 0,
         });
+      } catch (e) {
+        console.error("[toggleTask] save failed:", e);
       }
-      return next;
-    });
+    }
   };
 
   /* ── Sub-page fixed header config ── */
@@ -1776,20 +1915,45 @@ const LearnPage = ({ userId, onWordTap }) => {
   );
 };
 
-/* ─── Adjust Plan Sub-section ─── */
+/* ─── Adjust Plan Sub-section (Redesigned) ─── */
 const AdjustPlanSection = ({ onBack, userId }) => {
-  const [goals, setGoals] = useState({ words: 30, grammar: 20, reading: 5 });
-  const [times, setTimes] = useState({ words: "30", grammar: "30", reading: "30" });
+  const [level, setLevel] = useState("intermediate"); // beginner | intermediate | advanced
+  const [goals, setGoals] = useState({ words: 30, grammar: 20, reading: 5, listening: 3, speaking: 2, writing: 2 });
+  const [times, setTimes] = useState({ words: "30", grammar: "30", reading: "30", listening: "20", speaking: "15", writing: "20" });
+  const [enabledSubjects, setEnabledSubjects] = useState({ words: true, grammar: true, reading: true, listening: false, speaking: false, writing: false });
   const [customFor, setCustomFor] = useState(null);
   const [customMin, setCustomMin] = useState("");
   const [activeDays, setActiveDays] = useState([true, true, false, true, true, false, true]);
+  const [sessionTime, setSessionTime] = useState("morning"); // morning | afternoon | evening | flexible
+  const [studyMethods, setStudyMethods] = useState(["flashcard", "quiz"]);
+  const [reviewDay, setReviewDay] = useState(6); // 0=Mon ... 6=Sun, default Sunday
+  const [dailyTotal, setDailyTotal] = useState(90); // total minutes per day
   const [savingPlan, setSavingPlan] = useState(false);
   const dayLabels = ["\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D", "\u65E5"];
+
+  // Load existing plan from Supabase
+  useEffect(() => {
+    if (!userId || userId === 'anonymous') return;
+    getLearningPlan(userId).then(plan => {
+      if (!plan) return;
+      if (plan.goals) setGoals(prev => ({ ...prev, ...plan.goals }));
+      if (plan.schedule) {
+        if (plan.schedule.times) setTimes(prev => ({ ...prev, ...plan.schedule.times }));
+        if (plan.schedule.activeDays) setActiveDays(plan.schedule.activeDays);
+        if (plan.schedule.level) setLevel(plan.schedule.level);
+        if (plan.schedule.sessionTime) setSessionTime(plan.schedule.sessionTime);
+        if (plan.schedule.studyMethods) setStudyMethods(plan.schedule.studyMethods);
+        if (plan.schedule.reviewDay !== undefined) setReviewDay(plan.schedule.reviewDay);
+        if (plan.schedule.dailyTotal) setDailyTotal(plan.schedule.dailyTotal);
+        if (plan.schedule.enabledSubjects) setEnabledSubjects(prev => ({ ...prev, ...plan.schedule.enabledSubjects }));
+      }
+    });
+  }, [userId]);
 
   const handleSavePlan = async () => {
     if (!userId || userId === 'anonymous') { onBack && onBack(); return; }
     setSavingPlan(true);
-    const schedule = { times, activeDays };
+    const schedule = { times, activeDays, level, sessionTime, studyMethods, reviewDay, dailyTotal, enabledSubjects };
     try {
       await saveLearningPlan(userId, goals, schedule);
     } catch (e) {
@@ -1805,88 +1969,163 @@ const AdjustPlanSection = ({ onBack, userId }) => {
     setActiveDays(next);
   };
 
+  const toggleMethod = (m) => {
+    setStudyMethods(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
+  };
+
+  const toggleSubject = (key) => {
+    setEnabledSubjects(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const levels = [
+    { key: "beginner", label: "初级", desc: "零基础~N3", color: "var(--c-ok)" },
+    { key: "intermediate", label: "中级", desc: "N3~N1", color: "var(--c-teal)" },
+    { key: "advanced", label: "高级", desc: "N1+", color: "var(--c-rose)" },
+  ];
+
+  const sessions = [
+    { key: "morning", label: "早晨", icon: "🌅", desc: "6:00-12:00" },
+    { key: "afternoon", label: "下午", icon: "☀️", desc: "12:00-18:00" },
+    { key: "evening", label: "晚上", icon: "🌙", desc: "18:00-23:00" },
+    { key: "flexible", label: "灵活", icon: "⏰", desc: "随时学习" },
+  ];
+
+  const methods = [
+    { key: "flashcard", label: "闪卡复习", desc: "快速记忆词汇" },
+    { key: "quiz", label: "选择题测验", desc: "测试掌握程度" },
+    { key: "reading", label: "阅读理解", desc: "语境中学习" },
+    { key: "listening", label: "听力练习", desc: "提升听力能力" },
+    { key: "writing", label: "造句练习", desc: "主动输出训练" },
+    { key: "conversation", label: "情景对话", desc: "模拟真实对话" },
+  ];
+
   const subjects = [
-    { key: "words", label: "\u5355\u8BCD", goalLabel: "\u76EE\u6807\u8BCD\u6C47\u91CF", unit: "\u8BCD/\u5929", icon: BookOpen, color: "var(--c-teal)", min: 5, max: 100, step: 5 },
-    { key: "grammar", label: "\u8BED\u6CD5", goalLabel: "\u76EE\u6807\u8BED\u6CD5\u91CF", unit: "\u6761/\u5929", icon: PenTool, color: "var(--c-gold)", min: 2, max: 50, step: 2 },
-    { key: "reading", label: "\u9605\u8BFB", goalLabel: "\u76EE\u6807\u9605\u8BFB\u91CF", unit: "\u7BC7/\u5929", icon: FileText, color: "var(--c-rose)", min: 1, max: 20, step: 1 },
+    { key: "words", label: "单词", goalLabel: "目标词汇量", unit: "词/天", icon: BookOpen, color: "var(--c-teal)", min: 5, max: 100, step: 5 },
+    { key: "grammar", label: "语法", goalLabel: "目标语法量", unit: "条/天", icon: PenTool, color: "var(--c-gold)", min: 2, max: 50, step: 2 },
+    { key: "reading", label: "阅读", goalLabel: "目标阅读量", unit: "篇/天", icon: FileText, color: "var(--c-rose)", min: 1, max: 20, step: 1 },
+    { key: "listening", label: "听力", goalLabel: "目标听力量", unit: "段/天", icon: Volume2, color: "var(--c-info)", min: 1, max: 15, step: 1 },
+    { key: "speaking", label: "口语", goalLabel: "目标口语量", unit: "组/天", icon: Globe, color: "var(--c-amber)", min: 1, max: 10, step: 1 },
+    { key: "writing", label: "写作", goalLabel: "目标写作量", unit: "篇/天", icon: PenTool, color: "var(--c-err)", min: 1, max: 10, step: 1 },
   ];
 
   const SubjectCard = ({ s }) => {
     const goal = goals[s.key];
     const time = times[s.key];
+    const enabled = enabledSubjects[s.key];
     const pct = ((goal - s.min) / (s.max - s.min)) * 100;
     return (
-      <Card style={{ padding: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: `${s.color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <s.icon size={15} strokeWidth={IW} color={s.color} />
+      <Card style={{ padding: 16, opacity: enabled ? 1 : 0.5 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: enabled ? 14 : 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: `${s.color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <s.icon size={15} strokeWidth={IW} color={s.color} />
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 600, color: "var(--c-p800)" }}>{s.label}</span>
           </div>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "var(--c-p800)" }}>{s.label}</span>
+          {/* Enable/disable toggle */}
+          <div onClick={() => toggleSubject(s.key)} style={{
+            width: 40, height: 22, borderRadius: 11, padding: 2,
+            background: enabled ? s.color : "var(--c-p200)",
+            cursor: "pointer", transition: "all 0.2s",
+          }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: "50%", background: "#fff",
+              transform: enabled ? "translateX(18px)" : "translateX(0)",
+              transition: "transform 0.2s",
+            }} />
+          </div>
         </div>
-        {/* Study time */}
-        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 8 }}>{"\u5B66\u4E60\u65F6\u957F"}</div>
-        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-          {["15", "30"].map(m => (
-            <button key={m} onClick={() => setTimes(p => ({ ...p, [s.key]: m }))} style={{
+        {enabled && (<>
+          {/* Study time */}
+          <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 8 }}>{"学习时长"}</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+            {["15", "30", "45"].map(m => (
+              <button key={m} onClick={() => setTimes(p => ({ ...p, [s.key]: m }))} style={{
+                flex: 1, padding: "7px 0", borderRadius: 8,
+                border: time === m ? `1.5px solid ${s.color}` : `1px solid ${"var(--c-p200)"}`,
+                background: time === m ? s.color + "12" : "var(--c-surface)",
+                color: time === m ? "var(--c-p800)" : "var(--c-s500)",
+                fontSize: 12, fontWeight: time === m ? 600 : 400,
+                cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
+              }}>{m}{"分钟"}</button>
+            ))}
+            <button onClick={() => { setCustomFor(s.key); setCustomMin(""); }} style={{
               flex: 1, padding: "7px 0", borderRadius: 8,
-              border: time === m ? `1.5px solid ${s.color}` : `1px solid ${"var(--c-p200)"}`,
-              background: time === m ? s.color + "12" : "var(--c-surface)",
-              color: time === m ? "var(--c-p800)" : "var(--c-s500)",
-              fontSize: 12, fontWeight: time === m ? 600 : 400,
+              border: !["15","30","45"].includes(time) ? `1.5px solid ${s.color}` : `1px solid ${"var(--c-p200)"}`,
+              background: !["15","30","45"].includes(time) ? s.color + "12" : "var(--c-surface)",
+              color: !["15","30","45"].includes(time) ? "var(--c-p800)" : "var(--c-s500)",
+              fontSize: 12, fontWeight: !["15","30","45"].includes(time) ? 600 : 400,
               cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
-            }}>{m}{"\u5206\u949F"}</button>
-          ))}
-          <button onClick={() => { setCustomFor(s.key); setCustomMin(""); }} style={{
-            flex: 1, padding: "7px 0", borderRadius: 8,
-            border: (time !== "15" && time !== "30") ? `1.5px solid ${s.color}` : `1px solid ${"var(--c-p200)"}`,
-            background: (time !== "15" && time !== "30") ? s.color + "12" : "var(--c-surface)",
-            color: (time !== "15" && time !== "30") ? "var(--c-p800)" : "var(--c-s500)",
-            fontSize: 12, fontWeight: (time !== "15" && time !== "30") ? 600 : 400,
-            cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
-          }}>
-            {(time !== "15" && time !== "30") ? `${time}\u5206\u949F` : "\u81EA\u5B9A\u4E49"}
-          </button>
-        </div>
-        {/* Goal compact */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
-          <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{s.goalLabel}{"\uFF1A"}</span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{goal}</span>
-          <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{s.unit}</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 9, color: "var(--c-s300)" }}>{s.min}</span>
-          <div style={{ flex: 1, height: 5, borderRadius: 3, background: "var(--c-p100)", overflow: "hidden" }}>
-            <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, background: s.color, transition: "width 0.3s ease" }} />
+            }}>
+              {!["15","30","45"].includes(time) ? `${time}分钟` : "自定义"}
+            </button>
           </div>
-          <span style={{ fontSize: 9, color: "var(--c-s300)" }}>{s.max}</span>
-          <div onClick={() => setGoals(p => ({ ...p, [s.key]: Math.max(s.min, goal - s.step) }))} style={{
-            width: 26, height: 26, borderRadius: "50%", background: "var(--c-p50)",
-            border: `1px solid ${"var(--c-p200)"}`, display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", flexShrink: 0,
-          }}>
-            <Minus size={13} strokeWidth={IW} color={"var(--c-p600)"} />
+          {/* Goal */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{s.goalLabel}{"："}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{goal}</span>
+            <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{s.unit}</span>
           </div>
-          <div onClick={() => setGoals(p => ({ ...p, [s.key]: Math.min(s.max, goal + s.step) }))} style={{
-            width: 26, height: 26, borderRadius: "50%", background: "var(--c-p50)",
-            border: `1px solid ${"var(--c-p200)"}`, display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", flexShrink: 0,
-          }}>
-            <Plus size={13} strokeWidth={IW} color={"var(--c-p600)"} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 9, color: "var(--c-s300)" }}>{s.min}</span>
+            <div style={{ flex: 1, height: 5, borderRadius: 3, background: "var(--c-p100)", overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, background: s.color, transition: "width 0.3s ease" }} />
+            </div>
+            <span style={{ fontSize: 9, color: "var(--c-s300)" }}>{s.max}</span>
+            <div onClick={() => setGoals(p => ({ ...p, [s.key]: Math.max(s.min, goal - s.step) }))} style={{
+              width: 26, height: 26, borderRadius: "50%", background: "var(--c-p50)",
+              border: `1px solid ${"var(--c-p200)"}`, display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", flexShrink: 0,
+            }}>
+              <Minus size={13} strokeWidth={IW} color={"var(--c-p600)"} />
+            </div>
+            <div onClick={() => setGoals(p => ({ ...p, [s.key]: Math.min(s.max, goal + s.step) }))} style={{
+              width: 26, height: 26, borderRadius: "50%", background: "var(--c-p50)",
+              border: `1px solid ${"var(--c-p200)"}`, display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", flexShrink: 0,
+            }}>
+              <Plus size={13} strokeWidth={IW} color={"var(--c-p600)"} />
+            </div>
           </div>
-        </div>
+        </>)}
       </Card>
     );
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "0 16px 16px" }}>
-      {/* Three subject sections */}
-      {subjects.map(s => <SubjectCard key={s.key} s={s} />)}
 
-      {/* Study days */}
-      <Card>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14 }}>{"\u5B66\u4E60\u65E5\u671F"}</div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+      {/* ── Section 1: Level ── */}
+      <Card style={{ padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12 }}>{"当前水平"}</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {levels.map(l => (
+            <div key={l.key} onClick={() => setLevel(l.key)} style={{
+              flex: 1, padding: "10px 8px", borderRadius: 10, textAlign: "center",
+              border: level === l.key ? `1.5px solid ${l.color}` : `1px solid ${"var(--c-p200)"}`,
+              background: level === l.key ? `${l.color}12` : "var(--c-surface)",
+              cursor: "pointer",
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: level === l.key ? l.color : "var(--c-s500)" }}>{l.label}</div>
+              <div style={{ fontSize: 10, color: "var(--c-s400)", marginTop: 2 }}>{l.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── Section 2: Learning Modules ── */}
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-p800)", marginBottom: 10, padding: "0 2px" }}>{"学习模块"}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {subjects.map(s => <SubjectCard key={s.key} s={s} />)}
+        </div>
+      </div>
+
+      {/* ── Section 3: Schedule ── */}
+      <Card style={{ padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14 }}>{"学习日程"}</div>
+        {/* Days */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
           {dayLabels.map((d, i) => (
             <div key={i} onClick={() => toggleDay(i)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer" }}>
               <span style={{ fontSize: 11, color: activeDays[i] ? "var(--c-p700)" : "var(--c-s300)", fontWeight: 500 }}>{d}</span>
@@ -1902,11 +2141,81 @@ const AdjustPlanSection = ({ onBack, userId }) => {
             </div>
           ))}
         </div>
+        {/* Daily total time */}
+        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 8 }}>{"每日总时长上限"}</div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+          {[60, 90, 120, 150].map(m => (
+            <button key={m} onClick={() => setDailyTotal(m)} style={{
+              flex: 1, padding: "8px 0", borderRadius: 8,
+              border: dailyTotal === m ? `1.5px solid ${"var(--c-teal)"}` : `1px solid ${"var(--c-p200)"}`,
+              background: dailyTotal === m ? "color-mix(in srgb, var(--c-teal) 10%, transparent)" : "var(--c-surface)",
+              color: dailyTotal === m ? "var(--c-p800)" : "var(--c-s500)",
+              fontSize: 12, fontWeight: dailyTotal === m ? 600 : 400,
+              cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
+            }}>{m}分钟</button>
+          ))}
+        </div>
+        {/* Session preference */}
+        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 8 }}>{"偏好学习时段"}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {sessions.map(s => (
+            <div key={s.key} onClick={() => setSessionTime(s.key)} style={{
+              padding: "10px 12px", borderRadius: 10, display: "flex", alignItems: "center", gap: 8,
+              border: sessionTime === s.key ? `1.5px solid ${"var(--c-teal)"}` : `1px solid ${"var(--c-p200)"}`,
+              background: sessionTime === s.key ? "color-mix(in srgb, var(--c-teal) 8%, transparent)" : "var(--c-surface)",
+              cursor: "pointer",
+            }}>
+              <span style={{ fontSize: 18 }}>{s.icon}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: sessionTime === s.key ? "var(--c-p800)" : "var(--c-s500)" }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: "var(--c-s400)" }}>{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Review day */}
+        <div style={{ fontSize: 12, color: "var(--c-s500)", marginTop: 16, marginBottom: 8 }}>{"每周复习日"}</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {dayLabels.map((d, i) => (
+            <div key={i} onClick={() => setReviewDay(i)} style={{
+              flex: 1, padding: "8px 0", borderRadius: 8, textAlign: "center",
+              border: reviewDay === i ? `1.5px solid ${"var(--c-gold)"}` : `1px solid ${"var(--c-p200)"}`,
+              background: reviewDay === i ? "color-mix(in srgb, var(--c-gold) 12%, transparent)" : "var(--c-surface)",
+              cursor: "pointer", fontSize: 12, fontWeight: reviewDay === i ? 600 : 400,
+              color: reviewDay === i ? "var(--c-p800)" : "var(--c-s500)",
+            }}>{d}</div>
+          ))}
+        </div>
       </Card>
 
-      {/* AI regenerate button */}
-      <Btn variant="primary" icon={Sparkles} onClick={handleSavePlan} style={{ width: "100%", padding: "12px 0", borderRadius: 12, marginTop: 4, opacity: savingPlan ? 0.6 : 1 }}>
-        {savingPlan ? "\u4FDD\u5B58\u4E2D..." : "\u91CD\u65B0\u751F\u6210\u8BA1\u5212"}
+      {/* ── Section 4: Study Methods ── */}
+      <Card style={{ padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 4 }}>{"学习方式"}</div>
+        <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 12 }}>{"选择你偏好的学习方法（可多选）"}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {methods.map(m => {
+            const active = studyMethods.includes(m.key);
+            return (
+              <div key={m.key} onClick={() => toggleMethod(m.key)} style={{
+                padding: "10px 12px", borderRadius: 10,
+                border: active ? `1.5px solid ${"var(--c-teal)"}` : `1px solid ${"var(--c-p200)"}`,
+                background: active ? "color-mix(in srgb, var(--c-teal) 8%, transparent)" : "var(--c-surface)",
+                cursor: "pointer", position: "relative",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: active ? "var(--c-p800)" : "var(--c-s500)" }}>{m.label}</div>
+                  {active && <Check size={14} strokeWidth={2} color={"var(--c-teal)"} />}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--c-s400)", marginTop: 2 }}>{m.desc}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* ── Save button ── */}
+      <Btn variant="primary" icon={Sparkles} onClick={handleSavePlan} style={{ width: "100%", padding: "14px 0", borderRadius: 12, marginTop: 4, opacity: savingPlan ? 0.6 : 1 }}>
+        {savingPlan ? "保存中..." : "保存并重新生成计划"}
       </Btn>
 
       {/* Custom minutes modal */}
@@ -1920,7 +2229,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
             background: "var(--c-surface)", maxWidth: 300, width: "85%",
             borderRadius: 16, padding: 24,
           }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", marginBottom: 16 }}>{"\u81EA\u5B9A\u4E49\u5B66\u4E60\u65F6\u957F"}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", marginBottom: 16 }}>{"自定义学习时长"}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="number" value={customMin} onChange={e => setCustomMin(e.target.value.replace(/\D/g, ""))}
@@ -1933,7 +2242,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
                   textAlign: "center",
                 }}
               />
-              <span style={{ fontSize: 15, color: "var(--c-s500)", fontWeight: 500 }}>{"\u5206\u949F"}</span>
+              <span style={{ fontSize: 15, color: "var(--c-s500)", fontWeight: 500 }}>{"分钟"}</span>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
               <button onClick={() => setCustomFor(null)} style={{
@@ -1941,7 +2250,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
                 border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
                 color: "var(--c-s500)", fontSize: 14, cursor: "pointer",
                 fontFamily: "var(--zh-font), sans-serif",
-              }}>{"\u53D6\u6D88"}</button>
+              }}>{"取消"}</button>
               <button onClick={() => {
                 const v = parseInt(customMin);
                 if (v && v > 0) { setTimes(p => ({ ...p, [customFor]: String(v) })); }
@@ -1951,7 +2260,7 @@ const AdjustPlanSection = ({ onBack, userId }) => {
                 border: "none", background: "var(--c-p600)",
                 color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
                 fontFamily: "var(--zh-font), sans-serif",
-              }}>{"\u786E\u5B9A"}</button>
+              }}>{"确定"}</button>
             </div>
           </div>
         </div>
@@ -2664,6 +2973,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
   const [selectedProvider, setSelectedProvider] = useState("openai");
   const [customApi, setCustomApi] = useState({ name: "", key: "", baseUrl: "", model: "" });
   const [editingApiId, setEditingApiId] = useState(null);
+  const [defaultApiId, setDefaultApiId] = useState("system"); // "system" or api key id
 
   /* ── Load settings and API keys from Supabase ── */
   useEffect(() => {
@@ -2687,6 +2997,7 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
         model: k.model || '',
       })));
     });
+    getDefaultApi(userId).then(id => setDefaultApiId(id || 'system'));
     // Fetch streak and bookmark count
     getStreak(userId).then(setStreak);
     getBookmarks(userId).then(rows => setBookmarkCount((rows || []).length));
@@ -2797,6 +3108,54 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>AI API {"\u7BA1\u7406"}</h2>
         </div>
+
+        {/* Default API Selection */}
+        <Card style={{ padding: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12 }}>{"默认使用的 API"}</div>
+          <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 12 }}>{"选择 AI 功能默认使用的 API 服务"}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {/* System API option */}
+            <div onClick={() => { setDefaultApiId('system'); setDefaultApi(userId, 'system'); }} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
+              border: defaultApiId === 'system' ? `1.5px solid ${"var(--c-teal)"}` : `1px solid ${"var(--c-p200)"}`,
+              background: defaultApiId === 'system' ? "color-mix(in srgb, var(--c-teal) 8%, transparent)" : "var(--c-surface)",
+              cursor: "pointer",
+            }}>
+              <div style={{
+                width: 18, height: 18, borderRadius: "50%",
+                border: defaultApiId === 'system' ? `5px solid ${"var(--c-teal)"}` : `1.5px solid ${"var(--c-p300)"}`,
+                flexShrink: 0,
+              }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>{"系统免费 API"}</div>
+                <div style={{ fontSize: 11, color: "var(--c-s400)", marginTop: 2 }}>{"由系统提供，无需配置，密钥存储在服务器端"}</div>
+              </div>
+            </div>
+            {/* User API options */}
+            {apiKeys.map(ak => {
+              const provider = apiTemplates.find(t => t.id === ak.provider);
+              const isDefault = defaultApiId === String(ak.id);
+              return (
+                <div key={ak.id} onClick={() => { setDefaultApiId(String(ak.id)); setDefaultApi(userId, String(ak.id)); }} style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10,
+                  border: isDefault ? `1.5px solid ${provider?.color || "var(--c-teal)"}` : `1px solid ${"var(--c-p200)"}`,
+                  background: isDefault ? `color-mix(in srgb, ${provider?.color || "var(--c-teal)"} 8%, transparent)` : "var(--c-surface)",
+                  cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 18, height: 18, borderRadius: "50%",
+                    border: isDefault ? `5px solid ${provider?.color || "var(--c-teal)"}` : `1.5px solid ${"var(--c-p300)"}`,
+                    flexShrink: 0,
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>{ak.name}</div>
+                    <div style={{ fontSize: 11, color: "var(--c-s400)", marginTop: 2, fontFamily: "monospace" }}>{ak.key} · {ak.model}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
 
         {/* Existing keys */}
         {apiKeys.length > 0 && (
