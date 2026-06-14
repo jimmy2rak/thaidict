@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useSignIn, useSignUp, useClerk, useAuth, useUser } from "@clerk/clerk-react";
+import { useAuth } from "./main.jsx";
+import {
+  signInWithEmail, signUpWithEmail, signInWithOAuth,
+  signOut as supaSignOut, updateUserProfile, uploadAvatar, verifyEmailOtp,
+} from "./lib/supabase.js";
 import {
   isSupabaseConfigured,
   searchWords, getWordByThai, getDailyWord, getRecentWords,
@@ -3635,10 +3639,10 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
             fontSize: 22, fontWeight: 700, color: "var(--c-p600)", flexShrink: 0,
             cursor: "pointer", overflow: "hidden", position: "relative",
           }}>
-            {user?.imageUrl ? (
-              <img src={user.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
-              (user?.firstName || userId || "U").charAt(0).toUpperCase()
+              (user?.user_metadata?.full_name || user?.email || userId || "U").charAt(0).toUpperCase()
             )}
             {avatarUploading && <div style={{
               position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)",
@@ -3651,7 +3655,14 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
             const file = e.target.files?.[0];
             if (!file || !user) return;
             setAvatarUploading(true);
-            try { await user.setProfileImage({ file }); } catch (err) { console.error("[avatar]", err); }
+            try {
+              const { url, error } = await uploadAvatar(userId, file);
+              if (url) {
+                await updateUserProfile({ avatar_url: url });
+              } else {
+                console.error("[avatar] upload failed:", error);
+              }
+            } catch (err) { console.error("[avatar]", err); }
             setAvatarUploading(false);
             e.target.value = "";
           }} />
@@ -3661,8 +3672,8 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <input value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} autoFocus
                   onKeyDown={async (e) => {
-                    if (e.key === "Enter" && nicknameInput.trim() && user) {
-                      try { await user.update({ firstName: nicknameInput.trim() }); } catch {}
+                    if (e.key === "Enter" && nicknameInput.trim()) {
+                      try { await updateUserProfile({ full_name: nicknameInput.trim() }); } catch {}
                       setEditingNickname(false);
                     } else if (e.key === "Escape") { setEditingNickname(false); }
                   }}
@@ -3674,8 +3685,8 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
                   }}
                 />
                 <div onClick={async () => {
-                  if (nicknameInput.trim() && user) {
-                    try { await user.update({ firstName: nicknameInput.trim() }); } catch {}
+                  if (nicknameInput.trim()) {
+                    try { await updateUserProfile({ full_name: nicknameInput.trim() }); } catch {}
                   }
                   setEditingNickname(false);
                 }} style={{ cursor: "pointer", padding: 4 }}>
@@ -3685,9 +3696,9 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)" }}>
-                  {user?.firstName || (userId ? (userId.length > 12 ? userId.slice(0, 12) + "..." : userId) : "User")}
+                  {user?.user_metadata?.full_name || user?.email || (userId ? (userId.length > 12 ? userId.slice(0, 12) + "..." : userId) : "User")}
                 </span>
-                <div onClick={() => { setNicknameInput(user?.firstName || ""); setEditingNickname(true); }}
+                <div onClick={() => { setNicknameInput(user?.user_metadata?.full_name || ""); setEditingNickname(true); }}
                   style={{ cursor: "pointer", display: "flex" }}>
                   <Pencil size={13} strokeWidth={IW} color={"var(--c-s400)"} />
                 </div>
@@ -3929,15 +3940,10 @@ const ProfilePage = ({ userId, user, colorMode, setColorMode, onLogout, onNaviga
 };
 
 /* ────────────────────────────────────────────
-   PAGE: LOGIN — Clerk integration, OAuth + email/username
+   PAGE: LOGIN — Supabase Auth, OAuth + email
    ──────────────────────────────────────────── */
 const LoginPage = ({ onLogin }) => {
-  const clerkSignIn = typeof useSignIn !== "undefined" ? (() => { try { return useSignIn(); } catch { return null; } })() : null;
-  const clerkSignUp = typeof useSignUp !== "undefined" ? (() => { try { return useSignUp(); } catch { return null; } })() : null;
-  const clerk = typeof useClerk !== "undefined" ? (() => { try { return useClerk(); } catch { return null; } })() : null;
-
   const [loginMode, setLoginMode] = useState("login"); // "login" | "register"
-  const [loginTab, setLoginTab] = useState("email");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -3960,32 +3966,21 @@ const LoginPage = ({ onLogin }) => {
 
   const handleCredentialLogin = async () => {
     setError(""); setVerifyMessage("");
-    const id = loginTab === "email" ? email : username;
-    if (!id.trim() || !password.trim()) { setError("请填写完整信息"); return; }
+    if (!email.trim() || !password.trim()) { setError("请填写完整信息"); return; }
     setLoading(true);
     try {
-      if (clerkSignIn?.signIn) {
-        const result = await clerkSignIn.signIn.create({ identifier: id, password });
-        if (result.status === "complete") {
-          await clerk?.setActive?.({ session: result.createdSessionId });
-          onLogin?.();
-        } else if (result.status === "needs_first_factor") {
-          // MFA required - for now just inform the user
-          setError("需要额外验证，请联系管理员");
+      const { data, error: err } = await signInWithEmail(email, password);
+      if (err) {
+        if (err.includes("Invalid login") || err.includes("Email not confirmed")) {
+          setError("邮箱或密码错误，或邮箱未验证");
+        } else {
+          setError(err);
         }
       } else {
-        await new Promise(r => setTimeout(r, 800));
         onLogin?.();
       }
-    } catch (err) {
-      const msg = err?.errors?.[0]?.message || "";
-      if (msg.toLowerCase().includes("not found") || msg.includes("找不到") || err?.errors?.[0]?.code === "form_identifier_not_found") {
-        setError("账号不存在，请先注册");
-      } else if (msg.toLowerCase().includes("password") || msg.includes("密码") || err?.errors?.[0]?.code === "form_password_incorrect") {
-        setError("密码错误，请重试");
-      } else {
-        setError(msg || "登录失败，请检查账号和密码");
-      }
+    } catch (e) {
+      setError("登录失败，请重试");
     }
     setLoading(false);
   };
@@ -3994,38 +3989,26 @@ const LoginPage = ({ onLogin }) => {
     setError(""); setVerifyMessage("");
     if (!email.trim() || !password.trim()) { setError("请填写完整信息"); return; }
     if (password !== confirmPwd) { setError("两次输入的密码不一致"); return; }
-    if (password.length < 8) { setError("密码至少需要 8 位"); return; }
+    if (password.length < 6) { setError("密码至少需要 6 位"); return; }
     setLoading(true);
     try {
-      if (clerkSignUp?.signUp) {
-        const signUpParams = { emailAddress: email.trim(), password };
-        if (username.trim()) {
-          signUpParams.username = username.trim();
-        }
-        console.log("[Register] Creating account with:", { email: email.trim(), hasUsername: !!username.trim() });
-        const result = await clerkSignUp.signUp.create(signUpParams);
-        console.log("[Register] Result status:", result.status);
-        if (result.status === "complete") {
-          await clerk?.setActive?.({ session: result.createdSessionId });
-          onLogin?.();
+      const { data, error: err } = await signUpWithEmail(email, password, username);
+      if (err) {
+        if (err.includes("already registered")) {
+          setError("该邮箱已注册，请直接登录");
         } else {
-          // Email verification needed
-          setRegisterStep("verify");
-          setVerifyMessage("验证码已发送到您的邮箱，请查收并输入");
+          setError(err);
         }
+      } else if (data?.user && !data?.session) {
+        // Email verification required
+        setRegisterStep("verify");
+        setVerifyMessage("验证码已发送到您的邮箱，请查收并输入");
       } else {
-        console.warn("[Register] clerkSignUp not available");
-        await new Promise(r => setTimeout(r, 800));
         onLogin?.();
       }
-    } catch (err) {
-      console.error("[Register] Error:", err);
-      const msg = err?.errors?.[0]?.message || "";
-      if (msg.toLowerCase().includes("already") || msg.includes("已存在") || err?.errors?.[0]?.code === "form_identifier_exists") {
-        setError("该邮箱已注册，请直接登录");
-      } else {
-        setError(msg || "注册失败，请重试");
-      }
+    } catch (e) {
+      console.error("[Register]", e);
+      setError("注册失败，请重试");
     }
     setLoading(false);
   };
@@ -4035,19 +4018,14 @@ const LoginPage = ({ onLogin }) => {
     if (!verifyCode.trim()) { setError("请输入验证码"); return; }
     setLoading(true);
     try {
-      if (clerkSignUp?.signUp) {
-        const result = await clerkSignUp.signUp.attemptEmailAddressVerification({
-          code: verifyCode.trim(),
-        });
-        if (result.status === "complete") {
-          await clerk?.setActive?.({ session: result.createdSessionId });
-          onLogin?.();
-        } else {
-          setVerifyMessage("验证码验证未通过，请重试");
-        }
+      const { data, error: err } = await verifyEmailOtp(email, verifyCode.trim());
+      if (err) {
+        setError(err);
+      } else {
+        onLogin?.();
       }
-    } catch (err) {
-      setError(err?.errors?.[0]?.message || "验证码错误，请重试");
+    } catch (e) {
+      setError("验证失败，请重试");
     }
     setLoading(false);
   };
@@ -4056,25 +4034,15 @@ const LoginPage = ({ onLogin }) => {
     setError(""); setVerifyMessage("");
     setLoading(true);
     try {
-      if (clerkSignIn?.signIn) {
-        // If there's an existing abandoned/needs_identifier signIn, create a fresh one
-        if (clerkSignIn.signIn.status && clerkSignIn.signIn.status !== 'needs_identifier') {
-          try { await clerkSignIn.signIn.create({}); } catch (_) { /* ignore */ }
-        }
-        await clerkSignIn.signIn.authenticateWithRedirect({
-          strategy: `oauth_${provider}`,
-          redirectUrl: window.location.origin + "/sso-callback",
-          redirectUrlComplete: window.location.origin + "/",
-        });
-      } else if (clerk?.openSignIn) {
-        // Fallback: open Clerk's built-in sign-in UI
-        clerk.openSignIn({ strategy: `oauth_${provider}` });
-      } else {
-        setError("第三方登录不可用，请稍后重试");
+      const { error: err } = await signInWithOAuth(provider);
+      if (err) {
+        console.error(`[OAuth ${provider}]`, err);
+        setError("第三方登录失败，请重试");
       }
-    } catch (err) {
-      console.error(`[OAuth ${provider}] error:`, err);
-      setError(err?.errors?.[0]?.message || "第三方登录失败，请重试");
+      // On success, the browser will redirect to the OAuth provider
+    } catch (e) {
+      console.error(`[OAuth ${provider}]`, e);
+      setError("第三方登录失败，请重试");
     }
     setLoading(false);
   };
@@ -4137,7 +4105,7 @@ const LoginPage = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* ── OAuth circular buttons (above login form) ── */}
+        {/* ── OAuth circular buttons ── */}
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20 }}>
           {oauthProviders.map(({ key, label, Icon: OIcon }) => (
             <div key={key} onClick={() => handleOAuth(key)} style={{
@@ -4163,29 +4131,6 @@ const LoginPage = ({ onLogin }) => {
           <span style={{ fontSize: 12, color: "var(--c-s300)" }}>或使用邮箱</span>
           <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
         </div>
-
-        {/* Login method tabs (only for login mode) */}
-        {!isRegister && (
-        <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: `2px solid ${"var(--c-p100)"}` }}>
-          {[
-            { key: "email", label: "Email" },
-            { key: "username", label: "用户名" },
-          ].map(t => (
-            <div key={t.key} onClick={() => { setLoginTab(t.key); setError(""); }} style={{
-              flex: 1, textAlign: "center", padding: "10px 0 10px",
-              fontSize: 14, fontWeight: loginTab === t.key ? 600 : 400,
-              color: loginTab === t.key ? "var(--c-p800)" : "var(--c-s400)",
-              cursor: "pointer", position: "relative", transition: "all 0.2s",
-            }}>
-              {t.label}
-              {loginTab === t.key && <div style={{
-                position: "absolute", bottom: -2, left: "20%", right: "20%",
-                height: 2.5, borderRadius: 2, background: "var(--c-p600)",
-              }} />}
-            </div>
-          ))}
-        </div>
-        )}
 
         {/* ── Verify step (after registration email sent) ── */}
         {isRegister && registerStep === "verify" ? (
@@ -4246,13 +4191,13 @@ const LoginPage = ({ onLogin }) => {
           </>
         ) : (
           <>
-            {/* Input field */}
+            {/* Email input */}
             <div style={{ marginBottom: 12 }}>
               <input
-                type={isRegister ? "email" : (loginTab === "email" ? "email" : "text")}
-                value={isRegister ? email : (loginTab === "email" ? email : username)}
-                onChange={e => isRegister ? setEmail(e.target.value) : (loginTab === "email" ? setEmail(e.target.value) : setUsername(e.target.value))}
-                placeholder={isRegister ? "邮箱地址" : (loginTab === "email" ? "邮箱地址" : "用户名")}
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="邮箱地址"
                 onKeyDown={e => e.key === "Enter" && !isRegister && handleCredentialLogin()}
                 style={inputStyle}
                 onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
@@ -4384,11 +4329,10 @@ const LoginPage = ({ onLogin }) => {
    MAIN APP: Mobile-first with bottom nav
    ──────────────────────────────────────────── */
 export default function App() {
-  // Clerk session management — ClerkProvider is always present (see main.jsx)
-  const { isSignedIn, isLoaded, signOut: clerkSignOut } = useAuth();
-  const { user: clerkUser } = useUser();
-  const userId = clerkUser?.id || 'anonymous';
-  const isLoggedIn = !!isSignedIn;
+  // Supabase Auth session management — AuthProvider wraps the app (see main.jsx)
+  const { user: supaUser, session, loading: authLoading, signOut: handleSignOut } = useAuth();
+  const userId = supaUser?.id || 'anonymous';
+  const isLoggedIn = !!session;
 
   const [page, setPage] = useState("home");
   const [detailWord, setDetailWord] = useState(null);
@@ -4587,8 +4531,8 @@ export default function App() {
   const pageIcons = { home: Logo, words: PalmLeafBook, learn: LotusLamp, me: BuddhaHead };
   const PageIcon = pageIcons[page];
 
-  /* ── Loading screen while Clerk initializes ── */
-  if (!isLoaded) {
+  /* ── Loading screen while auth initializes ── */
+  if (authLoading) {
     return (
       <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
         <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -4754,7 +4698,7 @@ export default function App() {
         {page === "home" && <HomePage userId={userId} onNavigate={setPage} onWordTap={handleWordTap} onSelectSentence={setSelectedSentence} />}
         {page === "words" && <WordBookPage userId={userId} onWordTap={handleWordTap} />}
         {page === "learn" && <LearnPage userId={userId} onWordTap={handleWordTap} />}
-        {page === "me" && <ProfilePage userId={userId} user={clerkUser} colorMode={colorMode} setColorMode={setColorMode} onLogout={() => clerkSignOut()} onNavigateToWords={() => { setPage("words"); }} />}
+        {page === "me" && <ProfilePage userId={userId} user={supaUser} colorMode={colorMode} setColorMode={setColorMode} onLogout={handleSignOut} onNavigateToWords={() => { setPage("words"); }} />}
       </div>
 
       {/* Bottom Navigation Bar */}

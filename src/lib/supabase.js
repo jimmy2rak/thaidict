@@ -11,6 +11,7 @@ if (isSupabaseConfigured) {
 }
 
 export default supabase
+export { supabase }
 
 /* ────────────────────────────────────────────
    QUERY FUNCTIONS
@@ -749,4 +750,103 @@ export async function getBookmarkedSentences(userId) {
     .order('created_at', { ascending: false })
   if (error) { console.error('[supabase] getBookmarkedSentences:', error.message); return [] }
   return (data || []).map(r => r.sentences).filter(Boolean)
+}
+
+/* ─── Auth Helper Functions ─── */
+
+/**
+ * Sign in with email and password
+ */
+export async function signInWithEmail(email, password) {
+  if (!supabase) return { error: 'Supabase not configured' }
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  })
+  if (error) return { error: error.message, data: null }
+  return { data, error: null }
+}
+
+/**
+ * Sign up with email and password
+ */
+export async function signUpWithEmail(email, password, username = '') {
+  if (!supabase) return { error: 'Supabase not configured' }
+  const options = { data: {} }
+  if (username) options.data.full_name = username
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password,
+    options,
+  })
+  if (error) return { error: error.message, data: null }
+  return { data, error: null }
+}
+
+/**
+ * Sign in with OAuth provider (google, github, apple)
+ */
+export async function signInWithOAuth(provider) {
+  if (!supabase) return { error: 'Supabase not configured' }
+  const redirectTo = window.location.origin + '/auth/callback'
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo,
+    },
+  })
+  if (error) return { error: error.message, data: null }
+  return { data, error: null }
+}
+
+/**
+ * Sign out
+ */
+export async function signOut() {
+  if (!supabase) return
+  await supabase.auth.signOut()
+}
+
+/**
+ * Update user profile metadata
+ */
+export async function updateUserProfile(updates) {
+  if (!supabase) return { error: 'Supabase not configured' }
+  const { data, error } = await supabase.auth.updateUser({
+    data: updates,
+  })
+  if (error) return { error: error.message, data: null }
+  return { data, error: null }
+}
+
+/**
+ * Upload user avatar
+ * Returns the public URL of the uploaded avatar
+ */
+export async function uploadAvatar(userId, file) {
+  if (!supabase || !userId) return { error: 'Not configured', url: null }
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `avatars/${userId}/${Date.now()}.${ext}`
+  const { error: uploadError } = await supabase.storage
+    .from('user-assets')
+    .upload(path, file, { upsert: true })
+  if (uploadError) return { error: uploadError.message, url: null }
+  const { data: { publicUrl } } = supabase.storage
+    .from('user-assets')
+    .getPublicUrl(path)
+  return { url: publicUrl, error: null }
+}
+
+/**
+ * Verify email with OTP code
+ */
+export async function verifyEmailOtp(email, token) {
+  if (!supabase) return { error: 'Supabase not configured' }
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.trim(),
+    token,
+    type: 'signup',
+  })
+  if (error) return { error: error.message, data: null }
+  return { data, error: null }
 }
