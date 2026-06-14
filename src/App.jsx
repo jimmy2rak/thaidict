@@ -15,13 +15,15 @@ import {
   getApiKeys, saveApiKey, deleteApiKey,
   getDictionaryCount,
   callAiProxy, getDefaultApi, setDefaultApi,
+  getDailySentence, getSentencesByCategory,
+  bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences,
 } from "./lib/supabase.js";
 import {
   Search, BookOpen,
   Mic, Play, Pause,
   Bookmark, Check,
   Flame, Target, Award, Cloud, Moon, Sun, Smartphone,
-  Globe, PenTool, Bell,
+  Globe, PenTool, Bell, RefreshCw,
   Download, Upload, HardDrive, Plus,
   Volume2, ChevronRight, ChevronLeft, Clock, Star,
   BarChart3, GitBranch,
@@ -418,19 +420,37 @@ const PageHeader = ({ title, subtitle }) => (
 /* ────────────────────────────────────────────
    PAGE: HOME (Mobile-first)
    ──────────────────────────────────────────── */
-const HomePage = ({ userId, onNavigate, onWordTap }) => {
+const HomePage = ({ userId, onNavigate, onWordTap, onSelectSentence }) => {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [dailyData, setDailyData] = useState(null);
+  const [dailyRefreshing, setDailyRefreshing] = useState(false);
+  const [dailySentence, setDailySentence] = useState(null);
+  const [sentenceRefreshing, setSentenceRefreshing] = useState(false);
   const [recentData, setRecentData] = useState([]);
   const [streak, setStreak] = useState(0);
   const [dictCount, setDictCount] = useState(null);
 
-  /* ── Fetch daily word + recent words + streak + dict count from Supabase ── */
+  const loadRandomWord = async () => {
+    setDailyRefreshing(true);
+    const d = await getDailyWord();
+    if (d) setDailyData(transformWordData(d));
+    setDailyRefreshing(false);
+  };
+
+  const loadRandomSentence = async () => {
+    setSentenceRefreshing(true);
+    const s = await getDailySentence();
+    if (s) setDailySentence(s);
+    setSentenceRefreshing(false);
+  };
+
+  /* ── Fetch daily word + sentence + recent words + streak + dict count from Supabase ── */
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     getDailyWord().then(d => { if (d) setDailyData(transformWordData(d)); });
+    getDailySentence().then(s => { if (s) setDailySentence(s); });
     getRecentWords(8).then(rows => { setRecentData(rows.map(transformSearchResult).filter(Boolean)); });
     if (userId && userId !== 'anonymous') {
       getStreak(userId).then(setStreak);
@@ -510,6 +530,18 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
               <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0 }} />
             </div>
           ))}
+          {/* AI search button — always visible at bottom of results (Bug 3) */}
+          {!searchLoading && searchResults.length > 0 && (
+            <div onClick={() => onWordTap(query.trim())} style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "12px 20px", borderRadius: 12, cursor: "pointer", marginTop: 2,
+              background: "color-mix(in srgb, var(--c-teal) 10%, transparent)",
+              border: `1px dashed ${"var(--c-teal)"}`,
+            }}>
+              <Sparkles size={13} strokeWidth={IW} color={"var(--c-teal)"} />
+              <span style={{ fontSize: 12, color: "var(--c-teal)", fontWeight: 600 }}>{"没找到想要的？试试 AI 搜索"}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -526,9 +558,19 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
           <Card onClick={() => onWordTap(dw.word)}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <Badge bg={"var(--c-goldL)"} fg={"var(--c-gold)"}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
-              <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{new Date().toLocaleDateString("zh-CN")}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{new Date().toLocaleDateString("zh-CN")}</span>
+                <div onClick={(e) => { e.stopPropagation(); loadRandomWord(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
+                  <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: dailyRefreshing ? "spin 0.8s linear infinite" : "none" }} />
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", letterSpacing: "0.04em" }}>{dw.word}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", letterSpacing: "0.04em" }}>{dw.word}</div>
+              <div onClick={(e) => { e.stopPropagation(); speak(dw.word, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
+                <Play size={16} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+              </div>
+            </div>
             {dw.romanization && <div style={{ fontSize: 13, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", marginTop: 2 }}>{dw.romanization}</div>}
             {dwSense && (
               <>
@@ -538,11 +580,47 @@ const HomePage = ({ userId, onNavigate, onWordTap }) => {
                 </div>
                 {dwExample && (
                   <div style={{ borderTop: `1px solid ${"var(--c-p100)"}`, marginTop: 12, paddingTop: 12 }}>
-                    <div style={{ fontSize: 13, color: "var(--c-teal)" }}>{dwExample.th}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ fontSize: 13, color: "var(--c-teal)", flex: 1 }}>{dwExample.th}</div>
+                      <div onClick={(e) => { e.stopPropagation(); speak(dwExample.th, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                        <Play size={12} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+                      </div>
+                    </div>
                     <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3 }}>{dwExample.zh}</div>
                   </div>
                 )}
               </>
+            )}
+          </Card>
+        )}
+
+        {/* Daily Sentence */}
+        {dailySentence && (
+          <Card onClick={() => { if (onSelectSentence) onSelectSentence(dailySentence); }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <Badge bg={"color-mix(in srgb, var(--c-teal) 15%, transparent)"} fg={"var(--c-teal)"}>{"\u6BCF\u65E5\u4E00\u53E5"}</Badge>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {dailySentence.category && (
+                  <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>
+                    {dailySentence.category === "idioms" ? "俗语" : dailySentence.category === "buddhist" ? "佛教用语" : "日常用语"}
+                  </Badge>
+                )}
+                <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
+                  <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: sentenceRefreshing ? "spin 0.8s linear infinite" : "none" }} />
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", flex: 1, lineHeight: 1.5 }}>{dailySentence.text}</div>
+              <div onClick={(e) => { e.stopPropagation(); speak(dailySentence.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
+                <Play size={14} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+              </div>
+            </div>
+            {dailySentence.actual_meaning && (
+              <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.actual_meaning}</div>
+            )}
+            {!dailySentence.actual_meaning && dailySentence.literal_meaning && (
+              <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.literal_meaning}</div>
             )}
           </Card>
         )}
@@ -1505,25 +1583,26 @@ const WordDetailPage = ({ userId, onBack, onWordTap, wordData }) => {
     </div>
   );
 };
-const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
+const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated, onNavigateToDetail }) => {
   const [step, setStep] = useState("input"); // "input" | "generating" | "preview"
   const [thaiWord, setThaiWord] = useState(word || "");
   const [zhHint, setZhHint] = useState("");
   const [generating, setGenerating] = useState(false);
 
-  const handleConfirmWord = () => {
+  const handleConfirmWord = async () => {
     if (!thaiWord.trim()) return;
     setGenerating(true);
     setStep("generating");
-    // Submit to Supabase
     if (isSupabaseConfigured) {
       submitWord(thaiWord.trim(), zhHint.trim()).catch(err => console.error("[submitWord]", err));
     }
-    setTimeout(() => {
-      setGenerating(false);
-      setStep("preview");
-      onGenerated(thaiWord.trim());
-    }, 2000);
+    try {
+      await onGenerated(thaiWord.trim(), zhHint.trim());
+    } catch (err) {
+      console.error("[handleConfirmWord] generation failed:", err);
+    }
+    setGenerating(false);
+    setStep("preview");
   };
 
   return (
@@ -1592,7 +1671,16 @@ const UnknownWordPage = ({ word, onBack, onWordTap, onGenerated }) => {
         {step === "preview" && (
           <div style={{ padding: "12px 0" }}>
             <div style={{ fontSize: 14, color: "var(--c-ok)", fontWeight: 600, marginBottom: 8 }}>{"✓ 词条已生成"}</div>
-            <div style={{ fontSize: 12, color: "var(--c-s500)" }}>{"已同步到词库数据库，可点击查看详情查看"}</div>
+            <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 16 }}>{"AI 已生成词条数据，可跳转查看详情"}</div>
+            <div onClick={() => { if (onNavigateToDetail) onNavigateToDetail(thaiWord.trim()); }} style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "10px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
+              background: "var(--c-teal)", color: "#fff", cursor: "pointer",
+              fontFamily: "var(--zh-font), sans-serif",
+            }}>
+              {"跳转到词条详情"}
+              <ChevronRight size={14} strokeWidth={IW} color={"#fff"} />
+            </div>
           </div>
         )}
       </Card>
@@ -1680,7 +1768,7 @@ const LearnPage = ({ userId, onWordTap }) => {
           {section === "noteEditor" && <NoteEditorSection onBack={info.onBack} userId={userId} />}
           {section === "morphology" && <MorphologySection onBack={info.onBack} />}
           {section === "stats" && <StatsSection onBack={info.onBack} />}
-          {section === "phrases" && <PhrasesSection onBack={info.onBack} onWordTap={onWordTap} onSelectPhrase={(p) => { setSelectedPhrase(p); setSection("phraseDetail"); }} />}
+          {section === "phrases" && <PhrasesSection onBack={info.onBack} onWordTap={onWordTap} userId={userId} onSelectPhrase={(p) => { setSelectedPhrase(p); setSection("phraseDetail"); }} />}
           {section === "phraseDetail" && selectedPhrase && <PhraseDetailSection phrase={selectedPhrase} onBack={info.onBack} onWordTap={onWordTap} />}
         </div>
       </div>
@@ -2725,20 +2813,69 @@ const phraseData = {
   ],
 };
 
-const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
+const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase, userId }) => {
   const [cat, setCat] = useState("idioms");
   const [showAll, setShowAll] = useState(false);
   const [bookmarks, setBookmarks] = useState({});
   const [wordTip, setWordTip] = useState(null);
+  const [dbSentences, setDbSentences] = useState({});
+  const [loading, setLoading] = useState(false);
   const cats = [
     { key: "idioms", label: "\u4FD7\u8BED", color: "var(--c-gold)" },
     { key: "buddhist", label: "\u4F5B\u6559\u7528\u8BED", color: "var(--c-teal)" },
     { key: "daily", label: "\u65E5\u5E38\u7528\u8BED", color: "var(--c-rose)" },
   ];
-  const list = phraseData[cat] || [];
+
+  // Fetch sentences for current category from DB
+  useEffect(() => {
+    if (!isSupabaseConfigured || dbSentences[cat]) return;
+    setLoading(true);
+    getSentencesByCategory(cat, 50).then(rows => {
+      if (rows.length > 0) {
+        const mapped = rows.map(r => ({
+          id: String(r.id),
+          text: r.text,
+          zh: r.actual_meaning || r.literal_meaning || '',
+          segmented: Array.isArray(r.segmented) ? r.segmented : [],
+          literal: r.literal_meaning || '',
+          actual: r.actual_meaning || '',
+          tip: r.learner_tip || '',
+          dbId: r.id,
+          category: r.category,
+        }));
+        setDbSentences(prev => ({ ...prev, [cat]: mapped }));
+      }
+      setLoading(false);
+    });
+  }, [cat]);
+
+  // Load existing bookmarks on mount
+  useEffect(() => {
+    if (!userId || userId === 'anonymous' || !isSupabaseConfigured) return;
+    getBookmarkedSentences(userId).then(sentences => {
+      const bm = {};
+      sentences.forEach(s => { bm[String(s.id)] = true; });
+      setBookmarks(bm);
+    });
+  }, [userId]);
+
+  // Use DB data with fallback to hardcoded
+  const list = dbSentences[cat] || phraseData[cat] || [];
   const recommended = list[0];
   const displayList = showAll ? list : [recommended];
-  const toggleBm = (id) => setBookmarks(p => ({ ...p, [id]: !p[id] }));
+
+  const toggleBm = async (phrase) => {
+    const id = phrase.dbId ? String(phrase.dbId) : phrase.id;
+    const isCurrentlyBookmarked = bookmarks[id];
+    setBookmarks(p => ({ ...p, [id]: !p[id] }));
+    if (userId && userId !== 'anonymous' && phrase.dbId) {
+      if (isCurrentlyBookmarked) {
+        await removeSentenceBookmark(userId, phrase.dbId);
+      } else {
+        await bookmarkSentence(userId, phrase.dbId);
+      }
+    }
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "0 16px 16px" }}>
@@ -2804,8 +2941,8 @@ const PhrasesSection = ({ onBack, onWordTap, onSelectPhrase }) => {
                 <div onClick={(e) => { e.stopPropagation(); speak(p.segmented.map(s => s.text).join(""), "th-TH", 0.85); }} style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <Volume2 size={13} strokeWidth={IW} color={"var(--c-teal)"} />
                 </div>
-                <div onClick={(e) => { e.stopPropagation(); toggleBm(p.id); }} style={{ width: 28, height: 28, borderRadius: 8, background: bookmarks[p.id] ? "color-mix(in srgb, var(--c-gold) 9%, transparent)" : "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Bookmark size={13} strokeWidth={IW} color={bookmarks[p.id] ? "var(--c-gold)" : "var(--c-s300)"} fill={bookmarks[p.id] ? "var(--c-gold)" : "none"} />
+                <div onClick={(e) => { e.stopPropagation(); toggleBm(p); }} style={{ width: 28, height: 28, borderRadius: 8, background: bookmarks[p.dbId ? String(p.dbId) : p.id] ? "color-mix(in srgb, var(--c-gold) 9%, transparent)" : "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <Bookmark size={13} strokeWidth={IW} color={bookmarks[p.dbId ? String(p.dbId) : p.id] ? "var(--c-gold)" : "var(--c-s300)"} fill={bookmarks[p.dbId ? String(p.dbId) : p.id] ? "var(--c-gold)" : "none"} />
                 </div>
               </div>
             </div>
@@ -4208,8 +4345,75 @@ export default function App() {
   const [detailWord, setDetailWord] = useState(null);
   const [unknownWord, setUnknownWord] = useState(null);
   const [generatedWords, setGeneratedWords] = useState({});
+  const [selectedSentence, setSelectedSentence] = useState(null);
   const [dbWordData, setDbWordData] = useState({});
   const [detailLoading, setDetailLoading] = useState(false);
+
+  /* ── Navigation history stack (back / forward) ── */
+  const [navStack, setNavStack] = useState([]);    // back history: [{type, word}]
+  const [navForward, setNavForward] = useState([]); // forward history: [{type, word}]
+
+  const getCurrentView = useCallback(() => {
+    if (unknownWord) return { type: 'unknown', word: unknownWord };
+    if (detailWord) return { type: 'detail', word: detailWord };
+    return null;
+  }, [unknownWord, detailWord]);
+
+  const navigateTo = useCallback((entry) => {
+    const current = getCurrentView();
+    if (current) {
+      setNavStack(prev => [...prev, current]);
+    }
+    setNavForward([]);
+    if (entry.type === 'detail') {
+      setUnknownWord(null);
+      setDetailWord(entry.word);
+    } else if (entry.type === 'unknown') {
+      setDetailWord(null);
+      setUnknownWord(entry.word);
+    }
+  }, [getCurrentView]);
+
+  const goBack = useCallback(() => {
+    if (navStack.length === 0) {
+      setDetailWord(null);
+      setUnknownWord(null);
+      return;
+    }
+    const current = getCurrentView();
+    const prev = navStack[navStack.length - 1];
+    setNavStack(s => s.slice(0, -1));
+    if (current) setNavForward(f => [...f, current]);
+    if (prev.type === 'detail') {
+      setUnknownWord(null);
+      setDetailWord(prev.word);
+    } else if (prev.type === 'unknown') {
+      setDetailWord(null);
+      setUnknownWord(prev.word);
+    }
+  }, [navStack, getCurrentView]);
+
+  const goForward = useCallback(() => {
+    if (navForward.length === 0) return;
+    const current = getCurrentView();
+    const next = navForward[navForward.length - 1];
+    setNavForward(f => f.slice(0, -1));
+    if (current) setNavStack(s => [...s, current]);
+    if (next.type === 'detail') {
+      setUnknownWord(null);
+      setDetailWord(next.word);
+    } else if (next.type === 'unknown') {
+      setDetailWord(null);
+      setUnknownWord(next.word);
+    }
+  }, [navForward, getCurrentView]);
+
+  const resetNav = useCallback(() => {
+    setDetailWord(null);
+    setUnknownWord(null);
+    setNavStack([]);
+    setNavForward([]);
+  }, []);
 
   /* ── Theme (color mode) management ── */
   const [colorMode, setColorMode] = useState(() => {
@@ -4231,7 +4435,7 @@ export default function App() {
     if (!word) return;
     // Check cache first (DB or generated)
     if (dbWordData[word] || generatedWords[word]) {
-      setDetailWord(word);
+      navigateTo({ type: 'detail', word });
       return;
     }
     // Try Supabase lookup
@@ -4243,7 +4447,7 @@ export default function App() {
           const transformed = transformWordData(row);
           setDbWordData(prev => ({ ...prev, [word]: transformed }));
           setDetailLoading(false);
-          setDetailWord(word);
+          navigateTo({ type: 'detail', word });
           return;
         }
       } catch (err) {
@@ -4252,7 +4456,7 @@ export default function App() {
       setDetailLoading(false);
     }
     // Not found → unknown word page
-    setUnknownWord(word);
+    navigateTo({ type: 'unknown', word });
   };
 
   const handleGenerated = async (word, zhHint = "") => {
@@ -4355,13 +4559,90 @@ export default function App() {
       <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ height: 44, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10 }}>
-          <div onClick={() => setUnknownWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+          <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
             <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u672A\u77E5\u8BCD\u6761"}</h1>
+          {navForward.length > 0 && (
+            <div onClick={goForward} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+              <ChevronRight size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+            </div>
+          )}
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"\u672A\u77E5\u8BCD\u6761"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
-          <UnknownWordPage word={unknownWord} onBack={() => setUnknownWord(null)} onWordTap={handleWordTap} onGenerated={handleGenerated} />
+          <UnknownWordPage word={unknownWord} onBack={goBack} onWordTap={handleWordTap} onGenerated={handleGenerated} onNavigateToDetail={(w) => { resetNav(); setDetailWord(w); }} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Sentence detail page ── */
+  if (selectedSentence) {
+    const sp = selectedSentence;
+    const spSegmented = Array.isArray(sp.segmented) ? sp.segmented : [];
+    const isIdiom = sp.category === 'idioms';
+    return (
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ height: 44, background: "var(--c-bg)", flexShrink: 0 }} />
+        <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10 }}>
+          <div onClick={() => setSelectedSentence(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+          </div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"\u53E5\u5B50\u8BE6\u60C5"}</h1>
+        </div>
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 16px" }}>
+            {/* Sentence card */}
+            <div style={{ background: "linear-gradient(135deg, var(--c-tealL) 0%, var(--c-surface) 100%)", borderRadius: 16, padding: 16, border: `1px solid ${"var(--c-p100)"}` }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", lineHeight: 1.6, flex: 1 }}>{sp.text}</div>
+                <div onClick={() => speak(sp.text, "th-TH", 0.85)} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 4 }}>
+                  <Play size={16} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+                </div>
+              </div>
+              {(sp.actual_meaning || sp.literal_meaning) && (
+                <div style={{ fontSize: 14, color: "var(--c-p700)", marginTop: 12, lineHeight: 1.6 }}>
+                  {sp.actual_meaning || sp.literal_meaning}
+                </div>
+              )}
+            </div>
+            {/* Word-by-word analysis */}
+            {spSegmented.length > 0 && (
+              <Card style={{ padding: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)", marginBottom: 12 }}>{"\u9010\u8BCD\u5206\u6790"}</div>
+                {spSegmented.map((tok, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: i < spSegmented.length - 1 ? `1px solid ${"var(--c-p50)"}` : "none" }}>
+                    <div onClick={() => { if (tok.text) handleWordTap(tok.text); }} style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif", cursor: "pointer" }}>{tok.text}</div>
+                    {tok.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{tok.pos}</Badge>}
+                    {tok.meaning && <span style={{ fontSize: 13, color: "var(--c-p700)" }}>{tok.meaning}</span>}
+                  </div>
+                ))}
+              </Card>
+            )}
+            {/* Literal vs Actual meaning for idioms */}
+            {isIdiom && sp.literal_meaning && sp.actual_meaning && (
+              <>
+                <div style={{ background: "var(--c-goldL)", borderRadius: 12, padding: 14, border: `1px solid ${"color-mix(in srgb, var(--c-gold) 30%, transparent)"}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-gold)", marginBottom: 6 }}>{"\u5B57\u9762\u610F\u4E49"}</div>
+                  <div style={{ fontSize: 14, color: "var(--c-p800)", lineHeight: 1.6 }}>{sp.literal_meaning}</div>
+                </div>
+                <div style={{ background: "color-mix(in srgb, var(--c-teal) 8%, transparent)", borderRadius: 12, padding: 14, border: `1px solid ${"color-mix(in srgb, var(--c-teal) 20%, transparent)"}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--c-teal)", marginBottom: 6 }}>{"\u5B9E\u9645\u610F\u4E49"}</div>
+                  <div style={{ fontSize: 14, color: "var(--c-p800)", lineHeight: 1.6 }}>{sp.actual_meaning}</div>
+                </div>
+              </>
+            )}
+            {/* Learner tip */}
+            {sp.learner_tip && (
+              <Card style={{ padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <Sparkles size={13} strokeWidth={IW} color={"var(--c-gold)"} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>{"\u5B66\u4E60\u8005\u5EFA\u8BAE"}</span>
+                </div>
+                <div style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.6 }}>{sp.learner_tip}</div>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -4373,13 +4654,18 @@ export default function App() {
       <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ height: 44, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10 }}>
-          <div onClick={() => setDetailWord(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+          <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
             <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
+          {navForward.length > 0 && (
+            <div onClick={goForward} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+              <ChevronRight size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+            </div>
+          )}
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"\u8BCD\u6761\u8BE6\u60C5"}</h1>
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
-          <WordDetailPage userId={userId} onBack={() => setDetailWord(null)} onWordTap={handleWordTap} wordData={dbWordData[detailWord] || generatedWords[detailWord] || null} />
+          <WordDetailPage userId={userId} onBack={goBack} onWordTap={handleWordTap} wordData={dbWordData[detailWord] || generatedWords[detailWord] || null} />
         </div>
       </div>
     );
@@ -4416,7 +4702,7 @@ export default function App() {
             <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{"查询词库中..."}</span>
           </div>
         )}
-        {page === "home" && <HomePage userId={userId} onNavigate={setPage} onWordTap={handleWordTap} />}
+        {page === "home" && <HomePage userId={userId} onNavigate={setPage} onWordTap={handleWordTap} onSelectSentence={setSelectedSentence} />}
         {page === "words" && <WordBookPage userId={userId} onWordTap={handleWordTap} />}
         {page === "learn" && <LearnPage userId={userId} onWordTap={handleWordTap} />}
         {page === "me" && <ProfilePage userId={userId} user={clerkUser} colorMode={colorMode} setColorMode={setColorMode} onLogout={() => clerkSignOut()} onNavigateToWords={() => { setPage("words"); }} />}
@@ -4430,7 +4716,7 @@ export default function App() {
         {navItems.map(item => (
           <div
             key={item.key}
-            onClick={() => setPage(item.key)}
+            onClick={() => { resetNav(); setPage(item.key); }}
             style={{
               flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
               gap: 4, cursor: "pointer", transition: "all 0.2s",

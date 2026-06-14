@@ -38,12 +38,10 @@ export async function searchWords(query, limit = 20) {
     .ilike('word', `%${query}%`)
     .limit(limit)
 
-  // Search Chinese meaning inside senses JSONB
+  // Search Chinese meaning inside senses JSONB via RPC (fuzzy ILIKE)
   const { data: meaning } = await supabase
-    .from('dictionary_full')
-    .select('*')
-    .filter('senses', 'cs', JSON.stringify([{ meaning: query }]))
-    .limit(limit)
+    .rpc('search_words_zh', { search_term: query, max_results: limit })
+    .then(r => r).catch(() => ({ data: null }))
 
   // Also try raw JSONB text search for broader matching
   const { data: textSearch } = await supabase
@@ -91,18 +89,24 @@ export async function getWordByThai(word) {
  */
 export async function getDailyWord() {
   if (!supabase) return null
+  // Try RPC for true random selection
+  try {
+    const { data, error } = await supabase.rpc('get_random_word').single()
+    if (!error && data) return data
+  } catch (e) { /* fallback below */ }
+  // Fallback: fetch pool and pick randomly client-side
   const { data, error } = await supabase
     .from('dictionary_full')
     .select('*')
     .eq('enrichment_status', 'enriched')
     .gt('sense_count', 0)
-    .limit(1)
-    .single()
+    .limit(100)
   if (error) {
     console.error('[supabase] getDailyWord:', error.message)
     return null
   }
-  return data
+  if (!data || data.length === 0) return null
+  return data[Math.floor(Math.random() * data.length)]
 }
 
 /**
@@ -667,4 +671,82 @@ export async function getDefaultApi(userId) {
 export async function setDefaultApi(userId, apiId) {
   if (!supabase || !userId) return null
   return saveUserSettings(userId, { default_api_id: apiId || 'system' })
+}
+
+/* ─── Sentence / 每日一句 Functions ─── */
+
+/**
+ * Get a random sentence, optionally filtered by category
+ */
+export async function getDailySentence(category = null) {
+  if (!supabase) return null
+  try {
+    const { data, error } = await supabase
+      .rpc('get_random_sentence', { cat: category })
+      .single()
+    if (!error && data) return data
+  } catch (e) { /* fallback below */ }
+  // Fallback: fetch pool and pick randomly
+  let q = supabase.from('sentences').select('*')
+  if (category) q = q.eq('category', category)
+  const { data, error } = await q.limit(100)
+  if (error || !data || data.length === 0) {
+    console.error('[supabase] getDailySentence:', error?.message)
+    return null
+  }
+  return data[Math.floor(Math.random() * data.length)]
+}
+
+/**
+ * Get sentences by category
+ */
+export async function getSentencesByCategory(category, limit = 50) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('sentences')
+    .select('*')
+    .eq('category', category)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) { console.error('[supabase] getSentencesByCategory:', error.message); return [] }
+  return data || []
+}
+
+/**
+ * Bookmark a sentence for the user
+ */
+export async function bookmarkSentence(userId, sentenceId) {
+  if (!supabase || !userId) return null
+  const { data, error } = await supabase
+    .from('user_sentence_bookmarks')
+    .upsert({ user_id: userId, sentence_id: sentenceId }, { onConflict: 'user_id,sentence_id' })
+    .select().single()
+  if (error) { console.error('[supabase] bookmarkSentence:', error.message); return null }
+  return data
+}
+
+/**
+ * Remove a sentence bookmark
+ */
+export async function removeSentenceBookmark(userId, sentenceId) {
+  if (!supabase || !userId) return false
+  const { error } = await supabase
+    .from('user_sentence_bookmarks')
+    .delete().eq('user_id', userId).eq('sentence_id', sentenceId)
+  if (error) { console.error('[supabase] removeSentenceBookmark:', error.message); return false }
+  return true
+}
+
+/**
+ * Get all bookmarked sentences for a user
+ */
+export async function getBookmarkedSentences(userId) {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('user_sentence_bookmarks')
+    .select('*, sentences(*)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) { console.error('[supabase] getBookmarkedSentences:', error.message); return [] }
+  return (data || []).map(r => r.sentences).filter(Boolean)
 }

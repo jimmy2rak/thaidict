@@ -77,7 +77,8 @@ Deno.serve(async (req: Request) => {
     const aiResponse = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Accept': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
@@ -85,7 +86,7 @@ Deno.serve(async (req: Request) => {
         messages: [
           {
             role: 'system',
-            content: `你是一个专业的中泰双语词典编纂专家。请根据用户提供的泰语词语，生成完整的词条数据，包括：\n1. 罗马化拼音（使用皇家泰语转写系统）\n2. 所有义项（每个义项包含：词性、中文释义、语域/使用场景）\n3. 每个义项的例句（泰语原文 + 中文翻译）\n4. 例句的分词标注（每个词的词性和中文释义）\n5. 词频数据（如可获取）\n6. 同义词和反义词\n7. 学习者联想词\n\n请以JSON格式返回，结构如下：\n{\n  "word": "泰语词",\n  "romanization": "拼音",\n  "senses": [\n    {\n      "pos": "词性",\n      "meaning": "中文释义",\n      "register": "使用场景",\n      "examples": [\n        { "th": "泰语例句", "zh": "中文翻译" }\n      ],\n      "segmented": [\n        [\n          { "text": "分词", "pos": "词性", "meaning": "中文" }\n        ]\n      ]\n    }\n  ],\n  "synonyms": [{ "word": "同义词", "zh": "中文" }],\n  "antonyms": [{ "word": "反义词", "zh": "中文" }],\n  "learner_associations": [{ "word": "联想词", "note": "说明" }]\n}`
+            content: `你是一个专业的中泰双语词典编纂专家。请根据用户提供的泰语词语，生成完整的词条数据。所有泰语文本必须使用正确的泰语Unicode字符，不要使用乱码或占位符。\n\n包括：\n1. 罗马化拼音（使用皇家泰语转写系统）\n2. 所有义项（每个义项包含：词性、中文释义、语域/使用场景）\n3. 每个义项的例句（泰语原文 + 中文翻译）\n4. 例句的分词标注（每个词的词性和中文释义）\n5. 同义词和反义词\n6. 学习者联想词\n\n请严格以JSON格式返回，不要添加任何额外文本。结构如下：\n{\n  "word": "泰语词",\n  "romanization": "拼音",\n  "senses": [\n    {\n      "pos": "词性",\n      "meaning": "中文释义",\n      "register": "使用场景",\n      "examples": [\n        { "th": "泰语例句", "zh": "中文翻译" }\n      ],\n      "segmented": [\n        [\n          { "text": "分词", "pos": "词性", "meaning": "中文" }\n        ]\n      ]\n    }\n  ],\n  "synonyms": [{ "word": "同义词", "zh": "中文" }],\n  "antonyms": [{ "word": "反义词", "zh": "中文" }],\n  "learner_associations": [{ "word": "联想词", "note": "说明" }]\n}`
           },
           {
             role: 'user',
@@ -106,21 +107,60 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const aiData = await aiResponse.json()
+    // Use .text() to preserve UTF-8 encoding for Thai characters
+    const responseText = await aiResponse.text()
+    const aiData = JSON.parse(responseText)
     const content = aiData.choices?.[0]?.message?.content || ''
 
-    let parsed
+    let parsed: any
     try {
+      // Strategy 1: Extract from markdown code block
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
-      const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim()
+      let jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim()
+
+      // Strategy 2: Find JSON object boundaries if no code block
+      if (!jsonMatch) {
+        const startIdx = content.indexOf('{')
+        const endIdx = content.lastIndexOf('}')
+        if (startIdx !== -1 && endIdx > startIdx) {
+          jsonStr = content.substring(startIdx, endIdx + 1)
+        }
+      }
+
+      // Clean up common JSON issues
+      jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1')  // trailing commas
+      jsonStr = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')  // control chars
+
       parsed = JSON.parse(jsonStr)
     } catch (e) {
-      parsed = { raw: content, parseError: true }
+      // Strategy 3: Try largest { ... } block
+      try {
+        const allBraces = content.match(/\{[\s\S]*\}/g)
+        if (allBraces) {
+          for (const candidate of allBraces) {
+            try { parsed = JSON.parse(candidate); break } catch { /* next */ }
+          }
+        }
+      } catch { /* fallthrough */ }
+      if (!parsed) parsed = { raw: content, parseError: true }
+    }
+
+    // Validate and sanitize parsed data
+    if (parsed && !parsed.parseError) {
+      if (!parsed.word || typeof parsed.word !== 'string') parsed.word = ''
+      if (!Array.isArray(parsed.senses)) parsed.senses = []
+      for (const sense of parsed.senses) {
+        if (!Array.isArray(sense.examples)) sense.examples = []
+        if (sense.segmented !== null && !Array.isArray(sense.segmented)) sense.segmented = null
+      }
+      if (!Array.isArray(parsed.synonyms)) parsed.synonyms = []
+      if (!Array.isArray(parsed.antonyms)) parsed.antonyms = []
+      if (!Array.isArray(parsed.learner_associations)) parsed.learner_associations = []
     }
 
     return new Response(
       JSON.stringify({ success: true, data: parsed, provider: provider || 'system' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
     )
   } catch (error: any) {
     console.error('Edge function error:', error)
