@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronRight, Play, Pause } from "lucide-react";
 import { speak, stopSpeak } from "../utils/tts";
+import { getWordByThai } from "../lib/supabase.js";
 
 const IW = 1.5;
 
@@ -164,16 +165,65 @@ export const tooltipArrowStyle = (position, bgColor = "var(--c-p800)") => {
   return { ...base, top: -6, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderBottom: `6px solid ${bgColor}` };
 };
 
-/* Reusable word token span with FIXED-position tooltip + arrow + dynamic above/below positioning */
+/* Reusable word token span with DB-fetched tooltip + arrow + fixed-position + overflow-safe */
+const wordTooltipCache = {}; // global cache shared across all WordTokenSpan instances
 export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bgColor = "var(--c-p800)" }) => {
+  const [dbData, setDbData] = useState(null); // { pos, meaning } or { loading } or { notFound }
+  const [fetching, setFetching] = useState(false);
+  const spanRef = useRef(null);
+
+  // When this tooltip becomes active, fetch DB data if seg data is incomplete
+  useEffect(() => {
+    if (activeTip?.id !== tipId) return;
+    const word = seg.text;
+    // If we already have good seg data, or already fetched, skip
+    if (wordTooltipCache[word]) {
+      setDbData(wordTooltipCache[word]);
+      return;
+    }
+    // If seg already has pos and meaning, use it but also try to fetch for enrichment
+    if (seg.pos && seg.meaning) {
+      // Seg data is sufficient, but still try DB for richer data
+      setDbData({ pos: seg.pos, meaning: seg.meaning });
+      return;
+    }
+    // Need to fetch from DB
+    setFetching(true);
+    getWordByThai(word).then(row => {
+      if (row) {
+        const firstSense = Array.isArray(row.senses) && row.senses[0] ? row.senses[0] : {};
+        const data = { pos: firstSense.pos || "", meaning: firstSense.meaning || "" };
+        wordTooltipCache[word] = data;
+        setDbData(data);
+      } else {
+        const data = { pos: "", meaning: "", notFound: true };
+        wordTooltipCache[word] = data;
+        setDbData(data);
+      }
+      setFetching(false);
+    }).catch(() => {
+      const data = { pos: "", meaning: "", notFound: true };
+      wordTooltipCache[word] = data;
+      setDbData(data);
+      setFetching(false);
+    });
+  }, [activeTip?.id, tipId, seg.text]);
+
   const handleClick = (e) => {
     e.stopPropagation();
     if (activeTip?.id === tipId) { onTipChange(null); return; }
     const el = e.currentTarget;
     const rect = el.getBoundingClientRect();
     const position = getTooltipPosition(rect);
-    onTipChange({ id: tipId, text: seg.text, pos: seg.pos, meaning: seg.meaning, rect, position });
+    onTipChange({ id: tipId, text: seg.text, rect, position });
   };
+
+  // Determine what to show in the tooltip
+  const pos = dbData?.pos || seg.pos || "";
+  const meaning = dbData?.meaning || seg.meaning || "";
+  const isLoading = fetching || (dbData?.loading);
+  const notFound = dbData?.notFound && !pos && !meaning;
+  const hasContent = pos || meaning;
 
   // Calculate fixed-position coordinates for the tooltip
   let tooltipStyle = {};
@@ -181,7 +231,6 @@ export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bg
   if (activeTip?.id === tipId && activeTip?.rect) {
     const { rect, position } = activeTip;
     const vw = window.innerWidth;
-    const vh = window.innerHeight;
     const wordCenterX = rect.left + rect.width / 2;
     // Clamp tooltip center so it doesn't go off-screen edges
     const clampedCenter = Math.max(80, Math.min(wordCenterX, vw - 80));
@@ -206,7 +255,7 @@ export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bg
 
   return (
     <span style={{ position: "relative", display: "inline" }}>
-      <span onClick={handleClick} style={{
+      <span ref={spanRef} onClick={handleClick} style={{
         cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
         textUnderlineOffset: 3, color: "var(--c-p900)",
       }}>{seg.text}</span>
@@ -214,17 +263,29 @@ export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bg
         <div onClick={(e) => e.stopPropagation()} style={{
           ...tooltipStyle,
           background: bgColor, color: "#fff", padding: "6px 10px", borderRadius: 8,
-          fontSize: 11, whiteSpace: "nowrap", zIndex: 1000,
+          fontSize: 11, zIndex: 1000,
           boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-          maxWidth: window.innerWidth - 16,
+          maxWidth: Math.min(window.innerWidth - 16, 220),
+          whiteSpace: "normal",
         }}>
+          {/* Arrow pointing toward the word */}
           <div style={{
             position: "absolute", width: 0, height: 0,
             left: "50%", transform: "translateX(-50%)",
             ...arrowStyleBase,
           }} />
-          <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
-          {seg.meaning || seg.text}
+          {isLoading ? (
+            <div style={{ padding: "2px 0", fontSize: 11 }}>{"查询中..."}</div>
+          ) : notFound ? (
+            <div style={{ padding: "2px 0", fontSize: 11 }}>{"未找到词条"}</div>
+          ) : hasContent ? (
+            <>
+              <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{pos}</span>
+              {meaning}
+            </>
+          ) : (
+            <span>{seg.text}</span>
+          )}
           <div onClick={(ev) => { ev.stopPropagation(); onTipChange(null); onDetail(seg.text); }} style={{
             marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
           }}>{"查看详情 ›"}</div>

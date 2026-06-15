@@ -62,59 +62,11 @@ export default function App() {
 
   if (!isLoggedIn) return <LoginPage />;
 
-  /* ── Unknown word page ── */
-  if (unknownWord) {
-    return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
-        <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 10, background: "var(--c-bg)" }}>
-          <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
-            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
-          </div>
-          {navForward.length > 0 && (
-            <div onClick={goForward} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
-              <ChevronRight size={18} strokeWidth={IW} color={"var(--c-p700)"} />
-            </div>
-          )}
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"未知词条"}</h1>
-        </div>
-        <div key={unknownWord} style={{ flex: 1, overflow: "auto" }}>
-          <UnknownWordPage word={unknownWord} />
-        </div>
-      </div>
-    );
-  }
+  const hasOverlay = !!unknownWord || !!detailWord || !!selectedSentence;
 
-  /* ── Sentence detail ── */
-  if (selectedSentence) return <SentenceDetail phrase={selectedSentence} onBack={() => setSelectedSentence(null)} />;
-
-  /* ── Word detail ── */
-  if (detailWord) {
-    const wd = dbWordData[detailWord] || generatedWords[detailWord] || null;
-    return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
-        <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 10, background: "var(--c-bg)" }}>
-          <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
-            <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
-          </div>
-          {navForward.length > 0 && (
-            <div onClick={goForward} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
-              <ChevronRight size={18} strokeWidth={IW} color={"var(--c-p700)"} />
-            </div>
-          )}
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"词条详情"}</h1>
-        </div>
-        <div key={detailWord} style={{ flex: 1, overflow: "auto" }}>
-          <WordDetailPage wordData={wd} />
-        </div>
-      </div>
-    );
-  }
-
-  /* ── Main layout ── */
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+      {/* ── Main layout: always rendered ── */}
       <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
       <div style={{ padding: "4px 20px 7px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, position: "sticky", top: 0, zIndex: 10, background: "var(--c-bg)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -122,17 +74,17 @@ export default function App() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{pageTitles[page]}</h1>
         </div>
       </div>
-      <div style={{ flex: 1, position: "relative" }}>
-        {detailLoading && (
+      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        {detailLoading && !hasOverlay && (
           <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(250,247,244,0.85)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
             <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
             <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{"查询词库中..."}</span>
           </div>
         )}
-        {visitedPages.has("home") && <div style={{ flex: 1, overflow: "auto", display: page === "home" ? "block" : "none", height: "100%" }}><HomePage /></div>}
-        {visitedPages.has("words") && <div style={{ flex: 1, overflow: "auto", display: page === "words" ? "block" : "none", height: "100%" }}><WordBookPage /></div>}
-        {visitedPages.has("learn") && <div style={{ flex: 1, overflow: "auto", display: page === "learn" ? "block" : "none", height: "100%" }}><LearnPage /></div>}
-        {visitedPages.has("me") && <div style={{ flex: 1, overflow: "auto", display: page === "me" ? "block" : "none", height: "100%" }}><ProfilePage /></div>}
+        {visitedPages.has("home") && <div style={{ position: "absolute", inset: 0, overflow: "auto", display: page === "home" ? "block" : "none" }}><HomePage /></div>}
+        {visitedPages.has("words") && <div style={{ position: "absolute", inset: 0, overflow: "auto", display: page === "words" ? "block" : "none" }}><WordBookPage /></div>}
+        {visitedPages.has("learn") && <div style={{ position: "absolute", inset: 0, overflow: "auto", display: page === "learn" ? "block" : "none" }}><LearnPage /></div>}
+        {visitedPages.has("me") && <div style={{ position: "absolute", inset: 0, overflow: "auto", display: page === "me" ? "block" : "none" }}><ProfilePage /></div>}
       </div>
       <nav style={{ display: "flex", background: "var(--c-surface)", borderTop: `1px solid ${"var(--c-p100)"}`, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))", paddingTop: 8, flexShrink: 0, position: "sticky", bottom: 0, zIndex: 10 }}>
         {navItems.map(item => (
@@ -143,6 +95,58 @@ export default function App() {
           </div>
         ))}
       </nav>
+
+      {/* ── Overlay: Unknown word page ── */}
+      {unknownWord && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 100, background: "var(--c-bg)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
+          <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 110, background: "var(--c-bg)" }}>
+            <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+              <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+            </div>
+            {navForward.length > 0 && (
+              <div onClick={goForward} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+                <ChevronRight size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+              </div>
+            )}
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"未知词条"}</h1>
+          </div>
+          <div key={unknownWord} style={{ flex: 1, overflow: "auto" }}>
+            <UnknownWordPage word={unknownWord} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Overlay: Sentence detail ── */}
+      {selectedSentence && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 100 }}>
+          <SentenceDetail phrase={selectedSentence} onBack={() => setSelectedSentence(null)} />
+        </div>
+      )}
+
+      {/* ── Overlay: Word detail ── */}
+      {detailWord && (() => {
+        const wd = dbWordData[detailWord] || generatedWords[detailWord] || null;
+        return (
+          <div style={{ position: "absolute", inset: 0, zIndex: 100, background: "var(--c-bg)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
+            <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 110, background: "var(--c-bg)" }}>
+              <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+                <ChevronLeft size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+              </div>
+              {navForward.length > 0 && (
+                <div onClick={goForward} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
+                  <ChevronRight size={18} strokeWidth={IW} color={"var(--c-p700)"} />
+                </div>
+              )}
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"词条详情"}</h1>
+            </div>
+            <div key={detailWord} style={{ flex: 1, overflow: "auto" }}>
+              <WordDetailPage wordData={wd} />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
