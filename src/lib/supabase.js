@@ -501,6 +501,74 @@ export async function updateDailyProgress(userId, date, updates) {
   return data
 }
 
+/**
+ * Sync user stats on login — ensure today's row exists in user_learning_progress
+ * and recalculate streak_days from checkin_completions.
+ */
+export async function syncUserStatsOnLogin(userId) {
+  if (!supabase || !userId) return
+
+  const today = new Date().toISOString().split('T')[0]
+
+  try {
+    // 1. Ensure today's row exists (only insert if not exists, don't overwrite)
+    const { data: existing } = await supabase
+      .from('user_learning_progress')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .maybeSingle()
+
+    if (!existing) {
+      await supabase
+        .from('user_learning_progress')
+        .insert({
+          user_id: userId,
+          date: today,
+          words_learned: 0,
+          words_reviewed: 0,
+          grammar_completed: 0,
+          reading_completed: 0,
+          study_minutes: 0,
+          streak_days: 0,
+        })
+    }
+
+    // 2. Calculate streak from checkin_completions and update
+    const { data: checkins } = await supabase
+      .from('user_checkin_completions')
+      .select('completed_date')
+      .eq('user_id', userId)
+      .order('completed_date', { ascending: false })
+      .limit(100)
+
+    const dates = [...new Set((checkins || []).map(r => r.completed_date))].sort().reverse()
+    let streak = 0
+    if (dates.length > 0) {
+      const now = new Date()
+      const yesterday = new Date(now)
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      const startDate = dates.includes(today) ? today : yesterdayStr
+      if (dates.includes(startDate)) {
+        const cursor = new Date(startDate + 'T00:00:00')
+        while (dates.includes(cursor.toISOString().split('T')[0])) {
+          streak++
+          cursor.setDate(cursor.getDate() - 1)
+        }
+      }
+    }
+
+    await supabase
+      .from('user_learning_progress')
+      .update({ streak_days: streak, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('date', today)
+  } catch (e) {
+    console.error('[supabase] syncUserStatsOnLogin:', e)
+  }
+}
+
 export async function getStreak(userId) {
   if (!supabase || !userId) return 0
   const { data, error } = await supabase
@@ -512,6 +580,194 @@ export async function getStreak(userId) {
     .single()
   if (error) return 0
   return data?.streak_days || 0
+}
+
+/**
+ * Calculate the monthly checkin streak for a user.
+ * Counts consecutive days (backwards from today or yesterday) with at least one checkin completion,
+ * resetting at the beginning of the calendar month.
+ * Returns { streak: number, totalDays: number }
+ */
+export async function getMonthlyCheckinStreak(userId) {
+  if (!supabase || !userId) return { streak: 0, totalDays: 0 }
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() // 0-indexed
+
+  // First and last day of current month
+  const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0]
+
+  try {
+    const { data, error } = await supabase
+      .from('user_checkin_completions')
+      .select('completed_date')
+      .eq('user_id', userId)
+      .gte('completed_date', firstDay)
+      .lte('completed_date', lastDay)
+      .order('completed_date', { ascending: false })
+
+    if (error) {
+      console.error('[supabase] getMonthlyCheckinStreak:', error.message)
+      return { streak: 0, totalDays: 0 }
+    }
+
+    // Deduplicate dates (multiple tasks can be completed on the same date)
+    const dates = [...new Set((data || []).map(r => r.completed_date))].sort().reverse()
+    const totalDays = dates.length
+
+    // Determine which day to start counting from
+    const today = now.toISOString().split('T')[0]
+    const yesterday = new Date(now)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+    // If today has completions, start from today; otherwise start from yesterday
+    const startDate = dates.includes(today) ? today : yesterdayStr
+    if (!dates.includes(startDate)) return { streak: 0, totalDays }
+
+    // Count consecutive days backwards
+    let streak = 0
+    const cursor = new Date(startDate + 'T00:00:00')
+    while (true) {
+      const dateStr = cursor.toISOString().split('T')[0]
+      if (!dates.includes(dateStr)) break
+      if (cursor.getMonth() !== month) break // Don't cross month boundary
+      streak++
+      cursor.setDate(cursor.getDate() - 1)
+    }
+
+    return { streak, totalDays }
+  } catch (e) {
+    console.error('[supabase] getMonthlyCheckinStreak:', e)
+    return { streak: 0, totalDays: 0 }
+  }
+}
+
+/**
+ * Get all dates in the current month that have at least one checkin completion.
+ * Returns an array of date strings (YYYY-MM-DD).
+ */
+export async function getMonthlyCheckinDays(userId) {
+  if (!supabase || !userId) return []
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+
+  const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0]
+
+  try {
+    const { data, error } = await supabase
+      .from('user_checkin_completions')
+      .select('completed_date')
+      .eq('user_id', userId)
+      .gte('completed_date', firstDay)
+      .lte('completed_date', lastDay)
+
+    if (error) {
+      console.error('[supabase] getMonthlyCheckinDays:', error.message)
+      return []
+    }
+
+    return [...new Set((data || []).map(r => r.completed_date))]
+  } catch (e) {
+    console.error('[supabase] getMonthlyCheckinDays:', e)
+    return []
+  }
+}
+
+/**
+ * Get the number of checkin completions for each of the last N days.
+ * Returns array of { date: string, count: number } sorted by date ascending.
+ */
+export async function getCheckinHeatmapData(userId, days = 35) {
+  if (!supabase || !userId) return []
+
+  const since = new Date()
+  since.setDate(since.getDate() - days + 1) // +1 to include today
+  const sinceStr = since.toISOString().split('T')[0]
+
+  try {
+    const { data, error } = await supabase
+      .from('user_checkin_completions')
+      .select('completed_date')
+      .eq('user_id', userId)
+      .gte('completed_date', sinceStr)
+
+    if (error) {
+      console.error('[supabase] getCheckinHeatmapData:', error.message)
+      return []
+    }
+
+    // Build date-to-count map
+    const countMap = {}
+    for (const row of (data || [])) {
+      countMap[row.completed_date] = (countMap[row.completed_date] || 0) + 1
+    }
+
+    // Fill all dates in range with count (0 if no completions)
+    const result = []
+    const cursor = new Date(sinceStr + 'T00:00:00')
+    const endDate = new Date()
+    endDate.setHours(0, 0, 0, 0)
+    while (cursor <= endDate) {
+      const dateStr = cursor.toISOString().split('T')[0]
+      result.push({ date: dateStr, count: countMap[dateStr] || 0 })
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    return result
+  } catch (e) {
+    console.error('[supabase] getCheckinHeatmapData:', e)
+    return []
+  }
+}
+
+/**
+ * Get study minutes for each day of the current week from user_learning_progress.
+ * Returns array of { day: string (e.g. "周一"), mins: number } for Mon-Sun.
+ */
+export async function getWeeklyStudyMinutes(userId) {
+  if (!supabase || !userId) return []
+
+  const now = new Date()
+  const dayOfWeek = now.getDay() // 0=Sun
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
+  monday.setHours(0, 0, 0, 0)
+
+  const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+  const dates = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    dates.push(d.toISOString().split('T')[0])
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('user_learning_progress')
+      .select('date, study_minutes')
+      .eq('user_id', userId)
+      .in('date', dates)
+
+    if (error) {
+      console.error('[supabase] getWeeklyStudyMinutes:', error.message)
+      return weekDays.map((day, i) => ({ day, mins: 0 }))
+    }
+
+    const minsMap = {}
+    for (const row of (data || [])) {
+      minsMap[row.date] = row.study_minutes || 0
+    }
+
+    return dates.map((date, i) => ({ day: weekDays[i], mins: minsMap[date] || 0 }))
+  } catch (e) {
+    console.error('[supabase] getWeeklyStudyMinutes:', e)
+    return weekDays.map((day, i) => ({ day, mins: 0 }))
+  }
 }
 
 // ── Notes ──

@@ -57,7 +57,7 @@ const LearnPage = () => {
         return days.includes(todayWeekday);
       });
       const completions = await getCheckinCompletions(userId, today);
-      const completedIds = new Set((completions || []).map(c => c.task_id));
+      const completedIds = new Set(completions || []);
       setTodayTasks(todaysTasks.map(t => ({
         ...t,
         done: completedIds.has(t.id),

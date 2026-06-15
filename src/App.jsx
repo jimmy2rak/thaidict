@@ -1,4 +1,5 @@
 import { useAppContext, AppProvider } from "./context/AppContext.jsx";
+import { useEffect } from "react";
 import { Logo, PalmLeafBook, LotusLamp, BuddhaHead } from "./icons/CulturalIcons.jsx";
 import { Card } from "./components/UIComponents.jsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -27,6 +28,20 @@ export default function App() {
     handleWordTap,
   } = useAppContext();
 
+  /* ── Dynamic viewport height for bottom address bar adaptation ── */
+  useEffect(() => {
+    const setAppHeight = () => {
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    };
+    setAppHeight();
+    window.addEventListener('resize', setAppHeight);
+    window.addEventListener('orientationchange', setAppHeight);
+    return () => {
+      window.removeEventListener('resize', setAppHeight);
+      window.removeEventListener('orientationchange', setAppHeight);
+    };
+  }, []);
+
   const navItems = [
     { key: "home", label: "首页", icon: Logo },
     { key: "words", label: "单词本", icon: PalmLeafBook },
@@ -38,7 +53,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
         <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
         <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{"加载中..."}</span>
       </div>
@@ -50,7 +65,7 @@ export default function App() {
   /* ── Unknown word page ── */
   if (unknownWord) {
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 10, background: "var(--c-bg)" }}>
           <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
@@ -77,7 +92,7 @@ export default function App() {
   if (detailWord) {
     const wd = dbWordData[detailWord] || generatedWords[detailWord] || null;
     return (
-      <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
         <div style={{ padding: "4px 20px 6px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 10, background: "var(--c-bg)" }}>
           <div onClick={goBack} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 10, background: "var(--c-p100)", flexShrink: 0 }}>
@@ -99,7 +114,7 @@ export default function App() {
 
   /* ── Main layout ── */
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ maxWidth: 430, margin: "0 auto", height: "var(--app-height, 100dvh)", background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif", color: "var(--c-p800)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ height: 15, background: "var(--c-bg)", flexShrink: 0 }} />
       <div style={{ padding: "4px 20px 7px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, position: "sticky", top: 0, zIndex: 10, background: "var(--c-bg)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

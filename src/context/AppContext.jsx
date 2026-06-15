@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../main.jsx'
 import {
   isSupabaseConfigured, getWordByThai, transformWordData, transformCommunityWord,
   getUserSettings, getApiKeys, callAiProxy, saveCommunityWord,
+  syncUserStatsOnLogin,
 } from '../lib/supabase.js'
 
 export const AppContext = createContext(null)
@@ -12,6 +13,15 @@ export function AppProvider({ children }) {
   const { user: supaUser, session, loading: authLoading, signOut: handleSignOut } = useAuth()
   const userId = supaUser?.id || null
   const isLoggedIn = !!session
+
+  /* ── Sync user stats on login ── */
+  const prevUserId = useRef(null)
+  useEffect(() => {
+    if (userId && userId !== prevUserId.current) {
+      prevUserId.current = userId
+      syncUserStatsOnLogin(userId).catch(err => console.error('[syncUserStats]', err))
+    }
+  }, [userId])
 
   /* ── Page navigation ── */
   const [page, setPage] = useState("home")

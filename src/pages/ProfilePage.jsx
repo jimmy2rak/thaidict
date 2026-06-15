@@ -5,7 +5,7 @@ import {
   getUserSettings, saveUserSettings,
   getApiKeys, saveApiKey, deleteApiKey,
   getDefaultApi, setDefaultApi,
-  getStreak, getBookmarks, getLearningProgress,
+  getStreak, getBookmarks, getLearningProgress, getMonthlyCheckinStreak,
   uploadAvatar, updateUserProfile,
 } from "../lib/supabase.js";
 import {
@@ -84,7 +84,7 @@ const ProfilePage = () => {
     });
     getDefaultApi(userId).then(id => setDefaultApiId(id || 'system'));
     // Fetch streak and bookmark count
-    getStreak(userId).then(setStreak);
+    getMonthlyCheckinStreak(userId).then(r => setStreak(r.streak));
     getBookmarks(userId).then(rows => setBookmarkCount((rows || []).length));
     // Fetch check-in history (last 30 days)
     getLearningProgress(userId, 30).then(rows => {

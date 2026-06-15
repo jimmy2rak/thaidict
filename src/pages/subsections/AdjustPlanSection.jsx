@@ -5,6 +5,7 @@ import {
   getCheckinTasks, createCheckinTask,
   updateCheckinTask, deleteCheckinTask,
   toggleCheckinTaskCompletion, getCheckinCompletions,
+  getMonthlyCheckinStreak,
 } from "../../lib/supabase.js";
 import {
   BookOpen, PenTool, FileText, Volume2, MessageCircle,
@@ -33,6 +34,7 @@ const AdjustPlanSection = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [streak, setStreak] = useState(0);
 
   // New task form
   const [newTaskType, setNewTaskType] = useState("单词");
@@ -60,11 +62,13 @@ const AdjustPlanSection = () => {
     setLoading(true);
     setError(null);
     try {
-      const [taskList, completedIds] = await Promise.all([
+      const [taskList, completedIds, streakResult] = await Promise.all([
         getCheckinTasks(userId),
         getCheckinCompletions(userId, today),
+        getMonthlyCheckinStreak(userId),
       ]);
       setTasks(taskList.map((t) => ({ ...t, _done: completedIds.includes(t.id) })));
+      setStreak(streakResult.streak);
     } catch (e) {
       console.error("[AdjustPlanSection] fetchTasks:", e);
       setError("加载失败，请重试");
@@ -212,7 +216,7 @@ const AdjustPlanSection = () => {
                 color: "var(--c-gold)",
               }}
             >
-              0
+              {streak}
             </span>
             <span style={{ fontSize: 11, color: "var(--c-gold)" }}>天</span>
           </div>
