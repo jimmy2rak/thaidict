@@ -9,6 +9,7 @@ import {
   getFolders, createFolder, getUserSettings,
   submitWord, addBookmark, addWordToFolder,
   saveUserSettings, removeBookmark,
+  getWordLearnerTip, saveWordLearnerTip,
 } from "../lib/supabase.js";
 import { Card, Badge, SectionTitle, ProgressBar, TtsPlay } from "../components/UIComponents";
 import { speak } from "../utils/tts";
@@ -62,6 +63,40 @@ const WordDetailPage = ({ wordData }) => {
     });
   }, [userId]);
 
+  // Fetch Chinese meanings for synonyms and antonyms
+  useEffect(() => {
+    if (!wd?.word || !isSupabaseConfigured) return;
+    const wordsToFetch = [
+      ...(wd.synonyms || []).map(s => s.word),
+      ...(wd.antonyms || []).map(a => a.word),
+    ].filter(Boolean);
+    if (wordsToFetch.length === 0) return;
+    // Fetch all in parallel
+    Promise.all(wordsToFetch.map(async (word) => {
+      try {
+        const row = await getWordByThai(word);
+        if (row) {
+          const firstSense = Array.isArray(row.senses) && row.senses[0] ? row.senses[0] : {};
+          return { word, zh: firstSense.meaning || "" };
+        }
+      } catch (e) { /* ignore fetch errors */ }
+      return { word, zh: "" };
+    })).then(results => {
+      const map = {};
+      results.forEach(r => { if (r && r.zh) map[r.word] = r.zh; });
+      setSynAntZh(prev => ({ ...prev, ...map }));
+    });
+  }, [wd?.synonyms, wd?.antonyms, wd?.word]);
+
+  // Fetch learner tip from community_words
+  useEffect(() => {
+    if (!wd?.word || !isSupabaseConfigured) return;
+    setLearnerTip(null);
+    getWordLearnerTip(wd.word).then(tip => {
+      setLearnerTip(tip);
+    });
+  }, [wd?.word]);
+
   /* ── error report state ── */
   const [reportSection, setReportSection] = useState(null);
   const [reportItem, setReportItem] = useState(null);
@@ -70,6 +105,13 @@ const WordDetailPage = ({ wordData }) => {
   /* ── word popover state (segmentation) ── */
   const [wordPopover, setWordPopover] = useState(null);
   const [popoverWordData, setPopoverWordData] = useState({}); // cache: { "word": { pos, meaning, loading, notFound } }
+
+  /* ── synonym/antonym Chinese meaning cache ── */
+  const [synAntZh, setSynAntZh] = useState({});
+
+  /* ── learner tip state ── */
+  const [learnerTip, setLearnerTip] = useState(null);
+  const [learnerTipLoading, setLearnerTipLoading] = useState(false);
 
   const handlePopoverWordClick = async (tokText, senseIdx, exIdx, tokenIdx) => {
     const isOpen = wordPopover && wordPopover.senseIdx === senseIdx && wordPopover.exIdx === exIdx && wordPopover.tokenIdx === tokenIdx;
@@ -458,7 +500,7 @@ const WordDetailPage = ({ wordData }) => {
                       fontFamily: "var(--th-font), sans-serif", cursor: "pointer",
                     }}>
                       {w.word}
-                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
+                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({synAntZh[w.word] || ''})</span>
                     </div>
                   ))}
                 </div>
@@ -475,7 +517,7 @@ const WordDetailPage = ({ wordData }) => {
                       fontFamily: "var(--th-font), sans-serif", cursor: "pointer",
                     }}>
                       {w.word}
-                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
+                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({synAntZh[w.word] || ''})</span>
                     </div>
                   ))}
                 </div>
@@ -539,6 +581,75 @@ const WordDetailPage = ({ wordData }) => {
           </div>
         </Card>
       )}
+
+      {/* ── 7. 学习者建议 ── */}
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <SectionTitle>{"学习者建议"}</SectionTitle>
+          <AlertCircle size={15} strokeWidth={IW} color={reportSection === "tip" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("tip")} />
+        </div>
+        {reportSection === "tip" && (
+          <div style={{ position: "relative", marginBottom: 8 }}>
+            <ReportPopover items={learnerTip ? [learnerTip] : ["暂无学习者建议"]} />
+          </div>
+        )}
+        {learnerTip ? (
+          <Card style={{
+            padding: 16, background: "color-mix(in srgb, var(--c-info) 2%, transparent)",
+            border: `1px solid ${"color-mix(in srgb, var(--c-info) 9%, transparent)"}`,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: 7,
+                background: `linear-gradient(135deg, ${"var(--c-info)"}, ${"var(--c-teal)"})`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Sparkles size={13} strokeWidth={IW} color="#fff" />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>
+                {"学习者建议"}
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.7 }}>
+              {learnerTip}
+            </div>
+          </Card>
+        ) : (
+          <Card style={{ padding: 16, textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: "var(--c-s500)", marginBottom: 12 }}>
+              {learnerTipLoading ? "加载中..." : "暂无学习者建议"}
+            </div>
+            <div onClick={async () => {
+              if (!isSupabaseConfigured) return;
+              setLearnerTipLoading(true);
+              try {
+                // Submit word for AI enrichment (includes learner tip generation)
+                await submitWord(wd.word);
+                // Re-fetch after a short delay to allow server processing
+                setTimeout(async () => {
+                  const tip = await getWordLearnerTip(wd.word);
+                  if (tip) setLearnerTip(tip);
+                  setLearnerTipLoading(false);
+                }, 2000);
+              } catch (e) {
+                console.error("[learnerTip]", e);
+                setLearnerTipLoading(false);
+              }
+            }} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 20px", borderRadius: 12, cursor: "pointer",
+              background: learnerTipLoading ? "var(--c-p100)" : "var(--c-teal)",
+              color: learnerTipLoading ? "var(--c-s300)" : "#fff",
+              fontSize: 13, fontWeight: 600,
+              fontFamily: "var(--zh-font), sans-serif",
+              pointerEvents: learnerTipLoading ? "none" : "auto",
+            }}>
+              <Sparkles size={14} strokeWidth={IW} />
+              {learnerTipLoading ? "生成中..." : "通过 AI 生成学习者建议"}
+            </div>
+          </Card>
+        )}
+      </div>
 
       {/* ── Bookmark Word Book Selection Modal ── */}
       {showBookmarkModal && (

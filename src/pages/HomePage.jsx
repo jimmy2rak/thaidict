@@ -25,6 +25,7 @@ const HomePage = () => {
   const [recentData, setRecentData] = useState([]);
   const [streak, setStreak] = useState(0);
   const [dictCount, setDictCount] = useState(null);
+  const [sentenceWordTip, setSentenceWordTip] = useState(null);
 
   const loadRandomWord = async () => {
     setDailyRefreshing(true)
@@ -226,7 +227,36 @@ const HomePage = () => {
           {dailySentence ? (
             <>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", flex: 1, lineHeight: 1.5 }}>{dailySentence.text}</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", flex: 1, lineHeight: 1.8 }}>
+                  {(() => {
+                    const dss = Array.isArray(dailySentence.segmented) && dailySentence.segmented.length > 0 ? dailySentence.segmented : null;
+                    if (dss) {
+                      return dss.map((seg, j) => (
+                        <span key={j} style={{ position: "relative", display: "inline" }}>
+                          <span onClick={(e) => { e.stopPropagation(); setSentenceWordTip(sentenceWordTip?.id === `ds-${j}` ? null : { id: `ds-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
+                            cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
+                            textUnderlineOffset: 3, color: "var(--c-p900)",
+                          }}>{seg.text}</span>
+                          {sentenceWordTip?.id === `ds-${j}` && (
+                            <div onClick={(e) => e.stopPropagation()} style={{
+                              position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
+                              background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
+                              fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                            }}>
+                              <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
+                              {seg.meaning}
+                              <div onClick={(ev) => { ev.stopPropagation(); setSentenceWordTip(null); handleWordTap(seg.text); }} style={{
+                                marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
+                              }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
+                            </div>
+                          )}
+                        </span>
+                      ));
+                    }
+                    return <span>{dailySentence.text}</span>;
+                  })()}
+                </div>
                 <div onClick={(e) => { e.stopPropagation(); speak(dailySentence.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
                   <Play size={14} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
                 </div>

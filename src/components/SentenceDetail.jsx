@@ -49,9 +49,37 @@ const SentenceDetail = ({ phrase, onBack }) => {
             <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
               <div style={{
                 fontSize: 20, fontWeight: 700, color: "var(--c-p900)",
-                fontFamily: "var(--th-font), serif", lineHeight: 1.6, flex: 1,
+                fontFamily: "var(--th-font), serif", lineHeight: 1.8, flex: 1,
               }}>
-                {sp.text}
+                {spSegmented.length > 0 ? spSegmented.map((tok, i) => (
+                  <span key={i} style={{ position: "relative", display: "inline" }}>
+                    <span onClick={(e) => {
+                      e.stopPropagation();
+                      setTooltipWord(tooltipWord === i ? null : i);
+                    }} style={{
+                      cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
+                      textUnderlineOffset: 3,
+                    }}>{tok.text}</span>
+                    {tooltipWord === i && (
+                      <div onClick={(e) => e.stopPropagation()} style={{
+                        position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
+                        background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
+                        fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                      }}>
+                        <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{tok.pos}</span>
+                        {tok.meaning}
+                        <div onClick={(ev) => {
+                          ev.stopPropagation();
+                          setTooltipWord(null);
+                          if (tok.text) handleWordTap(tok.text);
+                        }} style={{
+                          marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
+                        }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
+                      </div>
+                    )}
+                  </span>
+                )) : <span>{sp.text}</span>}
               </div>
               <div onClick={() => speak(sp.text, "th-TH", 0.85)} style={{
                 cursor: "pointer", display: "flex", alignItems: "center",

@@ -1428,6 +1428,47 @@ export async function getCheckinCompletions(userId, date) {
 /* ─── Auth Helper Functions ─── */
 
 /**
+ * Get learner tip for a word from community_words
+ */
+export async function getWordLearnerTip(word) {
+  if (!supabase || !word) return null
+  try {
+    const { data, error } = await supabase
+      .from('community_words')
+      .select('learner_tip')
+      .eq('word', word)
+      .maybeSingle()
+    if (error || !data) return null
+    return data.learner_tip || null
+  } catch (e) {
+    console.error('[supabase] getWordLearnerTip:', e.message)
+    return null
+  }
+}
+
+/**
+ * Save learner tip for a word to community_words
+ */
+export async function saveWordLearnerTip(word, tip) {
+  if (!supabase || !word) return null
+  try {
+    const { data, error } = await supabase
+      .from('community_words')
+      .upsert({ word, learner_tip: tip }, { onConflict: 'word', ignoreDuplicates: false })
+      .select()
+      .single()
+    if (error) {
+      console.error('[supabase] saveWordLearnerTip:', error.message)
+      return null
+    }
+    return data
+  } catch (e) {
+    console.error('[supabase] saveWordLearnerTip:', e.message)
+    return null
+  }
+}
+
+/**
  * Sign in with email and password
  */
 export async function signInWithEmail(email, password) {

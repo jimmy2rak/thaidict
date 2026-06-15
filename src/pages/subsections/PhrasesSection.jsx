@@ -216,7 +216,7 @@ const PhrasesSection = ({ onSelectPhrase }) => {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
               <div onClick={() => onSelectPhrase(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                 <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", lineHeight: 1.5 }}>
-                  {p.segmented.map((seg, j) => (
+                  {p.segmented && p.segmented.length > 0 ? p.segmented.map((seg, j) => (
                     <span key={j} style={{ position: "relative", display: "inline" }}>
                       <span onClick={(e) => { e.stopPropagation(); setWordTip(wordTip?.id === `${p.id}-${j}` ? null : { id: `${p.id}-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
                         cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
@@ -237,13 +237,13 @@ const PhrasesSection = ({ onSelectPhrase }) => {
                         </div>
                       )}
                     </span>
-                  ))}
+                  )) : <span>{p.text}</span>}
                 </div>
                 <div style={{ fontSize: 13, color: "var(--c-s500)", lineHeight: 1.4, marginTop: 4 }}>{p.zh}</div>
               </div>
               {/* Action buttons */}
               <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 8, marginTop: 2 }}>
-                <div onClick={(e) => { e.stopPropagation(); speak(p.segmented.map(s => s.text).join(""), "th-TH", 0.85); }} style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <div onClick={(e) => { e.stopPropagation(); speak(p.segmented && p.segmented.length > 0 ? p.segmented.map(s => s.text).join("") : p.text, "th-TH", 0.85); }} style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <Volume2 size={13} strokeWidth={IW} color={"var(--c-teal)"} />
                 </div>
                 <div onClick={(e) => { e.stopPropagation(); toggleBm(p); }} style={{ width: 28, height: 28, borderRadius: 8, background: bookmarks[p.dbId ? String(p.dbId) : p.id] ? "color-mix(in srgb, var(--c-gold) 9%, transparent)" : "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
@@ -252,6 +252,7 @@ const PhrasesSection = ({ onSelectPhrase }) => {
               </div>
             </div>
             {/* Segmented tags */}
+            {p.segmented && p.segmented.length > 0 && (
             <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
               {p.segmented.map((seg, j) => (
                 <span key={j} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6, background: "var(--c-surfaceAlt)", color: "var(--c-s500)", border: `1px solid ${"var(--c-p100)"}` }}>
@@ -259,6 +260,7 @@ const PhrasesSection = ({ onSelectPhrase }) => {
                 </span>
               ))}
             </div>
+            )}
           </Card>
         ))}
       </div>
