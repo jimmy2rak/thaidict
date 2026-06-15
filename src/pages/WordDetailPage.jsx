@@ -13,7 +13,7 @@ import {
   getFolderWords,
   searchWords,
 } from "../lib/supabase.js";
-import { Card, Badge, SectionTitle, ProgressBar, TtsPlay } from "../components/UIComponents";
+import { Card, Badge, SectionTitle, ProgressBar, TtsPlay, WordTokenSpan, TooltipDismissOverlay } from "../components/UIComponents";
 import { speak } from "../utils/tts";
 import { useAppContext } from "../context/AppContext";
 
@@ -125,33 +125,17 @@ const WordDetailPage = ({ wordData }) => {
     });
   }, [wd?.synonyms, wd?.antonyms, wd?.word]);
 
-  /* ── word popover state (segmentation) ── */
-  const [wordPopover, setWordPopover] = useState(null);
-  const [popoverWordData, setPopoverWordData] = useState({}); // cache: { "word": { pos, meaning, loading, notFound } }
-
   /* ── synonym/antonym Chinese meaning cache ── */
   const [synAntZh, setSynAntZh] = useState({});
+  const [wordTip, setWordTip] = useState(null);
 
-  const handlePopoverWordClick = async (tokText, senseIdx, exIdx, tokenIdx) => {
-    const isOpen = wordPopover && wordPopover.senseIdx === senseIdx && wordPopover.exIdx === exIdx && wordPopover.tokenIdx === tokenIdx;
-    if (isOpen) { setWordPopover(null); return; }
-    setWordPopover({ senseIdx, exIdx, tokenIdx, text: tokText });
-    // If already cached, skip fetch
-    if (popoverWordData[tokText]) return;
-    // Mark as loading
-    setPopoverWordData(prev => ({ ...prev, [tokText]: { loading: true } }));
-    try {
-      const row = await getWordByThai(tokText);
-      if (row) {
-        const firstSense = Array.isArray(row.senses) && row.senses[0] ? row.senses[0] : {};
-        setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: firstSense.pos || "", meaning: firstSense.meaning || "", loading: false } }));
-      } else {
-        setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: "", meaning: "", loading: false, notFound: true } }));
-      }
-    } catch (e) {
-      setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: "", meaning: "", loading: false, notFound: true } }));
-    }
-  };
+  /* ── Scroll dismissal for word tooltip ── */
+  useEffect(() => {
+    if (!wordTip) return;
+    const dismiss = () => setWordTip(null);
+    window.addEventListener('scroll', dismiss, true);
+    return () => window.removeEventListener('scroll', dismiss, true);
+  }, [wordTip]);
 
   const toggleSense = (idx) => {
     const next = [...expandedSenses];
@@ -370,90 +354,17 @@ const WordDetailPage = ({ wordData }) => {
                       <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
                         {sense.examples.map((ex, j) => {
                           const segTokens = sense.segmented && sense.segmented[j] ? sense.segmented[j] : null;
+                          const tokens = segTokens || thaiSegment(ex.th);
                           return (
                             <div key={j} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--c-surfaceAlt)" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
-                                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0 }}>
-                                  {segTokens ? segTokens.map((tok, ti) => (
-                                    <span
-                                      key={ti}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handlePopoverWordClick(tok.text, i, j, ti);
-                                      }}
-                                      style={{
-                                        fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
-                                        fontFamily: "var(--th-font), sans-serif",
-                                        borderBottom: `1px dashed ${"var(--c-teal)"}`,
-                                        cursor: "pointer", padding: "0 2px", lineHeight: 1.8,
-                                      }}
-                                    >{tok.text}</span>
-                                  )) : (
-                                    thaiSegment(ex.th).map((tok, ti) => (
-                                      <span
-                                        key={ti}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handlePopoverWordClick(tok.text, i, j, ti);
-                                        }}
-                                        style={{
-                                          fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
-                                          fontFamily: "var(--th-font), sans-serif",
-                                          borderBottom: `1px dashed ${"var(--c-teal)"}`,
-                                          cursor: "pointer", padding: "0 2px", lineHeight: 1.8,
-                                        }}
-                                      >{tok.text}</span>
-                                    ))
-                                  )}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ fontSize: 13, fontFamily: "var(--th-font), sans-serif", lineHeight: 1.8, flex: 1 }}>
+                                  {tokens.map((tok, ti) => (
+                                    <WordTokenSpan key={ti} seg={tok} tipId={`wd-${i}-${j}-${ti}`} activeTip={wordTip} onTipChange={setWordTip} onDetail={onWordTap} />
+                                  ))}
                                 </div>
+                                <TooltipDismissOverlay active={wordTip} onDismiss={() => setWordTip(null)} />
                                 <TtsPlay text={ex.th} />
-                                {/* Word token popover — enhanced with DB fetch */}
-                                {wordPopover && wordPopover.senseIdx === i && wordPopover.exIdx === j && (() => {
-                                  const tok = segTokens ? segTokens[wordPopover.tokenIdx] : null;
-                                  const tokText = wordPopover.text || (tok ? tok.text : "");
-                                  const cached = popoverWordData[tokText];
-                                  const dbPos = cached?.pos || (tok?.pos || "");
-                                  const dbMeaning = cached?.meaning || (tok?.meaning || "");
-                                  const isLoading = cached?.loading;
-                                  const notFound = cached?.notFound && !tok?.pos;
-                                  return (
-                                    <div style={{
-                                      position: "absolute", top: "100%", left: Math.min(wordPopover.tokenIdx * 48, 180),
-                                      zIndex: 100, background: "var(--c-surface)", borderRadius: 10,
-                                      border: `1px solid ${"var(--c-p100)"}`, boxShadow: "0 4px 16px rgba(61,43,31,0.15)",
-                                      padding: "8px 12px", marginTop: 4, minWidth: 120, maxWidth: 220,
-                                    }}>
-                                      {/* Word header */}
-                                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif", marginBottom: 4 }}>{tokText}</div>
-                                      {isLoading ? (
-                                        <div style={{ fontSize: 11, color: "var(--c-s400)", padding: "2px 0" }}>{"查询中..."}</div>
-                                      ) : notFound && !dbPos ? (
-                                        <div style={{ fontSize: 11, color: "var(--c-s400)" }}>{"未找到词条"}</div>
-                                      ) : (
-                                        <div style={{ fontSize: 12, color: "var(--c-p700)", lineHeight: 1.5 }}>
-                                          {dbPos && <span style={{ color: "var(--c-teal)", fontWeight: 600, fontSize: 11 }}>{dbPos}</span>}
-                                          {dbPos && dbMeaning && <span style={{ color: "var(--c-s300)" }}>{" · "}</span>}
-                                          {dbMeaning && <span>{dbMeaning}</span>}
-                                        </div>
-                                      )}
-                                      {/* 查看详情 button */}
-                                      {!isLoading && (
-                                        <div onClick={(e) => {
-                                          e.stopPropagation();
-                                          setWordPopover(null);
-                                          if (onWordTap) onWordTap(tokText);
-                                        }} style={{
-                                          marginTop: 6, padding: "4px 8px", borderRadius: 6,
-                                          background: "var(--c-p50)", border: `1px solid ${"var(--c-p200)"}`,
-                                          cursor: "pointer", textAlign: "center",
-                                        }}>
-                                          <span style={{ fontSize: 11, color: "var(--c-teal)", fontWeight: 600 }}>{"查看详情"}</span>
-                                          <ChevronRight size={10} strokeWidth={IW} color={"var(--c-teal)"} style={{ marginLeft: 2, verticalAlign: "middle" }} />
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
                               </div>
                               <div style={{ fontSize: 12, color: "var(--c-p700)", marginTop: 3 }}>{ex.zh}</div>
                             </div>
@@ -722,6 +633,7 @@ const WordDetailPage = ({ wordData }) => {
           </div>
         </div>
       )}
+      <TooltipDismissOverlay active={wordTip} onDismiss={() => setWordTip(null)} />
     </div>
   );
 };

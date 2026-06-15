@@ -977,6 +977,37 @@ export async function getDictionaryCount() {
   return count || 0
 }
 
+/**
+ * Load all Thai word strings from dictionary_full for segmentation dictionary.
+ * Fetches in batches of 1000 to avoid large query limits.
+ * Returns array of word strings.
+ */
+export async function loadAllDictionaryWords() {
+  if (!supabase) return []
+  const allWords = []
+  let offset = 0
+  const batchSize = 1000
+  try {
+    while (true) {
+      const { data, error } = await supabase
+        .from('dictionary_full')
+        .select('word')
+        .range(offset, offset + batchSize - 1)
+      if (error) {
+        console.error('[supabase] loadAllDictionaryWords:', error.message)
+        break
+      }
+      if (!data || data.length === 0) break
+      data.forEach(r => { if (r.word) allWords.push(r.word) })
+      if (data.length < batchSize) break
+      offset += batchSize
+    }
+  } catch (e) {
+    console.error('[supabase] loadAllDictionaryWords:', e)
+  }
+  return allWords
+}
+
 // ── AI Proxy: Call system or user AI API via Edge Function ──
 
 /**

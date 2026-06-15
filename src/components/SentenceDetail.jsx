@@ -3,7 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import { Card, TtsPlay, WordTokenSpan, TooltipDismissOverlay, Badge } from "./UIComponents";
 import { ChevronLeft, ChevronRight, Sparkles, Tag, Bookmark, Star, Check, X } from "lucide-react";
 import { thaiSegment } from "../utils/thaiSegment";
-import { bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences, isSupabaseConfigured, getFolders, getFolderSentences, addSentenceToFolder, removeSentenceFromFolder } from "../lib/supabase.js";
+import { bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences, isSupabaseConfigured, getFolders, getFolderSentences, addSentenceToFolder, removeSentenceFromFolder, getWordByThai, searchWords } from "../lib/supabase.js";
 
 const IW = 1.5;
 
@@ -31,6 +31,7 @@ const WordPill = ({ word, meaning, onClick, theme = "teal" }) => {
 const SentenceDetail = ({ phrase, onBack }) => {
   const { handleWordTap, userId } = useAppContext();
   const [wordTip, setWordTip] = useState(null);
+  const [segMeanings, setSegMeanings] = useState({});
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showBookmarkModal, setShowBookmarkModal] = useState(false);
   const [sentenceFolders, setSentenceFolders] = useState([]);
@@ -54,6 +55,44 @@ const SentenceDetail = ({ phrase, onBack }) => {
     window.addEventListener('scroll', dismiss, true);
     return () => window.removeEventListener('scroll', dismiss, true);
   }, [wordTip]);
+
+
+  /* ── Batch fetch Chinese meanings for segmented words ── */
+  useEffect(() => {
+    if (!isSupabaseConfigured || spSegmented.length === 0) return;
+    const wordsToFetch = spSegmented.map(seg => seg.text).filter(w => w && w.trim());
+    if (wordsToFetch.length === 0) return;
+    const extractMeaning = (row) => {
+      if (!row) return '';
+      let senses = row.senses;
+      if (typeof senses === 'string') {
+        try { senses = JSON.parse(senses); } catch (e) { senses = []; }
+      }
+      const firstSense = Array.isArray(senses) && senses[0] ? senses[0] : {};
+      return firstSense.meaning || '';
+    };
+    Promise.all(wordsToFetch.map(async (word) => {
+      try {
+        const row = await getWordByThai(word.trim());
+        if (row) {
+          const zh = extractMeaning(row);
+          if (zh) return { word, zh };
+        }
+        const results = await searchWords(word.trim(), 3);
+        if (results.length > 0) {
+          const best = results[0];
+          const zh = extractMeaning(best);
+          if (zh) return { word, zh };
+        }
+      } catch (e) { /* ignore */ }
+      return { word, zh: '' };
+    })).then(results => {
+      const map = {};
+      results.forEach(r => { if (r && r.word) map[r.word] = r.zh; });
+      setSegMeanings(map);
+    });
+  }, [spSegmented.length]);
+
 
   /* ── Check bookmark status ── */
   useEffect(() => {
@@ -167,7 +206,7 @@ const SentenceDetail = ({ phrase, onBack }) => {
                 {spSegmented.map((seg, i) => (
                   <span key={i} style={{ display: "inline-flex", alignItems: "center" }}>
                     <WordTokenSpan seg={seg} tipId={`sd-${i}`} activeTip={wordTip} onTipChange={setWordTip} onDetail={handleWordTap} />
-                    <span style={{ fontSize: 12, color: "var(--c-s500)", fontWeight: 400, marginLeft: 2, fontFamily: "var(--zh-font), sans-serif" }}>({seg.meaning || ''})</span>
+                    <span style={{ fontSize: 12, color: "var(--c-s500)", fontWeight: 400, marginLeft: 2, fontFamily: "var(--zh-font), sans-serif" }}>({segMeanings[seg.text] || seg.meaning || ''})</span>
                     {i < spSegmented.length - 1 && <span style={{ fontSize: 14, color: "var(--c-s300)", margin: "0 6px", fontWeight: 600 }}>+</span>}
                   </span>
                 ))}

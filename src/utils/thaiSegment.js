@@ -4,6 +4,8 @@
  * dictionary-based approach to split sentences into per-word tokens.
  */
 
+import { loadAllDictionaryWords, isSupabaseConfigured } from "../lib/supabase.js";
+
 // ── Dictionary: common Thai words organized by category ──
 const THAI_WORDS = [
   // ─ Pronouns ─
@@ -59,9 +61,35 @@ const THAI_WORDS = [
   "โดย","ซึ่ง","อัน","ที่","ๆ","ฯ",
 ];
 
-// Build the Set for fast lookup
+// Build the Set for fast lookup (hardcoded baseline)
 const DICT_SET = new Set(THAI_WORDS);
 const MAX_WORD_LEN = 20;
+
+// DB dictionary loaded flag
+let dbDictLoaded = false;
+
+/**
+ * Load dictionary words from Supabase database into the segmentation dictionary.
+ * Called once on app startup. Merges DB words into DICT_SET (larger coverage).
+ * Returns true if loaded successfully.
+ */
+export async function loadDictFromDB() {
+  if (dbDictLoaded) return true;
+  if (!isSupabaseConfigured) return false;
+  try {
+    const words = await loadAllDictionaryWords();
+    if (words && words.length > 0) {
+      // Add all DB words to the dictionary set — DB words supplement hardcoded ones
+      words.forEach(w => DICT_SET.add(w));
+      dbDictLoaded = true;
+      console.log(`[thaiSegment] Loaded ${words.length} words from DB dictionary (total: ${DICT_SET.size})`);
+      return true;
+    }
+  } catch (e) {
+    console.error('[thaiSegment] loadDictFromDB failed:', e);
+  }
+  return false;
+}
 
 /**
  * Segment Thai text into per-word tokens using longest-match algorithm.

@@ -5,6 +5,7 @@ import {
   getUserSettings, getApiKeys, callAiProxy, saveCommunityWord,
   syncUserStatsOnLogin,
 } from '../lib/supabase.js'
+import { loadDictFromDB } from '../utils/thaiSegment'
 
 export const AppContext = createContext(null)
 export const useAppContext = () => useContext(AppContext)
@@ -22,6 +23,11 @@ export function AppProvider({ children }) {
       syncUserStatsOnLogin(userId).catch(err => console.error('[syncUserStats]', err))
     }
   }, [userId])
+
+  /* ── Load DB dictionary for segmentation ── */
+  useEffect(() => {
+    loadDictFromDB().catch(err => console.error('[loadDictFromDB]', err))
+  }, [])
 
   /* ── Page navigation ── */
   const [page, setPageRaw] = useState("home")
