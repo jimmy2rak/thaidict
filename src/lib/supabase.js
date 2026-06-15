@@ -1442,6 +1442,14 @@ export async function deleteCheckinTask(taskId) {
 export async function toggleCheckinTaskCompletion(userId, taskId, date, completed) {
   if (!supabase || !userId || !taskId || !date) return false
   try {
+    // First, get the task's duration_minutes
+    const { data: taskData } = await supabase
+      .from('user_checkin_tasks')
+      .select('duration_minutes')
+      .eq('id', taskId)
+      .single()
+    const duration = taskData?.duration_minutes || 15
+
     if (completed) {
       const { error } = await supabase
         .from('user_checkin_completions')
@@ -1455,6 +1463,15 @@ export async function toggleCheckinTaskCompletion(userId, taskId, date, complete
         console.error('[supabase] toggleCheckinTaskCompletion (insert):', error.message)
         return false
       }
+      // Add duration to study_minutes for this date
+      const { data: progressData } = await supabase
+        .from('user_learning_progress')
+        .select('study_minutes')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .single()
+      const currentMins = progressData?.study_minutes || 0
+      await updateDailyProgress(userId, date, { study_minutes: currentMins + duration })
     } else {
       const { error } = await supabase
         .from('user_checkin_completions')
@@ -1466,6 +1483,15 @@ export async function toggleCheckinTaskCompletion(userId, taskId, date, complete
         console.error('[supabase] toggleCheckinTaskCompletion (delete):', error.message)
         return false
       }
+      // Subtract duration from study_minutes for this date
+      const { data: progressData } = await supabase
+        .from('user_learning_progress')
+        .select('study_minutes')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .single()
+      const currentMins = progressData?.study_minutes || 0
+      await updateDailyProgress(userId, date, { study_minutes: Math.max(0, currentMins - duration) })
     }
     return true
   } catch (e) {
