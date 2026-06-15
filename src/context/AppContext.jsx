@@ -53,6 +53,7 @@ export function AppProvider({ children }) {
       setDetailWord(null)
       setUnknownWord(entry.word)
     }
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }, [getCurrentView])
 
   const goBack = useCallback(() => {
@@ -67,6 +68,7 @@ export function AppProvider({ children }) {
     if (current) setNavForward(f => [...f, current])
     if (prev.type === 'detail') { setUnknownWord(null); setDetailWord(prev.word) }
     else if (prev.type === 'unknown') { setDetailWord(null); setUnknownWord(prev.word) }
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }, [navStack, getCurrentView])
 
   const goForward = useCallback(() => {
@@ -77,6 +79,7 @@ export function AppProvider({ children }) {
     if (current) setNavStack(s => [...s, current])
     if (next.type === 'detail') { setUnknownWord(null); setDetailWord(next.word) }
     else if (next.type === 'unknown') { setDetailWord(null); setUnknownWord(next.word) }
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }, [navForward, getCurrentView])
 
   const resetNav = useCallback(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Card, Btn, SectionTitle, ProgressBar } from "../components/UIComponents";
 import { exercises } from "../data/mockData";
@@ -19,8 +19,11 @@ import MorphologySection from "./subsections/MorphologySection";
 import StatsSection from "./subsections/StatsSection";
 import PhrasesSection from "./subsections/PhrasesSection";
 import PhraseDetailSection from "./subsections/PhraseDetailSection";
+import phraseData from "../data/phraseData";
 
 const IW = 1.5;
+
+const PHRASE_PREVIEW = phraseData.daily[0];
 
 const TASK_TYPE_META = {
   "\u5355\u8BCD": { icon: BookOpen, color: "var(--c-teal)" },
@@ -38,6 +41,7 @@ const LearnPage = () => {
   const [showAiInfo, setShowAiInfo] = useState(false);
   const [noteEditorFrom, setNoteEditorFrom] = useState("main");
   const [selectedPhrase, setSelectedPhrase] = useState(null);
+  const [phraseWordTip, setPhraseWordTip] = useState(null);
   const [planData, setPlanData] = useState(null);
   const [notesData, setNotesData] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
@@ -356,7 +360,31 @@ const LearnPage = () => {
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u5E38\u7528\u8BED"}</div>
-                <div style={{ fontSize: 11, color: "var(--c-s500)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u4FD7\u8BED\u3001\u4F5B\u6559\u7528\u8BED\u4E0E\u65E5\u5E38\u8868\u8FBE"}</div>
+                <div style={{ fontSize: 14, fontFamily: "var(--th-font), sans-serif", display: "flex", flexWrap: "wrap", gap: 0, lineHeight: 1.8 }}>
+                  {PHRASE_PREVIEW.segmented.map((seg, i) => (
+                    <span key={i} style={{ position: "relative", display: "inline" }}>
+                      <span onClick={(e) => { e.stopPropagation(); setPhraseWordTip(phraseWordTip?.id === `lp-${i}` ? null : { id: `lp-${i}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
+                        cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
+                        textUnderlineOffset: 3, color: "var(--c-p900)",
+                      }}>{seg.text}</span>
+                      {phraseWordTip?.id === `lp-${i}` && (
+                        <div onClick={(e) => e.stopPropagation()} style={{
+                          position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
+                          background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
+                          fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                        }}>
+                          <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
+                          {seg.meaning}
+                          <div onClick={(ev) => { ev.stopPropagation(); setPhraseWordTip(null); handleWordTap(seg.text); }} style={{
+                            marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
+                          }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
+                        </div>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--c-p600)", marginTop: 2 }}>{PHRASE_PREVIEW.zh}</div>
               </div>
             </div>
             <ChevronRight size={16} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0 }} />

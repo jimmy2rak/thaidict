@@ -84,7 +84,7 @@ const ProfilePage = () => {
     });
     getDefaultApi(userId).then(id => setDefaultApiId(id || 'system'));
     // Fetch streak and bookmark count
-    getMonthlyCheckinStreak(userId).then(r => setStreak(r.streak));
+    getMonthlyCheckinStreak(userId).then(r => setStreak(r.totalDays));
     getBookmarks(userId).then(rows => setBookmarkCount((rows || []).length));
     // Fetch check-in history (last 30 days)
     getLearningProgress(userId, 30).then(rows => {

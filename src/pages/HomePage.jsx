@@ -1,19 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
-import { Search, Mic, X, Play, RefreshCw, Sparkles, ChevronRight, BookOpen, Flame } from "lucide-react";
+import { Search, Mic, X, Play, RefreshCw, Sparkles, ChevronRight, Bookmark, CalendarCheck } from "lucide-react";
 import { Card, Badge, StatCard, SectionTitle } from "../components/UIComponents";
 import {
   isSupabaseConfigured,
   loadDailyPick, refreshDailyPick, getRecentWords,
   searchWords, transformWordData, transformSearchResult,
   getStreak, getDictionaryCount,
+  getBookmarks, getMonthlyCheckinStreak,
 } from "../lib/supabase.js";
 import { speak } from "../utils/tts";
+import phraseData from "../data/phraseData";
+import { thaiSegment } from "../utils/thaiSegment";
 
 const IW = 1.5;
 
 const HomePage = () => {
-  const { userId, handleWordTap, setSelectedSentence } = useAppContext();
+  const { userId, handleWordTap, setSelectedSentence, setPage } = useAppContext();
 
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -26,6 +29,8 @@ const HomePage = () => {
   const [streak, setStreak] = useState(0);
   const [dictCount, setDictCount] = useState(null);
   const [sentenceWordTip, setSentenceWordTip] = useState(null);
+  const [bookmarkCount, setBookmarkCount] = useState(0);
+  const [monthlyCheckinDays, setMonthlyCheckinDays] = useState(0);
 
   const loadRandomWord = async () => {
     setDailyRefreshing(true)
@@ -51,6 +56,8 @@ const HomePage = () => {
     })
     if (userId && userId !== 'anonymous') {
       getStreak(userId).then(setStreak)
+      getBookmarks(userId).then(rows => setBookmarkCount((rows || []).length))
+      getMonthlyCheckinStreak(userId).then(r => setMonthlyCheckinDays(r.totalDays))
     }
     getRecentWords(8).then(rows => { setRecentData(rows.map(transformSearchResult).filter(Boolean)) })
     getDictionaryCount().then(setDictCount)
@@ -72,6 +79,23 @@ const HomePage = () => {
   const dw = dailyData;
   const dwSense = dw?.senses?.[0];
   const dwExample = dwSense?.examples?.[0];
+
+  // Enrich daily sentence with segmented fallback from phraseData when DB segmented is empty
+  const dailySentenceEnriched = useMemo(() => {
+    if (!dailySentence) return null;
+    const seg = Array.isArray(dailySentence.segmented) && dailySentence.segmented.length > 0
+      ? dailySentence.segmented
+      : null;
+    if (seg) return dailySentence; // already has good segmented data
+    // Search all phraseData categories for matching text
+    for (const cat of Object.values(phraseData)) {
+      const match = cat.find(p => p.text === dailySentence.text);
+      if (match && match.segmented) {
+        return { ...dailySentence, segmented: match.segmented };
+      }
+    }
+    return dailySentence;
+  }, [dailySentence]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "0 16px 16px" }}>
@@ -147,8 +171,10 @@ const HomePage = () => {
       {!query.trim() && <>
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <StatCard icon={BookOpen} label={"\u8BCD\u5E93\u8BCD\u6761"} value={dictCount != null ? dictCount.toLocaleString() : (isSupabaseConfigured ? "\u2014" : "0")} sub={""} color={"var(--c-teal)"} />
-          <StatCard icon={Flame} label={"\u8FDE\u7EED\u6253\u5361"} value={streak > 0 ? String(streak) : "\u2014"} sub={"\u5929"} color={"var(--c-gold)"} />
+          <div onClick={() => setPage("words")} style={{ cursor: "pointer" }}>
+            <StatCard icon={Bookmark} label={"我的收藏"} value={bookmarkCount > 0 ? String(bookmarkCount) : "—"} sub={"个"} color={"var(--c-teal)"} />
+          </div>
+          <StatCard icon={CalendarCheck} label={"本月打卡"} value={monthlyCheckinDays > 0 ? String(monthlyCheckinDays) : "—"} sub={"天"} color={"var(--c-gold)"} />
         </div>
 
         {/* Daily Word */}
@@ -210,13 +236,13 @@ const HomePage = () => {
         </Card>
 
         {/* Daily Sentence */}
-        <Card onClick={() => { if (dailySentence && setSelectedSentence) setSelectedSentence(dailySentence); }}>
+        <Card onClick={() => { if (dailySentenceEnriched && setSelectedSentence) setSelectedSentence(dailySentenceEnriched); }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <Badge bg={"color-mix(in srgb, var(--c-teal) 15%, transparent)"} fg={"var(--c-teal)"}>{"\u6BCF\u65E5\u4E00\u53E5"}</Badge>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {dailySentence?.category && (
+              {dailySentenceEnriched?.category && (
                 <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>
-                  {dailySentence.category === "idioms" ? "俗语" : dailySentence.category === "buddhist" ? "佛教用语" : "日常用语"}
+                  {dailySentenceEnriched.category === "idioms" ? "俗语" : dailySentenceEnriched.category === "buddhist" ? "佛教用语" : "日常用语"}
                 </Badge>
               )}
               <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
@@ -224,12 +250,12 @@ const HomePage = () => {
               </div>
             </div>
           </div>
-          {dailySentence ? (
+          {dailySentenceEnriched ? (
             <>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                 <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", flex: 1, lineHeight: 1.8 }}>
                   {(() => {
-                    const dss = Array.isArray(dailySentence.segmented) && dailySentence.segmented.length > 0 ? dailySentence.segmented : null;
+                    const dss = Array.isArray(dailySentenceEnriched.segmented) && dailySentenceEnriched.segmented.length > 0 ? dailySentenceEnriched.segmented : null;
                     if (dss) {
                       return dss.map((seg, j) => (
                         <span key={j} style={{ position: "relative", display: "inline" }}>
@@ -254,18 +280,43 @@ const HomePage = () => {
                         </span>
                       ));
                     }
-                    return <span>{dailySentence.text}</span>;
+                    const segFallback = thaiSegment(dailySentenceEnriched.text);
+                    if (segFallback.length > 1) {
+                      return segFallback.map((seg, j) => (
+                        <span key={j} style={{ position: "relative", display: "inline" }}>
+                          <span onClick={(e) => { e.stopPropagation(); setSentenceWordTip(sentenceWordTip?.id === `ds-${j}` ? null : { id: `ds-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
+                            cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
+                            textUnderlineOffset: 3, color: "var(--c-p900)",
+                          }}>{seg.text}</span>
+                          {sentenceWordTip?.id === `ds-${j}` && (
+                            <div onClick={(e) => e.stopPropagation()} style={{
+                              position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
+                              background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
+                              fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                            }}>
+                              <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
+                              {seg.meaning || seg.text}
+                              <div onClick={(ev) => { ev.stopPropagation(); setSentenceWordTip(null); handleWordTap(seg.text); }} style={{
+                                marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
+                              }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
+                            </div>
+                          )}
+                        </span>
+                      ));
+                    }
+                    return <span>{dailySentenceEnriched.text}</span>;
                   })()}
                 </div>
-                <div onClick={(e) => { e.stopPropagation(); speak(dailySentence.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
+                <div onClick={(e) => { e.stopPropagation(); speak(dailySentenceEnriched.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
                   <Play size={14} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
                 </div>
               </div>
-              {dailySentence.actual_meaning && (
-                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.actual_meaning}</div>
+              {dailySentenceEnriched.actual_meaning && (
+                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentenceEnriched.actual_meaning}</div>
               )}
-              {!dailySentence.actual_meaning && dailySentence.literal_meaning && (
-                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.literal_meaning}</div>
+              {!dailySentenceEnriched.actual_meaning && dailySentenceEnriched.literal_meaning && (
+                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentenceEnriched.literal_meaning}</div>
               )}
             </>
           ) : (

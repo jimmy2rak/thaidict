@@ -78,7 +78,7 @@ export default function App() {
           )}
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"未知词条"}</h1>
         </div>
-        <div style={{ flex: 1, overflow: "auto" }}>
+        <div key={unknownWord} style={{ flex: 1, overflow: "auto" }}>
           <UnknownWordPage word={unknownWord} />
         </div>
       </div>
@@ -105,7 +105,7 @@ export default function App() {
           )}
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif", flex: 1 }}>{"词条详情"}</h1>
         </div>
-        <div style={{ flex: 1, overflow: "auto" }}>
+        <div key={detailWord} style={{ flex: 1, overflow: "auto" }}>
           <WordDetailPage wordData={wd} />
         </div>
       </div>
@@ -122,7 +122,7 @@ export default function App() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{pageTitles[page]}</h1>
         </div>
       </div>
-      <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
+      <div key={page} style={{ flex: 1, overflow: "auto", position: "relative" }}>
         {detailLoading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(250,247,244,0.85)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
             <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
