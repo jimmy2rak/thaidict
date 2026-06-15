@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Play, Bookmark, AlertCircle, Sparkles,
-  ChevronRight, FileText, X,
+  ChevronRight, FileText, X, Check, Star,
 } from "lucide-react";
 import { thaiSegment } from "../utils/thaiSegment";
 import {
   isSupabaseConfigured, getWordByThai,
   isBookmarked, recordWordLookup,
   getFolders, createFolder, getUserSettings,
-  submitWord, addBookmark, addWordToFolder,
+  submitWord, addBookmark, addWordToFolder, removeWordFromFolder,
   saveUserSettings, removeBookmark,
+  getFolderWords,
   searchWords,
 } from "../lib/supabase.js";
 import { Card, Badge, SectionTitle, ProgressBar, TtsPlay } from "../components/UIComponents";
@@ -27,6 +28,7 @@ const WordDetailPage = ({ wordData }) => {
   const [freqTab, setFreqTab] = useState("ttc");
   const [showBookmarkModal, setShowBookmarkModal] = useState(false);
   const [wordBookFolders, setWordBookFolders] = useState([]);
+  const [wordFoldersIn, setWordFoldersIn] = useState([]); // folder IDs that contain this word
   const [lastUsedFolder, setLastUsedFolder] = useState(null);
   const [reportSection, setReportSection] = useState(null);
   const [reportItem, setReportItem] = useState(null);
@@ -39,17 +41,18 @@ const WordDetailPage = ({ wordData }) => {
     recordWordLookup(userId, wd.word);
   }, [wd?.word, userId]);
 
-  // Load word book folders for bookmark selection
+  // Load word book folders for bookmark selection (only word-type folders)
   useEffect(() => {
     if (!userId || userId === 'anonymous') return;
     getFolders(userId).then(rows => {
-      const mapped = (rows || []).map(f => ({
+      const wordTypeFolders = (rows || []).filter(f => (f.folder_type || 'word') === 'word');
+      const mapped = wordTypeFolders.map(f => ({
         id: f.id, name: f.name, color: f.color, count: f.word_count || 0,
       }));
       if (mapped.length === 0) {
         // Create default word book if none exist
         if (isSupabaseConfigured) {
-          createFolder(userId, "默认单词本", "var(--c-teal)").then(folder => {
+          createFolder(userId, "我的单词", "#5B8C7E", 'word').then(folder => {
             if (folder) {
               setWordBookFolders([{ id: folder.id, name: folder.name, color: folder.color, count: 0 }]);
               setLastUsedFolder(folder.id);
@@ -58,7 +61,6 @@ const WordDetailPage = ({ wordData }) => {
         }
       } else {
         setWordBookFolders(mapped);
-        // Load last used folder from settings
         getUserSettings(userId).then(s => {
           if (s?.last_folder_id) setLastUsedFolder(s.last_folder_id);
           else setLastUsedFolder(mapped[0].id);
@@ -66,6 +68,19 @@ const WordDetailPage = ({ wordData }) => {
       }
     });
   }, [userId]);
+
+  // When word changes or folders loaded, check which folders contain this word
+  useEffect(() => {
+    if (!wd?.word || !userId || userId === 'anonymous' || !isSupabaseConfigured) return;
+    if (wordBookFolders.length === 0) return;
+    Promise.all(wordBookFolders.map(f =>
+      getFolderWords(f.id).then(words => {
+        return words?.some(w => w.word === wd.word) ? f.id : null;
+      })
+    )).then(results => {
+      setWordFoldersIn(results.filter(Boolean));
+    });
+  }, [wd?.word, userId, wordBookFolders.length]);
 
   // Fetch Chinese meanings for synonyms and antonyms
   useEffect(() => {
@@ -626,48 +641,73 @@ const WordDetailPage = ({ wordData }) => {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>
-                {bookmarked ? "管理收藏" : "添加到单词本"}
+                {"收藏到收藏夹"}
               </h3>
               <div onClick={() => setShowBookmarkModal(false)} style={{ cursor: "pointer", display: "flex" }}>
                 <X size={18} strokeWidth={IW} color={"var(--c-s400)"} />
               </div>
             </div>
+            <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 12, fontFamily: "var(--zh-font), sans-serif" }}>
+              点击勾选/取消收藏夹，可同时收藏到多个收藏夹
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {wordBookFolders.map(folder => {
-                const isDefault = folder.name === "默认单词本";
+                const isInFolder = wordFoldersIn.includes(folder.id);
                 return (
                   <div key={folder.id} onClick={async () => {
-                    if (!bookmarked) {
-                      // Add bookmark + add to folder
+                    if (isInFolder) {
+                      // Remove from this folder
+                      setWordFoldersIn(prev => prev.filter(id => id !== folder.id));
+                      if (userId && userId !== 'anonymous' && isSupabaseConfigured) {
+                        await removeWordFromFolder(folder.id, wd.word);
+                      }
+                      // If word is no longer in ANY folder, remove global bookmark too
+                      const remainingFolders = wordFoldersIn.filter(id => id !== folder.id);
+                      if (remainingFolders.length === 0) {
+                        setBookmarked(false);
+                        if (userId && userId !== 'anonymous' && isSupabaseConfigured) {
+                          await removeBookmark(userId, wd.word);
+                        }
+                      }
+                    } else {
+                      // Add to this folder
+                      setWordFoldersIn(prev => [...prev, folder.id]);
                       setBookmarked(true);
-                      if (userId && userId !== 'anonymous') {
+                      setLastUsedFolder(folder.id);
+                      if (userId && userId !== 'anonymous' && isSupabaseConfigured) {
                         await addBookmark(userId, wd.word);
                         addWordToFolder(folder.id, wd.word);
-                        setLastUsedFolder(folder.id);
                         saveUserSettings(userId, { last_folder_id: folder.id });
                       }
                     }
-                    setShowBookmarkModal(false);
                   }} style={{
                     display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-                    borderRadius: 12, background: "var(--c-surfaceAlt)",
-                    border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
+                    borderRadius: 12,
+                    background: isInFolder ? "color-mix(in srgb, var(--c-teal) 4%, var(--c-surfaceAlt))" : "var(--c-surfaceAlt)",
+                    border: `1px solid ${isInFolder ? "color-mix(in srgb, var(--c-teal) 20%, transparent)" : "var(--c-p100)"}`,
+                    cursor: "pointer", transition: "all 0.15s",
                   }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${isInFolder ? "var(--c-teal)" : "var(--c-p300)"}`,
+                      background: isInFolder ? "var(--c-teal)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.15s",
+                    }}>
+                      {isInFolder && <Check size={13} strokeWidth={2.5} color="#fff" />}
+                    </div>
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: folder.color, flexShrink: 0 }} />
                     <span style={{ flex: 1, fontSize: 14, color: "var(--c-p800)", fontWeight: 500 }}>
-                      {folder.name}{isDefault ? " (默认)" : ""}
+                      {folder.name}
                     </span>
-                    {lastUsedFolder === folder.id && (
-                      <span style={{ fontSize: 10, color: "var(--c-s400)" }}>上次使用</span>
-                    )}
+                    <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{folder.count} 词</span>
                   </div>
                 );
               })}
             </div>
-            {bookmarked && (
+            {bookmarked && wordFoldersIn.length === 0 && (
               <div onClick={async () => {
                 setBookmarked(false);
-                if (userId && userId !== 'anonymous') {
+                if (userId && userId !== 'anonymous' && isSupabaseConfigured) {
                   await removeBookmark(userId, wd.word);
                 }
                 setShowBookmarkModal(false);

@@ -360,21 +360,22 @@ export async function getFolders(userId) {
   if (!supabase || !userId) return []
   const { data, error } = await supabase
     .from('user_folders')
-    .select('*, word_count:user_folder_words(count)')
+    .select('*, word_count:user_folder_words(count), sentence_count:user_folder_sentences(count)')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
   if (error) { console.error('[supabase] getFolders:', error.message); return [] }
   return (data || []).map(f => ({
     ...f,
-    word_count: f.word_count?.[0]?.count || 0
+    word_count: f.word_count?.[0]?.count || 0,
+    sentence_count: f.sentence_count?.[0]?.count || 0,
   }))
 }
 
-export async function createFolder(userId, name, color = '#5B8C7E') {
+export async function createFolder(userId, name, color = '#5B8C7E', folder_type = 'word') {
   if (!supabase || !userId) return null
   const { data, error } = await supabase
     .from('user_folders')
-    .insert({ user_id: userId, name, color })
+    .insert({ user_id: userId, name, color, folder_type })
     .select()
     .single()
   if (error) { console.error('[supabase] createFolder:', error.message); return null }

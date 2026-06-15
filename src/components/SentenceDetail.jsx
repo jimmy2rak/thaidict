@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Card, TtsPlay, WordTokenSpan, TooltipDismissOverlay, Badge } from "./UIComponents";
-import { ChevronLeft, ChevronRight, Sparkles, Tag, Bookmark, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, Tag, Bookmark, Star, Check, X } from "lucide-react";
 import { thaiSegment } from "../utils/thaiSegment";
-import { bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences } from "../lib/supabase.js";
+import { bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences, isSupabaseConfigured, getFolders, getFolderSentences, addSentenceToFolder, removeSentenceFromFolder } from "../lib/supabase.js";
 
 const IW = 1.5;
 
@@ -32,6 +32,9 @@ const SentenceDetail = ({ phrase, onBack }) => {
   const { handleWordTap, userId } = useAppContext();
   const [wordTip, setWordTip] = useState(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [sentenceFolders, setSentenceFolders] = useState([]);
+  const [sentenceFoldersIn, setSentenceFoldersIn] = useState([]);
   const sp = phrase;
 
   // Get segmented data — use DB segmented, fallback to phraseData, then thaiSegment
@@ -61,6 +64,31 @@ const SentenceDetail = ({ phrase, onBack }) => {
       setIsBookmarked(bm[String(sp.dbId)] || false);
     });
   }, [userId, sp.dbId]);
+
+  /* ── Load sentence folders ── */
+  useEffect(() => {
+    if (!userId || userId === 'anonymous') return;
+    if (!isSupabaseConfigured) return;
+    getFolders(userId).then(rows => {
+      const sFolders = (rows || []).filter(f => f.folder_type === 'sentence');
+      setSentenceFolders(sFolders.map(f => ({
+        id: f.id, name: f.name, color: f.color, sentenceCount: f.sentence_count || 0,
+      })));
+    });
+  }, [userId]);
+
+  /* ── Check which sentence folders contain this sentence ── */
+  useEffect(() => {
+    if (!userId || userId === 'anonymous' || !sp.dbId || !isSupabaseConfigured) return;
+    if (sentenceFolders.length === 0) return;
+    Promise.all(sentenceFolders.map(f =>
+      getFolderSentences(f.id).then(rows => {
+        return rows?.some(r => (r.sentence_id || r.sentences?.id) === sp.dbId) ? f.id : null;
+      })
+    )).then(results => {
+      setSentenceFoldersIn(results.filter(Boolean));
+    });
+  }, [userId, sp.dbId, sentenceFolders.length]);
 
   const toggleBookmark = async () => {
     if (!userId || userId === 'anonymous' || !sp.dbId) return;
@@ -115,7 +143,7 @@ const SentenceDetail = ({ phrase, onBack }) => {
               <div style={{ display: "flex", gap: 6, flexShrink: 0, marginTop: 2 }}>
                 <TtsPlay text={sp.text} size={16} />
                 {sp.dbId && (
-                  <div onClick={(e) => { e.stopPropagation(); toggleBookmark(); }} style={{
+                  <div onClick={(e) => { e.stopPropagation(); setShowBookmarkModal(true); }} style={{
                     width: 28, height: 28, borderRadius: 8,
                     background: isBookmarked ? "color-mix(in srgb, var(--c-gold) 9%, transparent)" : "var(--c-surfaceAlt)",
                     display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
@@ -224,6 +252,82 @@ const SentenceDetail = ({ phrase, onBack }) => {
           )}
         </div>
       </div>
+
+      {/* ── Sentence Bookmark Folder Selection Modal ── */}
+      {showBookmarkModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center",
+        }}>
+          <div onClick={() => setShowBookmarkModal(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
+          <div style={{
+            position: "relative", zIndex: 1, width: "100%", maxWidth: 430,
+            background: "var(--c-surface)", borderRadius: "20px 20px 0 0",
+            padding: "20px 20px 32px", maxHeight: "60vh", overflow: "auto",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>
+                {"收藏句子到收藏夹"}
+              </h3>
+              <div onClick={() => setShowBookmarkModal(false)} style={{ cursor: "pointer", display: "flex" }}>
+                <X size={18} strokeWidth={IW} color={"var(--c-s400)"} />
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--c-s500)", marginBottom: 12, fontFamily: "var(--zh-font), sans-serif" }}>
+              点击勾选/取消收藏夹，可同时收藏到多个收藏夹
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {sentenceFolders.map(folder => {
+                const isInFolder = sentenceFoldersIn.includes(folder.id);
+                return (
+                  <div key={folder.id} onClick={async () => {
+                    if (isInFolder) {
+                      setSentenceFoldersIn(prev => prev.filter(id => id !== folder.id));
+                      if (userId && userId !== 'anonymous' && isSupabaseConfigured) {
+                        await removeSentenceFromFolder(folder.id, sp.dbId);
+                      }
+                      const remainingFolders = sentenceFoldersIn.filter(id => id !== folder.id);
+                      if (remainingFolders.length === 0) {
+                        setIsBookmarked(false);
+                        if (userId && userId !== 'anonymous' && isSupabaseConfigured) {
+                          await removeSentenceBookmark(userId, sp.dbId);
+                        }
+                      }
+                    } else {
+                      setSentenceFoldersIn(prev => [...prev, folder.id]);
+                      setIsBookmarked(true);
+                      if (userId && userId !== 'anonymous' && isSupabaseConfigured) {
+                        await bookmarkSentence(userId, sp.dbId);
+                        addSentenceToFolder(folder.id, sp.dbId);
+                      }
+                    }
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                    borderRadius: 12,
+                    background: isInFolder ? "color-mix(in srgb, var(--c-gold) 4%, var(--c-surfaceAlt))" : "var(--c-surfaceAlt)",
+                    border: `1px solid ${isInFolder ? "color-mix(in srgb, var(--c-gold) 20%, transparent)" : "var(--c-p100)"}`,
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${isInFolder ? "var(--c-gold)" : "var(--c-p300)"}`,
+                      background: isInFolder ? "var(--c-gold)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.15s",
+                    }}>
+                      {isInFolder && <Check size={13} strokeWidth={2.5} color="#fff" />}
+                    </div>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: folder.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 14, color: "var(--c-p800)", fontWeight: 500 }}>
+                      {folder.name}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{folder.sentenceCount} 句</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <TooltipDismissOverlay active={wordTip} onDismiss={() => setWordTip(null)} />
     </div>
   );
