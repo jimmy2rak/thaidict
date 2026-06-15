@@ -4,11 +4,11 @@ import { Card, Btn, SectionTitle, ProgressBar } from "../components/UIComponents
 import { exercises } from "../data/mockData";
 import {
   getLearningPlan, getNotes,
-  getLearningProgress, updateDailyProgress,
+  getCheckinTasks, getCheckinCompletions, toggleCheckinTaskCompletion,
 } from "../lib/supabase.js";
 import {
   ChevronLeft, ChevronRight, Calendar,
-  Target, BookOpen, PenTool, Check,
+  BookOpen, PenTool, FileText, Volume2, MessageCircle, PlusCircle, Check,
   Plus, Sparkles, Globe, BarChart3,
 } from "lucide-react";
 
@@ -22,6 +22,16 @@ import PhraseDetailSection from "./subsections/PhraseDetailSection";
 
 const IW = 1.5;
 
+const TASK_TYPE_META = {
+  "\u5355\u8BCD": { icon: BookOpen, color: "var(--c-teal)" },
+  "\u8BED\u6CD5": { icon: PenTool, color: "var(--c-gold)" },
+  "\u9605\u8BFB": { icon: FileText, color: "var(--c-rose)" },
+  "\u542C\u529B": { icon: Volume2, color: "var(--c-info)" },
+  "\u53E3\u8BED": { icon: MessageCircle, color: "var(--c-amber)" },
+  "\u5199\u4F5C": { icon: PenTool, color: "var(--c-err)" },
+  "\u81EA\u5B9A\u4E49": { icon: PlusCircle, color: "var(--c-p500)" },
+};
+
 const LearnPage = () => {
   const { userId, handleWordTap } = useAppContext();
   const [section, setSection] = useState("main");
@@ -30,46 +40,57 @@ const LearnPage = () => {
   const [selectedPhrase, setSelectedPhrase] = useState(null);
   const [planData, setPlanData] = useState(null);
   const [notesData, setNotesData] = useState([]);
-  const [todayTasks, setTodayTasks] = useState([
-    { icon: Target, text: "\u590D\u4E60 20 \u4E2A\u65E7\u8BCD", done: false, color: "var(--c-teal)" },
-    { icon: BookOpen, text: "\u5B66\u4E60 10 \u4E2A\u65B0\u8BCD", done: false, color: "var(--c-rose)" },
-    { icon: BookOpen, text: "\u5B8C\u6210 1 \u7BC7\u9605\u8BFB\u7406\u89E3", done: false, color: "var(--c-gold)" },
-    { icon: PenTool, text: "\u5B8C\u6210 5 \u9053\u9020\u53E5\u7EC3\u4E60", done: false, color: "var(--c-amber)" },
-  ]);
+  const [todayTasks, setTodayTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState(null);
+
+  const fetchTodayTasks = async () => {
+    if (!userId || userId === 'anonymous') return;
+    setTasksLoading(true);
+    setTasksError(null);
+    try {
+      const tasks = await getCheckinTasks(userId);
+      const today = new Date().toISOString().split('T')[0];
+      const todayWeekday = new Date().getDay() === 0 ? 7 : new Date().getDay();
+      const todaysTasks = (tasks || []).filter(t => {
+        const days = t.schedule_days || [];
+        return days.includes(todayWeekday);
+      });
+      const completions = await getCheckinCompletions(userId, today);
+      const completedIds = new Set((completions || []).map(c => c.task_id));
+      setTodayTasks(todaysTasks.map(t => ({
+        ...t,
+        done: completedIds.has(t.id),
+      })));
+    } catch (e) {
+      console.error("[fetchTodayTasks]", e);
+      setTasksError(e.message || "Failed to load tasks");
+    }
+    setTasksLoading(false);
+  };
 
   useEffect(() => {
     if (!userId || userId === 'anonymous') return;
     getLearningPlan(userId).then(setPlanData);
     getNotes(userId).then(setNotesData);
-    // Load today's task progress
-    const today = new Date().toISOString().split('T')[0];
-    getLearningProgress(userId, 1).then(rows => {
-      const todayRow = (rows || []).find(r => r.date === today);
-      if (todayRow?.tasks_completed) {
-        setTodayTasks(prev => prev.map((t, i) => ({
-          ...t,
-          done: todayRow.tasks_completed.includes(i),
-        })));
-      }
-    });
+    fetchTodayTasks();
   }, [userId]); // eslint-disable-line
 
-  const toggleTask = async (idx) => {
-    const next = todayTasks.map((t, i) => i === idx ? { ...t, done: !t.done } : t);
-    setTodayTasks(next);
-    // Save to Supabase
+  const toggleTask = async (taskId) => {
+    const prev = todayTasks.find(t => t.id === taskId);
+    if (!prev) return;
+    const newDone = !prev.done;
+    // Optimistic update
+    setTodayTasks(prevTasks => prevTasks.map(t => t.id === taskId ? { ...t, done: newDone } : t));
+    // Persist
     if (userId && userId !== 'anonymous') {
-      const doneIndices = next.filter(t => t.done).map((_, i) => i);
       const today = new Date().toISOString().split('T')[0];
-      const allDone = doneIndices.length === next.length;
       try {
-        await updateDailyProgress(userId, today, {
-          tasks_completed: doneIndices,
-          checked_in: allDone,
-          streak_days: allDone ? undefined : 0,
-        });
+        await toggleCheckinTaskCompletion(userId, taskId, today, newDone);
       } catch (e) {
         console.error("[toggleTask] save failed:", e);
+        // Rollback
+        setTodayTasks(prevTasks => prevTasks.map(t => t.id === taskId ? { ...t, done: !newDone } : t));
       }
     }
   };
@@ -130,33 +151,56 @@ const LearnPage = () => {
             </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {todayTasks.map((task, i) => (
-              <div key={i} onClick={() => toggleTask(i)} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "10px 12px", borderRadius: 10, cursor: "pointer",
-                background: task.done ? "color-mix(in srgb, var(--c-okL) 19%, transparent)" : "var(--c-surfaceAlt)",
-                border: `1px solid ${task.done ? "color-mix(in srgb, var(--c-ok) 19%, transparent)" : "var(--c-p100)"}`,
-                transition: "all 0.2s",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    width: 22, height: 22, borderRadius: "50%",
-                    background: task.done ? "var(--c-ok)" : "transparent",
-                    border: task.done ? "none" : `1.5px solid ${"var(--c-p200)"}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.2s",
-                  }}>
-                    {task.done && <Check size={13} strokeWidth={2} color="#fff" />}
-                  </div>
-                  <task.icon size={15} strokeWidth={IW} color={task.done ? "var(--c-ok)" : task.color} />
-                  <span style={{
-                    fontSize: 13, color: task.done ? "var(--c-s300)" : "var(--c-p800)",
-                    fontWeight: 500, textDecoration: task.done ? "line-through" : "none",
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0,
-                  }}>{task.text}</span>
+            {tasksLoading ? (
+              <div style={{ padding: "20px 0", textAlign: "center" }}>
+                <span style={{ fontSize: 12, color: "var(--c-s400)" }}>{"加载中..."}</span>
+              </div>
+            ) : tasksError ? (
+              <div style={{ padding: "20px 0", textAlign: "center" }}>
+                <span style={{ fontSize: 12, color: "var(--c-err)" }}>{"加载失败："}{tasksError}</span>
+              </div>
+            ) : todayTasks.length === 0 ? (
+              <div style={{ padding: "24px 0", textAlign: "center" }}>
+                <span style={{ fontSize: 13, color: "var(--c-s400)" }}>{"今天没有安排学习任务"}</span>
+                <div style={{ marginTop: 8 }}>
+                  <span onClick={() => setSection("adjustPlan")} style={{ fontSize: 12, color: "var(--c-teal)", cursor: "pointer", fontWeight: 500 }}>
+                    {"去添加任务 →"}
+                  </span>
                 </div>
               </div>
-            ))}
+            ) : (
+              todayTasks.map((task) => {
+                const meta = TASK_TYPE_META[task.task_type] || TASK_TYPE_META["\u81EA\u5B9A\u4E49"];
+                const TaskIcon = meta.icon;
+                return (
+                  <div key={task.id} onClick={() => toggleTask(task.id)} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                    background: task.done ? "color-mix(in srgb, var(--c-okL) 19%, transparent)" : "var(--c-surfaceAlt)",
+                    border: `1px solid ${task.done ? "color-mix(in srgb, var(--c-ok) 19%, transparent)" : "var(--c-p100)"}`,
+                    transition: "all 0.2s",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: "50%",
+                        background: task.done ? "var(--c-ok)" : "transparent",
+                        border: task.done ? "none" : `1.5px solid ${"var(--c-p200)"}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "all 0.2s",
+                      }}>
+                        {task.done && <Check size={13} strokeWidth={2} color="#fff" />}
+                      </div>
+                      <TaskIcon size={15} strokeWidth={IW} color={task.done ? "var(--c-ok)" : meta.color} />
+                      <span style={{
+                        fontSize: 13, color: task.done ? "var(--c-s300)" : "var(--c-p800)",
+                        fontWeight: 500, textDecoration: task.done ? "line-through" : "none",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0,
+                      }}>{task.task_name}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
           <div style={{ marginTop: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>

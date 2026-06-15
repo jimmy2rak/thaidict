@@ -1,4 +1,4 @@
-# 词笺 (ThaiDict) — 项目总档 v2
+# 词笺 (ThaiDict) — 项目总档 v3
 
 > 最后更新: 2026-06-15
 
@@ -6,7 +6,7 @@
 
 ## 1. 项目概览
 
-词笺 (ThaiDict) 是面向中国泰语学习者的移动端智能词典 App，集成 AI 词条富化、泰文分词、学习统计等功能。技术栈为 React 18 + Vite 6（前端）、Supabase PostgreSQL（后端/数据库）、Supabase Auth（认证）、Supabase Edge Function（AI 代理）、Vercel（部署）。当前处于**功能完善阶段**——Phase 5 已完成（导航历史、搜索优化、每日一句），认证已从 Clerk 迁移至 Supabase Auth，App.jsx 已拆分为模块化架构（4721→200 行 + 19 个独立文件），RLS 安全升级 SQL 已生成待用户手动执行。
+词笺 (ThaiDict) 是面向中国泰语学习者的移动端智能词典 App，集成 AI 词条富化、泰文分词、学习统计等功能。技术栈为 React 18 + Vite 6（前端）、Supabase PostgreSQL（后端/数据库）、Supabase Auth（认证）、Supabase Edge Function（AI 代理）、Vercel（部署）。当前处于**功能完善阶段**——Phase 5 已完成，认证已迁移至 Supabase Auth，App.jsx 已模块化拆分。新增：社区共建词库（AI 生成词条自动入库 + 搜索集成）、每日推荐持久化（每日一词/句按自然日缓存）、import_sentences.py DeepSeek-V4-Flash 优化版。
 
 | 项 | 值 |
 |---|---|
@@ -88,6 +88,7 @@
 | `20260614_create_user_data_tables.sql` | 8 张用户数据表 + RLS（旧 anon 策略） | 已执行 | `supabase/20260614_create_user_data_tables.sql` |
 | `phase5_add_rpcs_and_sentences.sql` | RPC 函数 + 句子库 + 句子收藏表 | 已执行 | `supabase/phase5_add_rpcs_and_sentences.sql` |
 | `rls_upgrade_uuid.sql` | RLS 安全升级：user_id TEXT→UUID + JWT-based 策略 (auth.uid()) | **待用户手动执行** | `supabase/rls_upgrade_uuid.sql` |
+| `community_words_and_daily_picks.sql` | 社区共建词库 (community_words) + 每日推荐持久化 (daily_picks) + search_community_words RPC | **待用户手动执行** | `supabase/community_words_and_daily_picks.sql` |
 
 ### Edge Function (`supabase/functions/`)
 
@@ -99,7 +100,7 @@
 
 | 文件 | 用途 | 状态 | 路径 |
 |---|---|---|---|
-| `import_sentences.py` | AI 批量导入句子（idioms/buddhist/daily 各 200 条） | 已完成 | `scripts/import_sentences.py` |
+| `import_sentences.py` | AI 批量导入句子（DeepSeek-V4-Flash 优化版：BATCH_SIZE=100/MAX_TOKENS=128000、栈式 JSON 截断修复含零括号回退、finish_reason=length 检测+即时减半重试、指数退避重试） | 已完成 | `scripts/import_sentences.py` |
 
 ---
 
@@ -138,13 +139,22 @@
 | # | 任务 | 优先级 | 状态 | 备注 |
 |---|---|---|---|---|
 | 1 | 执行 RLS 升级 SQL (`supabase/rls_upgrade_uuid.sql`) | 高 | **待用户手动执行** | 需在 Supabase Dashboard SQL Editor 中运行，会清空旧 Clerk 数据 |
-| 2 | supabase.js 函数移除手动 userId 参数 | 中 | 未开始 | RLS 执行后可移除 `.eq('user_id', userId)` 过滤，改由 RLS 自动处理 |
-| 3 | Supabase Storage 创建 `user-assets` bucket (Public) | 低 | 延后 | 头像上传依赖此，当前不急需 |
-| 4 | 构建产物 code-split 优化 | 低 | 未开始 | 当前 740KB 单 chunk，可用 dynamic import 拆分 |
+| 2 | 执行社区词库+每日推荐 SQL (`supabase/community_words_and_daily_picks.sql`) | 高 | **待用户手动执行** | 创建 community_words 和 daily_picks 两张表 + search_community_words RPC |
+| 3 | 部署更新后的前端到 Vercel | 中 | 未开始 | community_words/daily_picks 前端代码已完成，SQL 执行后可部署 |
+| 4 | 云端运行 import_sentences.py | 中 | 未开始 | 使用 DeepSeek-V4-Flash API，BATCH_SIZE=100/MAX_TOKENS=128000，预计 6 次 API 调用完成 600 句 |
+| 5 | supabase.js 函数移除手动 userId 参数 | 低 | 未开始 | RLS 执行后可移除 `.eq('user_id', userId)` 过滤，改由 RLS 自动处理 |
+| 6 | Supabase Storage 创建 `user-assets` bucket (Public) | 低 | 延后 | 头像上传依赖此，当前不急需 |
+| 7 | 构建产物 code-split 优化 | 低 | 未开始 | 当前 740KB 单 chunk，可用 dynamic import 拆分 |
 
 ---
 
 ## 6. 已完成工作摘要
+
+**2026-06-15 (续)**
+- **社区共建词库** — 新建 community_words 表 + search_community_words RPC，AI 生成词条自动入库并集成到搜索/查词流程
+- **每日推荐持久化** — 新建 daily_picks 表 (user_id + pick_date UNIQUE)，每日一词/一句按自然日缓存，刷新页面不变，仅点击刷新按钮才换
+- **import_sentences.py 重写** — 4 轮迭代修复，最终 DeepSeek-V4-Flash 优化版：默认 BATCH_SIZE=100 / MAX_TOKENS=128000 / BATCH_DELAY=2 / MAX_RETRIES=3，6 次 API 调用可完成 600 句导入。关键修复：栈式 bracket 闭合 JSON 截断修复（替代计数法，正确顺序 `]}` 非 `}]`）、零括号回退（截断位置无 `}` 时从开头闭合）、finish_reason=length 检测 + 即时减半重试（不浪费当前批次）、多层正则剥离悬挂 key
+- Caveman skill 安装 (JuliusBrussee/caveman)
 
 **2026-06-15**
 - 项目总档 v2 重写（本文档）
@@ -194,11 +204,16 @@
 - `sentences` — 句子库（idioms / buddhist / daily 三类）
 - `user_sentence_bookmarks` — 句子收藏
 
+### 社区共建 + 每日推荐（SQL: `community_words_and_daily_picks.sql`）
+- `community_words` — 用户 AI 生成的共建词条（word + senses JSONB + submitted_by）
+- `daily_picks` — 每日一词/一句持久化（user_id + pick_date + JSONB data）
+
 ### RPC 函数
 - `search_words(term, limit)` — 通用搜索
 - `search_words_zh(term, limit)` — 中文模糊搜索（JSONB senses）
 - `get_random_word()` — 随机已富化词条
 - `get_random_sentence(cat)` — 随机句子（可按分类过滤）
+- `search_community_words(search_term, max_results)` — 搜索社区共建词库
 
 ## 附录 B: 环境变量
 

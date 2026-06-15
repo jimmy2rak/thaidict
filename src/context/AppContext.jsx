@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../main.jsx'
 import {
-  isSupabaseConfigured, getWordByThai, transformWordData,
-  getUserSettings, getApiKeys, callAiProxy,
+  isSupabaseConfigured, getWordByThai, transformWordData, transformCommunityWord,
+  getUserSettings, getApiKeys, callAiProxy, saveCommunityWord,
 } from '../lib/supabase.js'
 
 export const AppContext = createContext(null)
@@ -98,7 +98,10 @@ export function AppProvider({ children }) {
       try {
         const row = await getWordByThai(word)
         if (row) {
-          setDbWordData(prev => ({ ...prev, [word]: transformWordData(row) }))
+          const transformed = row._source === 'community'
+            ? transformCommunityWord(row)
+            : transformWordData(row)
+          setDbWordData(prev => ({ ...prev, [word]: transformed }))
           setDetailLoading(false)
           navigateTo({ type: 'detail', word }); return
         }
@@ -128,7 +131,7 @@ export function AppProvider({ children }) {
       }
       const d = result.data
       if (d && d.word) {
-        setGeneratedWords(prev => ({ ...prev, [word]: {
+        const wordEntry = {
           word: d.word || word, romanization: d.romanization || "",
           romanization_source: "deepseek", sources: ["src_ai_generated"],
           sense_count: (d.senses || []).length || 1,
@@ -145,7 +148,18 @@ export function AppProvider({ children }) {
           antonyms: Array.isArray(d.antonyms) ? d.antonyms : [],
           learner_associations: Array.isArray(d.learner_associations) ? d.learner_associations : [],
           user_sentence_count: d.user_sentence_count || 0,
-        }}))
+        }
+        setGeneratedWords(prev => ({ ...prev, [word]: wordEntry }))
+
+        // Save to community_words database for future search hits
+        saveCommunityWord({
+          word: wordEntry.word,
+          romanization: wordEntry.romanization,
+          senses: wordEntry.senses,
+          synonyms: wordEntry.synonyms,
+          antonyms: wordEntry.antonyms,
+          learner_associations: wordEntry.learner_associations,
+        }, userId, zhHint).catch(err => console.error('[saveCommunityWord]', err))
       }
     } catch (err) { console.error("[handleGenerated]", err) }
     setUnknownWord(null); setDetailWord(word)

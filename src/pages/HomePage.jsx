@@ -4,7 +4,7 @@ import { Search, Mic, X, Play, RefreshCw, Sparkles, ChevronRight, BookOpen, Flam
 import { Card, Badge, StatCard, SectionTitle } from "../components/UIComponents";
 import {
   isSupabaseConfigured,
-  getDailyWord, getDailySentence, getRecentWords,
+  loadDailyPick, refreshDailyPick, getRecentWords,
   searchWords, transformWordData, transformSearchResult,
   getStreak, getDictionaryCount,
 } from "../lib/supabase.js";
@@ -27,30 +27,33 @@ const HomePage = () => {
   const [dictCount, setDictCount] = useState(null);
 
   const loadRandomWord = async () => {
-    setDailyRefreshing(true);
-    const d = await getDailyWord();
-    if (d) setDailyData(transformWordData(d));
-    setDailyRefreshing(false);
-  };
+    setDailyRefreshing(true)
+    const result = await refreshDailyPick('word')
+    if (result.word) setDailyData(result.word)
+    setDailyRefreshing(false)
+  }
 
   const loadRandomSentence = async () => {
-    setSentenceRefreshing(true);
-    const s = await getDailySentence();
-    if (s) setDailySentence(s);
-    setSentenceRefreshing(false);
-  };
+    setSentenceRefreshing(true)
+    const result = await refreshDailyPick('sentence')
+    if (result.sentence) setDailySentence(result.sentence)
+    setSentenceRefreshing(false)
+  }
 
-  /* ── Fetch daily word + sentence + recent words + streak + dict count from Supabase ── */
+  /* ── Fetch daily word + sentence (global persistent per day) + recent words + streak + dict count ── */
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    getDailyWord().then(d => { if (d) setDailyData(transformWordData(d)); });
-    getDailySentence().then(s => { if (s) setDailySentence(s); });
-    getRecentWords(8).then(rows => { setRecentData(rows.map(transformSearchResult).filter(Boolean)); });
+    if (!isSupabaseConfigured) return
+    // Load daily pick (global, cached for today — no userId needed)
+    loadDailyPick().then(({ word, sentence }) => {
+      if (word) setDailyData(word)
+      if (sentence) setDailySentence(sentence)
+    })
     if (userId && userId !== 'anonymous') {
-      getStreak(userId).then(setStreak);
+      getStreak(userId).then(setStreak)
     }
-    getDictionaryCount().then(setDictCount);
-  }, [userId]);
+    getRecentWords(8).then(rows => { setRecentData(rows.map(transformSearchResult).filter(Boolean)) })
+    getDictionaryCount().then(setDictCount)
+  }, [userId])
 
   /* ── Debounced search (internal state) ── */
   useEffect(() => {
@@ -148,76 +151,110 @@ const HomePage = () => {
         </div>
 
         {/* Daily Word */}
-        {dw && (
-          <Card onClick={() => handleWordTap(dw.word)}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <Badge bg={"var(--c-goldL)"} fg={"var(--c-gold)"}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{new Date().toLocaleDateString("zh-CN")}</span>
-                <div onClick={(e) => { e.stopPropagation(); loadRandomWord(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
-                  <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: dailyRefreshing ? "spin 0.8s linear infinite" : "none" }} />
-                </div>
-              </div>
-            </div>
+        <Card onClick={() => dw && handleWordTap(dw.word)}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <Badge bg={"var(--c-goldL)"} fg={"var(--c-gold)"}>{"\u6BCF\u65E5\u4E00\u8BCD"}</Badge>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", letterSpacing: "0.04em" }}>{dw.word}</div>
-              <div onClick={(e) => { e.stopPropagation(); speak(dw.word, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
-                <Play size={16} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+              <span style={{ fontSize: 11, color: "var(--c-s300)" }}>{new Date().toLocaleDateString("zh-CN")}</span>
+              <div onClick={(e) => { e.stopPropagation(); loadRandomWord(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
+                <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: dailyRefreshing ? "spin 0.8s linear infinite" : "none" }} />
               </div>
             </div>
-            {dw.romanization && <div style={{ fontSize: 13, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", marginTop: 2 }}>{dw.romanization}</div>}
-            {dwSense && (
-              <>
-                <div style={{ fontSize: 14, color: "var(--c-p700)", lineHeight: 1.6, marginTop: 10 }}>
-                  {dwSense.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 10, marginRight: 6 }}>{dwSense.pos}</Badge>}
-                  {dwSense.meaning}
+          </div>
+          {dw ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", letterSpacing: "0.04em" }}>{dw.word}</div>
+                <div onClick={(e) => { e.stopPropagation(); speak(dw.word, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
+                  <Play size={16} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
                 </div>
-                {dwExample && (
-                  <div style={{ borderTop: `1px solid ${"var(--c-p100)"}`, marginTop: 12, paddingTop: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ fontSize: 13, color: "var(--c-teal)", flex: 1 }}>{dwExample.th}</div>
-                      <div onClick={(e) => { e.stopPropagation(); speak(dwExample.th, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
-                        <Play size={12} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3 }}>{dwExample.zh}</div>
+              </div>
+              {dw.romanization && <div style={{ fontSize: 13, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", marginTop: 2 }}>{dw.romanization}</div>}
+              {dwSense && (
+                <>
+                  <div style={{ fontSize: 14, color: "var(--c-p700)", lineHeight: 1.6, marginTop: 10 }}>
+                    {dwSense.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 10, marginRight: 6 }}>{dwSense.pos}</Badge>}
+                    {dwSense.meaning}
                   </div>
-                )}
-              </>
-            )}
-          </Card>
-        )}
+                  {dwExample && (
+                    <div style={{ borderTop: `1px solid ${"var(--c-p100)"}`, marginTop: 12, paddingTop: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ fontSize: 13, color: "var(--c-teal)", flex: 1 }}>{dwExample.th}</div>
+                        <div onClick={(e) => { e.stopPropagation(); speak(dwExample.th, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                          <Play size={12} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3 }}>{dwExample.zh}</div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <div style={{ padding: "12px 0", textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: "var(--c-s300)", marginBottom: 8, lineHeight: 1.5 }}>
+                {"\u6BCF\u65E5\u63A8\u8350\u5C1A\u672A\u751F\u6210"}
+              </div>
+              <div onClick={(e) => { e.stopPropagation(); loadRandomWord(); }} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 18px", borderRadius: 10, cursor: "pointer",
+                background: "color-mix(in srgb, var(--c-gold) 12%, transparent)",
+                border: `1px dashed ${"var(--c-gold)"}`,
+              }}>
+                <Sparkles size={12} strokeWidth={IW} color={"var(--c-gold)"} />
+                <span style={{ fontSize: 12, color: "var(--c-gold)", fontWeight: 600 }}>{"\u751F\u6210\u4ECA\u65E5\u63A8\u8350"}</span>
+              </div>
+            </div>
+          )}
+        </Card>
 
         {/* Daily Sentence */}
-        {dailySentence && (
-          <Card onClick={() => { if (setSelectedSentence) setSelectedSentence(dailySentence); }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <Badge bg={"color-mix(in srgb, var(--c-teal) 15%, transparent)"} fg={"var(--c-teal)"}>{"\u6BCF\u65E5\u4E00\u53E5"}</Badge>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {dailySentence.category && (
-                  <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>
-                    {dailySentence.category === "idioms" ? "俗语" : dailySentence.category === "buddhist" ? "佛教用语" : "日常用语"}
-                  </Badge>
-                )}
-                <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
-                  <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: sentenceRefreshing ? "spin 0.8s linear infinite" : "none" }} />
+        <Card onClick={() => { if (dailySentence && setSelectedSentence) setSelectedSentence(dailySentence); }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <Badge bg={"color-mix(in srgb, var(--c-teal) 15%, transparent)"} fg={"var(--c-teal)"}>{"\u6BCF\u65E5\u4E00\u53E5"}</Badge>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {dailySentence?.category && (
+                <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>
+                  {dailySentence.category === "idioms" ? "俗语" : dailySentence.category === "buddhist" ? "佛教用语" : "日常用语"}
+                </Badge>
+              )}
+              <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
+                <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: sentenceRefreshing ? "spin 0.8s linear infinite" : "none" }} />
+              </div>
+            </div>
+          </div>
+          {dailySentence ? (
+            <>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", flex: 1, lineHeight: 1.5 }}>{dailySentence.text}</div>
+                <div onClick={(e) => { e.stopPropagation(); speak(dailySentence.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
+                  <Play size={14} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
                 </div>
               </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", flex: 1, lineHeight: 1.5 }}>{dailySentence.text}</div>
-              <div onClick={(e) => { e.stopPropagation(); speak(dailySentence.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
-                <Play size={14} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+              {dailySentence.actual_meaning && (
+                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.actual_meaning}</div>
+              )}
+              {!dailySentence.actual_meaning && dailySentence.literal_meaning && (
+                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.literal_meaning}</div>
+              )}
+            </>
+          ) : (
+            <div style={{ padding: "12px 0", textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: "var(--c-s300)", marginBottom: 8, lineHeight: 1.5 }}>
+                {"每日推荐尚未生成"}
+              </div>
+              <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 18px", borderRadius: 10, cursor: "pointer",
+                background: "color-mix(in srgb, var(--c-teal) 12%, transparent)",
+                border: `1px dashed ${"var(--c-teal)"}`,
+              }}>
+                <Sparkles size={12} strokeWidth={IW} color={"var(--c-teal)"} />
+                <span style={{ fontSize: 12, color: "var(--c-teal)", fontWeight: 600 }}>{"生成今日推荐"}</span>
               </div>
             </div>
-            {dailySentence.actual_meaning && (
-              <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.actual_meaning}</div>
-            )}
-            {!dailySentence.actual_meaning && dailySentence.literal_meaning && (
-              <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentence.literal_meaning}</div>
-            )}
-          </Card>
-        )}
+          )}
+        </Card>
 
         {/* Recent words from Supabase */}
         {recentData.length > 0 && (

@@ -48,6 +48,14 @@ export async function searchWords(query, limit = 20) {
   const { data: textSearch } = await supabase
     .rpc('search_words', { search_term: query, max_results: limit }).then(r => r).catch(() => ({ data: null }))
 
+  // Also search community words (user-contributed AI-generated entries)
+  const { data: communityRows } = await supabase
+    .from('community_words')
+    .select('*')
+    .or(`word.ilike.%${query}%,senses::text.ilike.%${query}%`)
+    .limit(limit)
+    .then(r => r).catch(() => ({ data: null }))
+
   // Merge and deduplicate
   const map = new Map()
   for (const list of [exact, fuzzy, meaning, textSearch].filter(Boolean)) {
@@ -58,31 +66,62 @@ export async function searchWords(query, limit = 20) {
     }
   }
 
-  // Prioritize: exact match > enriched > by sense_count
-  return Array.from(map.values()).sort((a, b) => {
+  // Add community words with a distinct key prefix to avoid collisions
+  const communityResults = []
+  for (const row of (Array.isArray(communityRows) ? communityRows : [])) {
+    if (row && row.id) {
+      const key = `cw_${row.id}`
+      if (!map.has(key)) {
+        map.set(key, { ...row, _source: 'community' })
+        communityResults.push(row)
+      }
+    }
+  }
+
+  // Prioritize: exact match > enriched > by sense_count; community words at end
+  const dictResults = Array.from(map.values()).filter(r => r._source !== 'community')
+  const sortedDict = dictResults.sort((a, b) => {
     if (a.word === query) return -1
     if (b.word === query) return 1
     if (a.enrichment_status === 'enriched' && b.enrichment_status !== 'enriched') return -1
     if (b.enrichment_status === 'enriched' && a.enrichment_status !== 'enriched') return 1
     return (b.sense_count || 0) - (a.sense_count || 0)
-  }).slice(0, limit)
+  })
+  const sortedCommunity = communityResults
+    .filter(r => r.word !== query || !sortedDict.some(d => d.word === query))
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+
+  return [...sortedDict, ...sortedCommunity].slice(0, limit)
 }
 
 /**
  * Get a single word by exact Thai spelling
+ * Checks dictionary_full first, then community_words as fallback
  */
 export async function getWordByThai(word) {
   if (!supabase) return null
+  // Try dictionary_full first
   const { data, error } = await supabase
     .from('dictionary_full')
     .select('*')
     .eq('word', word)
     .single()
+  if (!error && data) return data
+  // Fallback: check community_words
+  try {
+    const { data: cw, error: cwErr } = await supabase
+      .from('community_words')
+      .select('*')
+      .eq('word', word)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    if (!cwErr && cw) return { ...cw, _source: 'community' }
+  } catch (e) { /* no community word found */ }
   if (error) {
     console.error('[supabase] getWordByThai:', error.message)
-    return null
   }
-  return data
+  return null
 }
 
 /**
@@ -750,6 +789,384 @@ export async function getBookmarkedSentences(userId) {
     .order('created_at', { ascending: false })
   if (error) { console.error('[supabase] getBookmarkedSentences:', error.message); return [] }
   return (data || []).map(r => r.sentences).filter(Boolean)
+}
+
+/* ─── Community Words (用户共建词库) Functions ─── */
+
+/**
+ * Transform a community_words row into the wordDetail format
+ */
+export function transformCommunityWord(row) {
+  if (!row) return null
+  const senses = Array.isArray(row.senses) ? row.senses : []
+  const synonyms = Array.isArray(row.synonyms) ? row.synonyms : []
+  const antonyms = Array.isArray(row.antonyms) ? row.antonyms : []
+  const learnerAssociations = Array.isArray(row.learner_associations) ? row.learner_associations : []
+
+  return {
+    word: row.word || '',
+    romanization: row.romanization || '',
+    romanization_source: 'deepseek',
+    sources: ['community_ai_generated'],
+    sense_count: senses.length || 1,
+    senses: senses.map((s, i) => ({
+      sense_id: s.sense_id || (i + 1),
+      pos: s.pos || '未标注',
+      meaning: s.meaning || '',
+      register: s.register || '通用',
+      examples: Array.isArray(s.examples) ? s.examples : [],
+      segmented: Array.isArray(s.segmented) ? s.segmented : null,
+      source: 'ai_generated',
+    })),
+    freq_tnc: null,
+    freq_ttc: null,
+    freq_phupha: null,
+    synonyms,
+    antonyms,
+    learner_associations: learnerAssociations,
+    user_sentence_count: 0,
+  }
+}
+
+/**
+ * Save an AI-generated word to the community words database
+ */
+export async function saveCommunityWord(wordData, userId = null, zhHint = '') {
+  if (!supabase || !wordData || !wordData.word) return null
+  try {
+    const row = {
+      word: wordData.word,
+      romanization: wordData.romanization || '',
+      senses: wordData.senses || [],
+      synonyms: wordData.synonyms || [],
+      antonyms: wordData.antonyms || [],
+      learner_associations: wordData.learner_associations || [],
+      submitted_by: userId || null,
+      source: 'ai_generated',
+      zh_hint: zhHint || '',
+    }
+    // Upsert on conflict (word already exists)
+    const { data, error } = await supabase
+      .from('community_words')
+      .upsert(row, { onConflict: 'word', ignoreDuplicates: false })
+      .select()
+      .single()
+    if (error) {
+      console.error('[supabase] saveCommunityWord:', error.message)
+      return null
+    }
+    return data
+  } catch (err) {
+    console.error('[supabase] saveCommunityWord:', err)
+    return null
+  }
+}
+
+/* ─── Daily Picks (每日推荐 v2：全局统一，不分用户，只存 ID) ─── */
+
+/**
+ * Fetch full word data from dictionary_full by word text (natural key).
+ * Returns transformed word data or null.
+ */
+async function fetchWordByText(wordText) {
+  if (!supabase || !wordText) return null
+  try {
+    const { data, error } = await supabase
+      .from('dictionary_full')
+      .select('*')
+      .eq('word', wordText)
+      .single()
+    if (error || !data) {
+      // Try community_words as fallback
+      const { data: cw } = await supabase
+        .from('community_words')
+        .select('*')
+        .eq('word', wordText)
+        .single()
+      if (cw) return transformWordData(cw)
+      return null
+    }
+    return transformWordData(data)
+  } catch (e) {
+    console.error('[supabase] fetchWordByText:', e)
+    return null
+  }
+}
+
+/**
+ * Fetch full sentence data from sentences table by ID.
+ * Returns sentence data or null.
+ */
+async function fetchSentenceById(sentenceId) {
+  if (!supabase || !sentenceId) return null
+  try {
+    const { data, error } = await supabase
+      .from('sentences')
+      .select('*')
+      .eq('id', sentenceId)
+      .single()
+    if (error || !data) return null
+    return data
+  } catch (e) {
+    console.error('[supabase] fetchSentenceById:', e)
+    return null
+  }
+}
+
+/**
+ * Load today's daily pick (word + sentence) — global, not per-user.
+ * Returns cached pick with FULL data if exists for today, otherwise returns null.
+ * Picks are generated server-side (via cron or AI) or on explicit user refresh.
+ */
+export async function loadDailyPick() {
+  if (!supabase) return { word: null, sentence: null }
+  const today = new Date().toISOString().split('T')[0]
+
+  // Check existing pick for today (global, no user_id filter)
+  try {
+    const { data: pick, error } = await supabase
+      .from('daily_picks')
+      .select('*')
+      .eq('pick_date', today)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { word: null, sentence: null }
+      }
+      if (error.message?.includes('does not exist')) {
+        console.warn('[supabase] daily_picks table does not exist. Run daily_picks_v2.sql migration.')
+        return { word: null, sentence: null }
+      }
+      console.error('[supabase] loadDailyPick query error:', error.message)
+      return { word: null, sentence: null }
+    }
+
+    if (pick) {
+      // Fetch full data by ID references (not stored inline)
+      const [word, sentence] = await Promise.all([
+        pick.daily_word_id ? fetchWordByText(pick.daily_word_id) : null,
+        pick.daily_sentence_id ? fetchSentenceById(pick.daily_sentence_id) : null,
+      ])
+      return { word, sentence }
+    }
+    return { word: null, sentence: null }
+  } catch (e) {
+    console.error('[supabase] loadDailyPick exception:', e)
+    return { word: null, sentence: null }
+  }
+}
+
+/**
+ * Refresh daily pick — user clicked the refresh button.
+ * Generates new random word/sentence and upserts by date (global).
+ */
+export async function refreshDailyPick(type = 'both') {
+  if (!supabase) return { word: null, sentence: null }
+  const today = new Date().toISOString().split('T')[0]
+
+  let newWordRaw = null
+  let newSentenceRaw = null
+
+  if (type === 'word' || type === 'both') {
+    newWordRaw = await getDailyWord()
+  }
+  if (type === 'sentence' || type === 'both') {
+    newSentenceRaw = await getDailySentence()
+  }
+
+  const newWord = newWordRaw ? transformWordData(newWordRaw) : null
+
+  // Get current pick to merge unchanged fields
+  let currentPick = null
+  try {
+    const { data } = await supabase
+      .from('daily_picks')
+      .select('*')
+      .eq('pick_date', today)
+      .single()
+    if (data) currentPick = data
+  } catch (e) { /* no current pick */ }
+
+  const updateRow = {
+    pick_date: today,
+    daily_word_id: newWordRaw ? newWordRaw.word : (currentPick?.daily_word_id || null),
+    daily_sentence_id: newSentenceRaw ? newSentenceRaw.id : (currentPick?.daily_sentence_id || null),
+    updated_at: new Date().toISOString(),
+  }
+
+  try {
+    const { error } = await supabase
+      .from('daily_picks')
+      .upsert(updateRow, { onConflict: 'pick_date' })
+    if (error) console.error('[supabase] refreshDailyPick:', error.message)
+    return { word: newWord, sentence: newSentenceRaw }
+  } catch (e) {
+    console.error('[supabase] refreshDailyPick:', e)
+    return { word: newWord, sentence: newSentenceRaw }
+  }
+}
+
+/* ─── Checkin Tasks (学习打卡) CRUD Functions ─── */
+
+/**
+ * Get all active checkin tasks for a user, ordered by sort_order.
+ */
+export async function getCheckinTasks(userId) {
+  if (!supabase || !userId) return []
+  try {
+    const { data, error } = await supabase
+      .from('user_checkin_tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+    if (error) {
+      console.error('[supabase] getCheckinTasks:', error.message)
+      return []
+    }
+    return data || []
+  } catch (e) {
+    console.error('[supabase] getCheckinTasks:', e)
+    return []
+  }
+}
+
+/**
+ * Create a new checkin task.
+ * taskData: { task_type, task_name, schedule_days, duration_minutes, is_custom, sort_order }
+ */
+export async function createCheckinTask(userId, taskData) {
+  if (!supabase || !userId) return null
+  try {
+    const { data, error } = await supabase
+      .from('user_checkin_tasks')
+      .insert({
+        user_id: userId,
+        task_type: taskData.task_type || '自定义',
+        task_name: taskData.task_name || '',
+        schedule_days: taskData.schedule_days || [1, 2, 3, 4, 5],
+        duration_minutes: taskData.duration_minutes || 15,
+        is_custom: taskData.is_custom !== undefined ? taskData.is_custom : true,
+        sort_order: taskData.sort_order || 0,
+      })
+      .select()
+      .single()
+    if (error) {
+      console.error('[supabase] createCheckinTask:', error.message)
+      return null
+    }
+    return data
+  } catch (e) {
+    console.error('[supabase] createCheckinTask:', e)
+    return null
+  }
+}
+
+/**
+ * Update an existing checkin task (partial update).
+ */
+export async function updateCheckinTask(taskId, updates) {
+  if (!supabase || !taskId) return null
+  try {
+    const { data, error } = await supabase
+      .from('user_checkin_tasks')
+      .update(updates)
+      .eq('id', taskId)
+      .select()
+      .single()
+    if (error) {
+      console.error('[supabase] updateCheckinTask:', error.message)
+      return null
+    }
+    return data
+  } catch (e) {
+    console.error('[supabase] updateCheckinTask:', e)
+    return null
+  }
+}
+
+/**
+ * Soft-delete a checkin task (set is_active = false).
+ */
+export async function deleteCheckinTask(taskId) {
+  if (!supabase || !taskId) return false
+  try {
+    const { error } = await supabase
+      .from('user_checkin_tasks')
+      .update({ is_active: false })
+      .eq('id', taskId)
+    if (error) {
+      console.error('[supabase] deleteCheckinTask:', error.message)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error('[supabase] deleteCheckinTask:', e)
+    return false
+  }
+}
+
+/**
+ * Toggle a checkin task completion for a given date.
+ * If completed=true, insert a completion record. If false, remove it.
+ */
+export async function toggleCheckinTaskCompletion(userId, taskId, date, completed) {
+  if (!supabase || !userId || !taskId || !date) return false
+  try {
+    if (completed) {
+      const { error } = await supabase
+        .from('user_checkin_completions')
+        .upsert({
+          user_id: userId,
+          task_id: taskId,
+          completed_date: date,
+          completed_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,task_id,completed_date' })
+      if (error) {
+        console.error('[supabase] toggleCheckinTaskCompletion (insert):', error.message)
+        return false
+      }
+    } else {
+      const { error } = await supabase
+        .from('user_checkin_completions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('task_id', taskId)
+        .eq('completed_date', date)
+      if (error) {
+        console.error('[supabase] toggleCheckinTaskCompletion (delete):', error.message)
+        return false
+      }
+    }
+    return true
+  } catch (e) {
+    console.error('[supabase] toggleCheckinTaskCompletion:', e)
+    return false
+  }
+}
+
+/**
+ * Get all completion records for a user on a specific date.
+ * Returns array of task_id strings.
+ */
+export async function getCheckinCompletions(userId, date) {
+  if (!supabase || !userId || !date) return []
+  try {
+    const { data, error } = await supabase
+      .from('user_checkin_completions')
+      .select('task_id')
+      .eq('user_id', userId)
+      .eq('completed_date', date)
+    if (error) {
+      console.error('[supabase] getCheckinCompletions:', error.message)
+      return []
+    }
+    return (data || []).map(r => r.task_id)
+  } catch (e) {
+    console.error('[supabase] getCheckinCompletions:', e)
+    return []
+  }
 }
 
 /* ─── Auth Helper Functions ─── */
