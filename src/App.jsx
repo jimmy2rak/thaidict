@@ -19,7 +19,7 @@ const IW = 1.5;
 export default function App() {
   const {
     supaUser, isLoggedIn, authLoading,
-    page, setPage,
+    page, setPage, visitedPages,
     detailWord, setDetailWord,
     unknownWord, setUnknownWord,
     selectedSentence, setSelectedSentence,
@@ -122,17 +122,17 @@ export default function App() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>{pageTitles[page]}</h1>
         </div>
       </div>
-      <div key={page} style={{ flex: 1, overflow: "auto", position: "relative" }}>
+      <div style={{ flex: 1, position: "relative" }}>
         {detailLoading && (
           <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(250,247,244,0.85)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
             <div style={{ width: 32, height: 32, border: `3px solid ${"var(--c-p200)"}`, borderTopColor: "var(--c-teal)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
             <span style={{ fontSize: 13, color: "var(--c-s500)" }}>{"查询词库中..."}</span>
           </div>
         )}
-        {page === "home" && <HomePage />}
-        {page === "words" && <WordBookPage />}
-        {page === "learn" && <LearnPage />}
-        {page === "me" && <ProfilePage />}
+        {visitedPages.has("home") && <div style={{ flex: 1, overflow: "auto", display: page === "home" ? "block" : "none", height: "100%" }}><HomePage /></div>}
+        {visitedPages.has("words") && <div style={{ flex: 1, overflow: "auto", display: page === "words" ? "block" : "none", height: "100%" }}><WordBookPage /></div>}
+        {visitedPages.has("learn") && <div style={{ flex: 1, overflow: "auto", display: page === "learn" ? "block" : "none", height: "100%" }}><LearnPage /></div>}
+        {visitedPages.has("me") && <div style={{ flex: 1, overflow: "auto", display: page === "me" ? "block" : "none", height: "100%" }}><ProfilePage /></div>}
       </div>
       <nav style={{ display: "flex", background: "var(--c-surface)", borderTop: `1px solid ${"var(--c-p100)"}`, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))", paddingTop: 8, flexShrink: 0, position: "sticky", bottom: 0, zIndex: 10 }}>
         {navItems.map(item => (

@@ -240,7 +240,7 @@ const WordBookPage = () => {
             padding: "8px 12px 12px", borderRadius: "0 0 14 14",
             background: "var(--c-surfaceAlt)", border: `1px solid ${"var(--c-p100)"}`, borderTop: "none",
           }}>
-            {items.length === 0 && !folder.id.startsWith('temp') && (
+            {items.length === 0 && !String(folder.id).startsWith('temp') && (
               <div style={{ textAlign: "center", padding: 16, color: "var(--c-s400)", fontSize: 13 }}>
                 {isSupabaseConfigured ? `暂无${itemLabel}` : "未连接数据库"}
               </div>

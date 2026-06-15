@@ -24,7 +24,12 @@ export function AppProvider({ children }) {
   }, [userId])
 
   /* ── Page navigation ── */
-  const [page, setPage] = useState("home")
+  const [page, setPageRaw] = useState("home")
+  const [visitedPages, setVisitedPages] = useState(new Set(["home"]))
+  const setPage = useCallback((p) => {
+    setPageRaw(p)
+    setVisitedPages(prev => new Set(prev).add(p))
+  }, [])
   const [detailWord, setDetailWord] = useState(null)
   const [unknownWord, setUnknownWord] = useState(null)
   const [generatedWords, setGeneratedWords] = useState({})
@@ -182,7 +187,7 @@ export function AppProvider({ children }) {
     // Auth
     supaUser, userId, isLoggedIn, authLoading, handleSignOut,
     // Navigation
-    page, setPage, detailWord, setDetailWord,
+    page, setPage, visitedPages, detailWord, setDetailWord,
     unknownWord, setUnknownWord, selectedSentence, setSelectedSentence,
     generatedWords, dbWordData, detailLoading,
     navStack, navForward, navigateTo, goBack, goForward, resetNav,
