@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { supabase } from './lib/supabase.js'
+import { AppProvider } from './context/AppContext.jsx'
 import './index.css'
 
 /* ── Supabase Auth Context ── */
@@ -62,7 +63,9 @@ function AuthProvider({ children }) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      <AppProvider>
+        <App />
+      </AppProvider>
     </AuthProvider>
   </React.StrictMode>
 )

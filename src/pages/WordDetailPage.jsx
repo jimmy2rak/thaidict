@@ -1,0 +1,616 @@
+import { useState, useEffect } from "react";
+import {
+  Play, Bookmark, AlertCircle, Sparkles,
+  ChevronRight, FileText, X,
+} from "lucide-react";
+import {
+  isSupabaseConfigured, getWordByThai,
+  isBookmarked, recordWordLookup,
+  getFolders, createFolder, getUserSettings,
+  submitWord, addBookmark, addWordToFolder,
+  saveUserSettings, removeBookmark,
+} from "../lib/supabase.js";
+import { Card, Badge, SectionTitle, ProgressBar, TtsPlay } from "../components/UIComponents";
+import { speak } from "../utils/tts";
+import { useAppContext } from "../context/AppContext";
+
+const IW = 1.5;
+
+const WordDetailPage = ({ wordData }) => {
+  const { userId, goBack, handleWordTap: onWordTap } = useAppContext();
+
+  const wd = wordData;
+  const [bookmarked, setBookmarked] = useState(false);
+  const [expandedSenses, setExpandedSenses] = useState([true, true, true]);
+  const [freqTab, setFreqTab] = useState("ttc");
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [wordBookFolders, setWordBookFolders] = useState([]);
+  const [lastUsedFolder, setLastUsedFolder] = useState(null);
+
+  // Check bookmark status and record lookup on mount
+  useEffect(() => {
+    if (!wd?.word || !userId || userId === 'anonymous') return;
+    isBookmarked(userId, wd.word).then(setBookmarked);
+    recordWordLookup(userId, wd.word);
+  }, [wd?.word, userId]);
+
+  // Load word book folders for bookmark selection
+  useEffect(() => {
+    if (!userId || userId === 'anonymous') return;
+    getFolders(userId).then(rows => {
+      const mapped = (rows || []).map(f => ({
+        id: f.id, name: f.name, color: f.color, count: f.word_count || 0,
+      }));
+      if (mapped.length === 0) {
+        // Create default word book if none exist
+        if (isSupabaseConfigured) {
+          createFolder(userId, "默认单词本", "var(--c-teal)").then(folder => {
+            if (folder) {
+              setWordBookFolders([{ id: folder.id, name: folder.name, color: folder.color, count: 0 }]);
+              setLastUsedFolder(folder.id);
+            }
+          });
+        }
+      } else {
+        setWordBookFolders(mapped);
+        // Load last used folder from settings
+        getUserSettings(userId).then(s => {
+          if (s?.last_folder_id) setLastUsedFolder(s.last_folder_id);
+          else setLastUsedFolder(mapped[0].id);
+        });
+      }
+    });
+  }, [userId]);
+
+  /* ── error report state ── */
+  const [reportSection, setReportSection] = useState(null);
+  const [reportItem, setReportItem] = useState(null);
+  const [reportStatus, setReportStatus] = useState(null);
+
+  /* ── word popover state (segmentation) ── */
+  const [wordPopover, setWordPopover] = useState(null);
+  const [popoverWordData, setPopoverWordData] = useState({}); // cache: { "word": { pos, meaning, loading, notFound } }
+
+  const handlePopoverWordClick = async (tokText, senseIdx, exIdx, tokenIdx) => {
+    const isOpen = wordPopover && wordPopover.senseIdx === senseIdx && wordPopover.exIdx === exIdx && wordPopover.tokenIdx === tokenIdx;
+    if (isOpen) { setWordPopover(null); return; }
+    setWordPopover({ senseIdx, exIdx, tokenIdx, text: tokText });
+    // If already cached, skip fetch
+    if (popoverWordData[tokText]) return;
+    // Mark as loading
+    setPopoverWordData(prev => ({ ...prev, [tokText]: { loading: true } }));
+    try {
+      const row = await getWordByThai(tokText);
+      if (row) {
+        const firstSense = Array.isArray(row.senses) && row.senses[0] ? row.senses[0] : {};
+        setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: firstSense.pos || "", meaning: firstSense.meaning || "", loading: false } }));
+      } else {
+        setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: "", meaning: "", loading: false, notFound: true } }));
+      }
+    } catch (e) {
+      setPopoverWordData(prev => ({ ...prev, [tokText]: { pos: "", meaning: "", loading: false, notFound: true } }));
+    }
+  };
+
+  const toggleSense = (idx) => {
+    const next = [...expandedSenses];
+    next[idx] = !next[idx];
+    setExpandedSenses(next);
+  };
+
+  /* ── report helpers ── */
+  const openReport = (section) => {
+    setReportSection(reportSection === section ? null : section);
+    setReportItem(null);
+    setReportStatus(null);
+  };
+  const submitReport = (method) => {
+    console.log("[report]", { section: reportSection, item: reportItem, method });
+    setReportStatus("done");
+    setTimeout(() => { setReportSection(null); setReportItem(null); setReportStatus(null); }, 1200);
+  };
+
+  /* ── ReportPopover inline component ── */
+  const ReportPopover = ({ items }) => (
+    <div style={{
+      position: "absolute", top: "100%", right: 0, zIndex: 100,
+      background: "var(--c-surface)", borderRadius: 12, border: `1px solid ${"var(--c-p100)"}`,
+      boxShadow: "0 4px 16px rgba(61,43,31,0.12)", padding: 12, marginTop: 4,
+      minWidth: 220, maxWidth: 300,
+    }}>
+      {reportStatus === "done" ? (
+        <div style={{ textAlign: "center", padding: "8px 0", color: "var(--c-ok)", fontSize: 14, fontWeight: 600 }}>
+          {"已更正 ✓"}
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 12, color: "var(--c-p600)", fontWeight: 600, marginBottom: 8 }}>{"选择错误项"}</div>
+          {items.map((item, idx) => (
+            <div key={idx} onClick={() => setReportItem(idx)} style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "6px 4px",
+              cursor: "pointer", borderRadius: 6, background: reportItem === idx ? "var(--c-p50)" : "transparent",
+            }}>
+              <div style={{
+                width: 16, height: 16, borderRadius: 8,
+                border: `2px solid ${reportItem === idx ? "var(--c-teal)" : "var(--c-s300)"}`,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                {reportItem === idx && <div style={{ width: 8, height: 8, borderRadius: 4, background: "var(--c-teal)" }} />}
+              </div>
+              <span style={{ fontSize: 12, color: "var(--c-p700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <div onClick={() => reportItem !== null && submitReport("ai")} style={{
+              flex: 1, padding: "6px 0", borderRadius: 8, textAlign: "center", fontSize: 11, fontWeight: 600,
+              background: reportItem !== null ? "var(--c-teal)" : "var(--c-p100)", color: reportItem !== null ? "#fff" : "var(--c-s300)",
+              cursor: reportItem !== null ? "pointer" : "default",
+            }}>{"AI 更正"}</div>
+            <div onClick={() => reportItem !== null && submitReport("api")} style={{
+              flex: 1, padding: "6px 0", borderRadius: 8, textAlign: "center", fontSize: 11, fontWeight: 600,
+              background: reportItem !== null ? "var(--c-info)" : "var(--c-p100)", color: reportItem !== null ? "#fff" : "var(--c-s300)",
+              cursor: reportItem !== null ? "pointer" : "default",
+            }}>{"翻译API 更正"}</div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  /* ── 映射表 ── */
+  const sourceMap = {
+    src_words_th: { label: "主词表", bg: "var(--c-infoL)", fg: "var(--c-info)" },
+    src_words_thai2fit: { label: "thai2fit", bg: "var(--c-s100)", fg: "var(--c-s700)" },
+    src_words_orst: { label: "皇家学会", bg: "var(--c-goldL)", fg: "var(--c-gold)" },
+    src_words_volubilis: { label: "Volubilis", bg: "var(--c-tealL)", fg: "var(--c-teal)" },
+    src_words_icu: { label: "ICU 分词", bg: "#E8DEF0", fg: "#7B5EA7" },
+    src_words_wikipedia: { label: "维基百科", bg: "var(--c-errL)", fg: "var(--c-err)" },
+    src_words_etcc: { label: "字符簇", bg: "var(--c-s100)", fg: "var(--c-s500)" },
+  };
+
+  const posColor = (pos) => {
+    if (pos === "动词") return { bg: "var(--c-amberL)", fg: "var(--c-amber)" };
+    if (pos === "名词") return { bg: "var(--c-infoL)", fg: "var(--c-info)" };
+    if (pos === "形容词") return { bg: "var(--c-okL)", fg: "var(--c-ok)" };
+    if (pos === "副词") return { bg: "var(--c-roseL)", fg: "var(--c-rose)" };
+    return { bg: "var(--c-p100)", fg: "var(--c-p700)" };
+  };
+
+  const regColor = (reg) => {
+    if (reg === "通用") return { bg: "var(--c-s100)", fg: "var(--c-s700)" };
+    if (reg === "口语") return { bg: "var(--c-amberL)", fg: "var(--c-amber)" };
+    if (reg === "正式") return { bg: "var(--c-infoL)", fg: "var(--c-info)" };
+    if (reg === "俚语") return { bg: "var(--c-errL)", fg: "var(--c-err)" };
+    if (reg === "书面") return { bg: "#E8DEF0", fg: "#7B5EA7" };
+    return { bg: "var(--c-p100)", fg: "var(--c-p700)" };
+  };
+
+  const sourceIcon = (src) => {
+    if (src === "ai") return "🤖";
+    if (src === "user") return "👤";
+    if (src === "admin") return "✏️";
+    return "";
+  };
+
+  const senseNums = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+
+  const freqEntries = [
+    { key: "ttc", label: "教科书", value: wd.freq_ttc, total: 100000 },
+    { key: "tnc", label: "国家语库", value: wd.freq_tnc, total: 1000000 },
+    { key: "phupha", label: "网络", value: wd.freq_phupha, total: 2000000000 },
+  ];
+  const activeFreq = freqEntries.find(f => f.key === freqTab) || freqEntries[0];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 16px" }}>
+      {/* ── 1. 词条标题 ── */}
+      <Card style={{ padding: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 32, fontWeight: 700, color: "var(--c-p900)", fontFamily: "var(--th-font), serif", letterSpacing: "0.02em" }}>
+                {wd.word}
+              </span>
+              <span style={{ fontSize: 15, color: "var(--c-teal)", fontFamily: "monospace", fontStyle: "italic", letterSpacing: "0.02em" }}>
+                {wd.romanization}
+              </span>
+            </div>
+          </div>
+          {/* 右侧：播放 + 收藏（统一风格） */}
+          <div style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: 10 }}>
+            <div onClick={(e) => { e.stopPropagation(); speak(wd.word, "th-TH", 0.85); }} style={{
+              width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "var(--c-p50)", border: `1px solid ${"var(--c-p200)"}`, cursor: "pointer",
+            }}>
+              <Play size={16} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
+            </div>
+            <div onClick={() => setShowBookmarkModal(true)} style={{
+              width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+              background: bookmarked ? "var(--c-goldL)" : "var(--c-p50)",
+              border: `1px solid ${bookmarked ? "var(--c-gold)" : "var(--c-p200)"}`, cursor: "pointer",
+            }}>
+              <Bookmark size={15} strokeWidth={IW} color={bookmarked ? "var(--c-gold)" : "var(--c-s500)"} fill={bookmarked ? "var(--c-gold)" : "none"} />
+            </div>
+          </div>
+        </div>
+        {/* 来源标签 */}
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8 }}>
+          {wd.romanization_source === "deepseek" && (
+            <Badge bg={"var(--c-infoL)"} fg={"var(--c-info)"} style={{ fontSize: 9, padding: "1px 6px" }}>{"🤖 AI"}</Badge>
+          )}
+          {wd.sources.map((s, i) => {
+            const info = sourceMap[s] || { label: s, bg: "var(--c-p100)", fg: "var(--c-p700)" };
+            return <Badge key={i} bg={info.bg} fg={info.fg} style={{ fontSize: 9, padding: "1px 6px" }}>{info.label}</Badge>;
+          })}
+        </div>
+        {/* 义项数 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+          <Badge bg={"var(--c-surfaceAlt)"} fg={"var(--c-s500)"}>{wd.sense_count} {"个义项"}</Badge>
+        </div>
+      </Card>
+
+      {/* ── 2. 义项列表 ── */}
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <SectionTitle>{"义项"}</SectionTitle>
+          <AlertCircle size={15} strokeWidth={IW} color={reportSection === "sense" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("sense")} />
+        </div>
+        {/* Show AI generate button when word lacks data */}
+        {(!wd.senses || wd.senses.length === 0 || wd.sense_count === 0) && (
+          <Card style={{ padding: 16, textAlign: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: 13, color: "var(--c-s500)", marginBottom: 12 }}>{"该词条暂无释义数据"}</div>
+            <div onClick={() => {
+              if (isSupabaseConfigured) submitWord(wd.word).catch(err => console.error("[submitWord]", err));
+            }} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 20px", borderRadius: 12, cursor: "pointer",
+              background: "var(--c-teal)", color: "#fff", fontSize: 13, fontWeight: 600,
+              fontFamily: "var(--zh-font), sans-serif",
+            }}>
+              <Sparkles size={14} strokeWidth={IW} />
+              {"通过 AI 新增词条信息"}
+            </div>
+          </Card>
+        )}
+        {reportSection === "sense" && (
+          <div style={{ position: "relative", marginBottom: 8 }}>
+            <ReportPopover items={wd.senses.map((s, i) => `${senseNums[i]} ${s.meaning}`)} />
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {wd.senses.map((sense, i) => {
+            const isExpanded = expandedSenses[i];
+            const pc = posColor(sense.pos);
+            const rc = regColor(sense.register);
+            return (
+              <Card key={sense.sense_id} style={{ padding: 0, overflow: "hidden", border: isExpanded ? `1.5px solid ${"var(--c-p200)"}` : `1px solid ${"var(--c-p100)"}` }}>
+                {/* 义项头部 */}
+                <div onClick={() => toggleSense(i)} style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "10px 12px",
+                  cursor: "pointer", background: isExpanded ? "var(--c-p50)" : "var(--c-surface)",
+                  borderBottom: isExpanded ? `1px solid ${"var(--c-p100)"}` : "none",
+                }}>
+                  <span style={{ fontSize: 15, color: "var(--c-p600)", fontWeight: 700, flexShrink: 0 }}>{senseNums[i]}</span>
+                  <Badge bg={pc.bg} fg={pc.fg} style={{ fontSize: 10 }}>{sense.pos}</Badge>
+                  <Badge bg={rc.bg} fg={rc.fg} style={{ fontSize: 10 }}>{sense.register}</Badge>
+                  <span style={{ fontSize: 10, flexShrink: 0 }}>{sourceIcon(sense.source)}</span>
+                  <div style={{ flex: 1 }} />
+                  <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} style={{
+                    transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0,
+                  }} />
+                </div>
+                {isExpanded && (
+                  <div style={{ padding: "12px" }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p800)", lineHeight: 1.5 }}>
+                      {sense.meaning}
+                    </div>
+                    {/* 例句卡片 — with segmentation */}
+                    {sense.examples && sense.examples.length > 0 && (
+                      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                        {sense.examples.map((ex, j) => {
+                          const segTokens = sense.segmented && sense.segmented[j] ? sense.segmented[j] : null;
+                          return (
+                            <div key={j} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--c-surfaceAlt)" }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
+                                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0 }}>
+                                  {segTokens ? segTokens.map((tok, ti) => (
+                                    <span
+                                      key={ti}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePopoverWordClick(tok.text, i, j, ti);
+                                      }}
+                                      style={{
+                                        fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
+                                        fontFamily: "var(--th-font), sans-serif",
+                                        borderBottom: `1px dashed ${"var(--c-teal)"}`,
+                                        cursor: "pointer", padding: "0 2px", lineHeight: 1.8,
+                                      }}
+                                    >{tok.text}</span>
+                                  )) : (
+                                    <span style={{ fontSize: 13, color: "var(--c-teal)", fontWeight: 500, fontFamily: "var(--th-font), sans-serif" }}>{ex.th}</span>
+                                  )}
+                                </div>
+                                <TtsPlay text={ex.th} />
+                                {/* Word token popover — enhanced with DB fetch */}
+                                {wordPopover && wordPopover.senseIdx === i && wordPopover.exIdx === j && (() => {
+                                  const tok = segTokens ? segTokens[wordPopover.tokenIdx] : null;
+                                  const tokText = wordPopover.text || (tok ? tok.text : "");
+                                  const cached = popoverWordData[tokText];
+                                  const dbPos = cached?.pos || (tok?.pos || "");
+                                  const dbMeaning = cached?.meaning || (tok?.meaning || "");
+                                  const isLoading = cached?.loading;
+                                  const notFound = cached?.notFound && !tok?.pos;
+                                  return (
+                                    <div style={{
+                                      position: "absolute", top: "100%", left: Math.min(wordPopover.tokenIdx * 48, 180),
+                                      zIndex: 100, background: "var(--c-surface)", borderRadius: 10,
+                                      border: `1px solid ${"var(--c-p100)"}`, boxShadow: "0 4px 16px rgba(61,43,31,0.15)",
+                                      padding: "8px 12px", marginTop: 4, minWidth: 120, maxWidth: 220,
+                                    }}>
+                                      {/* Word header */}
+                                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif", marginBottom: 4 }}>{tokText}</div>
+                                      {isLoading ? (
+                                        <div style={{ fontSize: 11, color: "var(--c-s400)", padding: "2px 0" }}>{"查询中..."}</div>
+                                      ) : notFound && !dbPos ? (
+                                        <div style={{ fontSize: 11, color: "var(--c-s400)" }}>{"未找到词条"}</div>
+                                      ) : (
+                                        <div style={{ fontSize: 12, color: "var(--c-p700)", lineHeight: 1.5 }}>
+                                          {dbPos && <span style={{ color: "var(--c-teal)", fontWeight: 600, fontSize: 11 }}>{dbPos}</span>}
+                                          {dbPos && dbMeaning && <span style={{ color: "var(--c-s300)" }}>{" · "}</span>}
+                                          {dbMeaning && <span>{dbMeaning}</span>}
+                                        </div>
+                                      )}
+                                      {/* 查看详情 button */}
+                                      {!isLoading && (
+                                        <div onClick={(e) => {
+                                          e.stopPropagation();
+                                          setWordPopover(null);
+                                          if (onWordTap) onWordTap(tokText);
+                                        }} style={{
+                                          marginTop: 6, padding: "4px 8px", borderRadius: 6,
+                                          background: "var(--c-p50)", border: `1px solid ${"var(--c-p200)"}`,
+                                          cursor: "pointer", textAlign: "center",
+                                        }}>
+                                          <span style={{ fontSize: 11, color: "var(--c-teal)", fontWeight: 600 }}>{"查看详情"}</span>
+                                          <ChevronRight size={10} strokeWidth={IW} color={"var(--c-teal)"} style={{ marginLeft: 2, verticalAlign: "middle" }} />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                              <div style={{ fontSize: 12, color: "var(--c-p700)", marginTop: 3 }}>{ex.zh}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── 3. 词频数据 ── */}
+      <div style={{ position: "relative" }}>
+        <Card style={{ padding: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <SectionTitle>{"词频"}</SectionTitle>
+            <AlertCircle size={15} strokeWidth={IW} color={reportSection === "freq" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("freq")} />
+          </div>
+          {reportSection === "freq" && (
+            <div style={{ position: "relative", marginBottom: 8 }}>
+              <ReportPopover items={freqEntries.map(f => `${f.label}: ${f.value ? f.value.toLocaleString() : "—"}`)} />
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 5, marginBottom: 10, background: "var(--c-surfaceAlt)", borderRadius: 8, padding: 2 }}>
+            {freqEntries.map(f => (
+              <div key={f.key} onClick={() => setFreqTab(f.key)} style={{
+                flex: 1, padding: "5px 0", borderRadius: 6, textAlign: "center",
+                background: freqTab === f.key ? "var(--c-surface)" : "transparent",
+                color: freqTab === f.key ? "var(--c-p800)" : "var(--c-s500)",
+                fontSize: 11, fontWeight: freqTab === f.key ? 600 : 400,
+                boxShadow: freqTab === f.key ? "0 1px 3px rgba(61,43,31,0.08)" : "none",
+                cursor: "pointer", fontFamily: "var(--zh-font), sans-serif",
+              }}>{f.label}</div>
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
+            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--c-p800)", fontFamily: "monospace" }}>
+              {activeFreq.value ? activeFreq.value.toLocaleString() : "—"}
+            </span>
+            <span style={{ fontSize: 10, color: "var(--c-s300)" }}>/{activeFreq.total.toLocaleString()}</span>
+          </div>
+          <ProgressBar value={activeFreq.value || 0} max={activeFreq.total} color={"var(--c-teal)"} height={5} />
+          <div style={{ fontSize: 10, color: "var(--c-s300)", marginTop: 4, textAlign: "right" }}>
+            {freqTab === "ttc" ? "教科书词频（学习者最相关）" : freqTab === "tnc" ? "泰国国家语库" : "网络语料库"}
+          </div>
+        </Card>
+      </div>
+
+      {/* ── 4. 近义词 / 反义词 ── */}
+      {(wd.synonyms.length > 0 || wd.antonyms.length > 0) && (
+        <div style={{ position: "relative" }}>
+          <Card style={{ padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <SectionTitle>{"近义/反义"}</SectionTitle>
+              <AlertCircle size={15} strokeWidth={IW} color={reportSection === "syn" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("syn")} />
+            </div>
+            {reportSection === "syn" && (
+              <div style={{ position: "relative", marginBottom: 8 }}>
+                <ReportPopover items={[
+                  ...wd.synonyms.map(s => `近义: ${s.word}`),
+                  ...wd.antonyms.map(a => `反义: ${a.word}`),
+                ]} />
+              </div>
+            )}
+            {wd.synonyms.length > 0 && (
+              <div style={{ marginBottom: wd.antonyms.length > 0 ? 12 : 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-p700)", marginBottom: 8 }}>{"近义词"}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {wd.synonyms.map((w, i) => (
+                    <div key={i} onClick={() => onWordTap && onWordTap(w.word)} style={{
+                      padding: "5px 12px", borderRadius: 20, background: "color-mix(in srgb, var(--c-tealL) 25%, transparent)",
+                      border: `1px solid ${"var(--c-tealL)"}`, fontSize: 13, color: "var(--c-teal)", fontWeight: 500,
+                      fontFamily: "var(--th-font), sans-serif", cursor: "pointer",
+                    }}>
+                      {w.word}
+                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {wd.antonyms.length > 0 && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-p700)", marginBottom: 8 }}>{"反义词"}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {wd.antonyms.map((w, i) => (
+                    <div key={i} onClick={() => onWordTap && onWordTap(w.word)} style={{
+                      padding: "5px 12px", borderRadius: 20, background: "color-mix(in srgb, var(--c-roseL) 25%, transparent)",
+                      border: `1px solid ${"var(--c-roseL)"}`, fontSize: 13, color: "var(--c-rose)", fontWeight: 500,
+                      fontFamily: "var(--th-font), sans-serif", cursor: "pointer",
+                    }}>
+                      {w.word}
+                      <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({w.zh})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ── 5. 学习者关联词 — merged single card ── */}
+      {wd.learner_associations && wd.learner_associations.length > 0 && (
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <SectionTitle>{"关联词汇"}</SectionTitle>
+            <AlertCircle size={15} strokeWidth={IW} color={reportSection === "assoc" ? "var(--c-teal)" : "var(--c-s300)"} style={{ cursor: "pointer" }} onClick={() => openReport("assoc")} />
+          </div>
+          {reportSection === "assoc" && (
+            <div style={{ position: "relative", marginBottom: 8 }}>
+              <ReportPopover items={wd.learner_associations.map(a => `${a.word}: ${a.note}`)} />
+            </div>
+          )}
+          <Card style={{ padding: 0, overflow: "hidden" }}>
+            {wd.learner_associations.map((item, i) => (
+              <div key={i}>
+                <div onClick={() => onWordTap && onWordTap(item.word)} style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                  cursor: "pointer",
+                }}>
+                  <div style={{
+                    fontSize: 15, fontWeight: 700, color: "var(--c-p800)",
+                    fontFamily: "var(--th-font), sans-serif", flexShrink: 0, minWidth: 60,
+                  }}>{item.word}</div>
+                  <div style={{
+                    flex: 1, minWidth: 0, fontSize: 12, color: "var(--c-p600)", lineHeight: 1.4,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>{item.note}</div>
+                  <ChevronRight size={13} strokeWidth={IW} color={"var(--c-s300)"} style={{ flexShrink: 0 }} />
+                </div>
+                {i < wd.learner_associations.length - 1 && (
+                  <div style={{ margin: "0 16px", borderBottom: `1px solid ${"var(--c-p100)"}` }} />
+                )}
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
+
+      {/* ── 6. 用户例句 ── */}
+      {wd.user_sentence_count > 0 && (
+        <Card style={{ padding: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <FileText size={14} strokeWidth={IW} color={"var(--c-p500)"} />
+              <span style={{ fontSize: 12, color: "var(--c-p700)" }}>
+                {"用户贡献了"} {wd.user_sentence_count} {"条例句"}
+              </span>
+            </div>
+            <span style={{ fontSize: 11, color: "var(--c-p500)", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
+              {"查看"} <ChevronRight size={13} strokeWidth={IW} />
+            </span>
+          </div>
+        </Card>
+      )}
+
+      {/* ── Bookmark Word Book Selection Modal ── */}
+      {showBookmarkModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center",
+        }}>
+          <div onClick={() => setShowBookmarkModal(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
+          <div style={{
+            position: "relative", zIndex: 1, width: "100%", maxWidth: 430,
+            background: "var(--c-surface)", borderRadius: "20px 20px 0 0",
+            padding: "20px 20px 32px", maxHeight: "60vh", overflow: "auto",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--c-p800)", margin: 0, fontFamily: "var(--zh-font), serif" }}>
+                {bookmarked ? "管理收藏" : "添加到单词本"}
+              </h3>
+              <div onClick={() => setShowBookmarkModal(false)} style={{ cursor: "pointer", display: "flex" }}>
+                <X size={18} strokeWidth={IW} color={"var(--c-s400)"} />
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {wordBookFolders.map(folder => {
+                const isDefault = folder.name === "默认单词本";
+                return (
+                  <div key={folder.id} onClick={async () => {
+                    if (!bookmarked) {
+                      // Add bookmark + add to folder
+                      setBookmarked(true);
+                      if (userId && userId !== 'anonymous') {
+                        await addBookmark(userId, wd.word);
+                        addWordToFolder(folder.id, wd.word);
+                        setLastUsedFolder(folder.id);
+                        saveUserSettings(userId, { last_folder_id: folder.id });
+                      }
+                    }
+                    setShowBookmarkModal(false);
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                    borderRadius: 12, background: "var(--c-surfaceAlt)",
+                    border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
+                  }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: folder.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 14, color: "var(--c-p800)", fontWeight: 500 }}>
+                      {folder.name}{isDefault ? " (默认)" : ""}
+                    </span>
+                    {lastUsedFolder === folder.id && (
+                      <span style={{ fontSize: 10, color: "var(--c-s400)" }}>上次使用</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {bookmarked && (
+              <div onClick={async () => {
+                setBookmarked(false);
+                if (userId && userId !== 'anonymous') {
+                  await removeBookmark(userId, wd.word);
+                }
+                setShowBookmarkModal(false);
+              }} style={{
+                marginTop: 16, padding: "12px 0", borderRadius: 12, textAlign: "center",
+                fontSize: 14, fontWeight: 600, color: "var(--c-err)",
+                background: "var(--c-errL)", cursor: "pointer",
+              }}>
+                取消收藏
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WordDetailPage;

@@ -1,0 +1,368 @@
+import { useState } from "react";
+import {
+  signInWithEmail, signUpWithEmail, signInWithOAuth, verifyEmailOtp,
+} from "../lib/supabase.js";
+import { Eye, EyeOff } from "lucide-react";
+import { GoogleBrandIcon, GitHubBrandIcon } from "../icons/BrandIcons";
+import { Logo } from "../icons/CulturalIcons";
+
+const IW = 1.5;
+
+const LoginPage = () => {
+  const [loginMode, setLoginMode] = useState("login"); // "login" | "register"
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [verifyMessage, setVerifyMessage] = useState("");
+  const [registerStep, setRegisterStep] = useState("form"); // "form" | "verify"
+  const [verifyCode, setVerifyCode] = useState("");
+
+  const isRegister = loginMode === "register";
+
+  const switchMode = () => {
+    setLoginMode(isRegister ? "login" : "register");
+    setError(""); setVerifyMessage(""); setConfirmPwd("");
+    setRegisterStep("form"); setVerifyCode("");
+  };
+
+  const handleCredentialLogin = async () => {
+    setError(""); setVerifyMessage("");
+    if (!email.trim() || !password.trim()) { setError("请填写完整信息"); return; }
+    setLoading(true);
+    try {
+      const { data, error: err } = await signInWithEmail(email, password);
+      if (err) {
+        if (err.includes("Invalid login") || err.includes("Email not confirmed")) {
+          setError("邮箱或密码错误，或邮箱未验证");
+        } else {
+          setError(err);
+        }
+      }
+      // On success, AuthContext (via onAuthStateChange) handles state update automatically
+    } catch (e) {
+      setError("登录失败，请重试");
+    }
+    setLoading(false);
+  };
+
+  const handleRegister = async () => {
+    setError(""); setVerifyMessage("");
+    if (!email.trim() || !password.trim()) { setError("请填写完整信息"); return; }
+    if (password !== confirmPwd) { setError("两次输入的密码不一致"); return; }
+    if (password.length < 6) { setError("密码至少需要 6 位"); return; }
+    setLoading(true);
+    try {
+      const { data, error: err } = await signUpWithEmail(email, password, username);
+      if (err) {
+        if (err.includes("already registered")) {
+          setError("该邮箱已注册，请直接登录");
+        } else {
+          setError(err);
+        }
+      } else if (data?.user && !data?.session) {
+        // Email verification required
+        setRegisterStep("verify");
+        setVerifyMessage("验证码已发送到您的邮箱，请查收并输入");
+      }
+      // On success with session, AuthContext handles state update automatically
+    } catch (e) {
+      console.error("[Register]", e);
+      setError("注册失败，请重试");
+    }
+    setLoading(false);
+  };
+
+  const handleVerify = async () => {
+    setError(""); setVerifyMessage("");
+    if (!verifyCode.trim()) { setError("请输入验证码"); return; }
+    setLoading(true);
+    try {
+      const { data, error: err } = await verifyEmailOtp(email, verifyCode.trim());
+      if (err) {
+        setError(err);
+      }
+      // On success, AuthContext handles state update automatically
+    } catch (e) {
+      setError("验证失败，请重试");
+    }
+    setLoading(false);
+  };
+
+  const handleOAuth = async (provider) => {
+    setError(""); setVerifyMessage("");
+    setLoading(true);
+    try {
+      const { error: err } = await signInWithOAuth(provider);
+      if (err) {
+        console.error(`[OAuth ${provider}]`, err);
+        setError("第三方登录失败，请重试");
+      }
+      // On success, the browser will redirect to the OAuth provider
+    } catch (e) {
+      console.error(`[OAuth ${provider}]`, e);
+      setError("第三方登录失败，请重试");
+    }
+    setLoading(false);
+  };
+
+  const containerStyle = {
+    maxWidth: 430, margin: "0 auto", minHeight: "100vh",
+    background: "var(--c-bg)", fontFamily: "var(--zh-font), var(--th-font), sans-serif",
+    color: "var(--c-p800)", display: "flex", flexDirection: "column",
+  };
+
+  const oauthProviders = [
+    { key: "google", label: "Google", Icon: GoogleBrandIcon },
+    { key: "github", label: "GitHub", Icon: GitHubBrandIcon },
+  ];
+
+  const inputStyle = {
+    width: "100%", padding: "14px 16px", borderRadius: 12,
+    border: `1px solid ${"var(--c-p200)"}`, background: "var(--c-surface)",
+    fontSize: 15, color: "var(--c-p800)", outline: "none",
+    fontFamily: "var(--zh-font), sans-serif", boxSizing: "border-box",
+    transition: "border-color 0.2s",
+  };
+
+  return (
+    <div style={containerStyle}>
+      <div style={{ height: 44, flexShrink: 0 }} />
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "0 28px", gap: 0 }}>
+        {/* Brand */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <Logo size={40} color={"var(--c-p600)"} />
+          <div style={{ fontSize: 26, fontWeight: 800, color: "var(--c-p900)", marginTop: 10, fontFamily: "var(--zh-font), serif", letterSpacing: 2 }}>
+            词笺
+          </div>
+          <div style={{ fontSize: 13, color: "var(--c-s400)", marginTop: 4 }}>
+            中泰双语智能词典
+          </div>
+        </div>
+
+        {/* ── OAuth circular buttons ── */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20 }}>
+          {oauthProviders.map(({ key, label, Icon: OIcon }) => (
+            <div key={key} onClick={() => handleOAuth(key)} style={{
+              width: 56, height: 56, borderRadius: "50%",
+              border: `1.5px solid ${key === "google" ? "var(--c-p100)" : "var(--c-p200)"}`,
+              background: key === "google" ? "#fff" : "var(--c-surface)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", transition: "all 0.2s",
+              boxShadow: key === "google" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = key === "google" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"; }}
+            title={`${label} 登录 / 注册`}
+            >
+              <OIcon size={22} />
+            </div>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 20px 0" }}>
+          <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
+          <span style={{ fontSize: 12, color: "var(--c-s300)" }}>或使用邮箱</span>
+          <div style={{ flex: 1, height: 1, background: "var(--c-p100)" }} />
+        </div>
+
+        {/* ── Verify step (after registration email sent) ── */}
+        {isRegister && registerStep === "verify" ? (
+          <>
+            <div style={{ textAlign: "center", padding: "12px 16px", marginBottom: 16, borderRadius: 10, background: "var(--c-infoL)" }}>
+              <div style={{ fontSize: 13, color: "var(--c-info)", fontWeight: 500 }}>
+                验证码已发送到 <strong>{email}</strong>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--c-s400)", marginTop: 4 }}>
+                请查收邮箱并输入6位验证码
+              </div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verifyCode}
+                onChange={e => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="请输入6位验证码"
+                onKeyDown={e => e.key === "Enter" && handleVerify()}
+                style={{ ...inputStyle, textAlign: "center", fontSize: 20, letterSpacing: 8, fontWeight: 700 }}
+                onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+                autoFocus
+              />
+            </div>
+            {error && (
+              <div style={{
+                fontSize: 12, color: "var(--c-err)", textAlign: "center", padding: "8px 12px",
+                background: "var(--c-errL)", borderRadius: 8, marginBottom: 4,
+              }}>{error}</div>
+            )}
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              style={{
+                width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
+                background: "var(--c-p800)", color: "#fff", fontSize: 15, fontWeight: 600,
+                cursor: loading ? "wait" : "pointer", marginTop: 8,
+                fontFamily: "var(--zh-font), sans-serif", transition: "background 0.2s",
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? "验证中..." : "验证并注册"}
+            </button>
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--c-s400)" }}>没有收到？</span>
+              <span onClick={() => handleRegister()} style={{
+                fontSize: 12, color: "var(--c-p600)", fontWeight: 600, cursor: "pointer", marginLeft: 4,
+              }}>重新发送</span>
+            </div>
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <span onClick={() => { setRegisterStep("form"); setVerifyCode(""); setError(""); }} style={{
+                fontSize: 12, color: "var(--c-s400)", cursor: "pointer",
+              }}>返回修改信息</span>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Email input */}
+            <div style={{ marginBottom: 12 }}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="邮箱地址"
+                onKeyDown={e => e.key === "Enter" && !isRegister && handleCredentialLogin()}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+              />
+            </div>
+
+            {/* Username field (register mode only, optional) */}
+            {isRegister && (
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  placeholder="用户名（可选）"
+                  style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                  onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+                />
+              </div>
+            )}
+
+            {/* Password field */}
+            <div style={{ marginBottom: 12, position: "relative" }}>
+              <input
+                type={showPwd ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="密码"
+                onKeyDown={e => e.key === "Enter" && !isRegister && handleCredentialLogin()}
+                style={{ ...inputStyle, paddingRight: 44 }}
+                onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+              />
+              <div onClick={() => setShowPwd(!showPwd)} style={{
+                position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+                cursor: "pointer", display: "flex", alignItems: "center",
+              }}>
+                {showPwd
+                  ? <EyeOff size={18} strokeWidth={IW} color={"var(--c-s400)"} />
+                  : <Eye size={18} strokeWidth={IW} color={"var(--c-s400)"} />}
+              </div>
+            </div>
+
+            {/* Confirm password (register mode only) */}
+            {isRegister && (
+              <div style={{ marginBottom: 12, position: "relative" }}>
+                <input
+                  type={showConfirmPwd ? "text" : "password"}
+                  value={confirmPwd}
+                  onChange={e => setConfirmPwd(e.target.value)}
+                  placeholder="确认密码"
+                  onKeyDown={e => e.key === "Enter" && handleRegister()}
+                  style={{ ...inputStyle, paddingRight: 44 }}
+                  onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
+                  onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
+                />
+                <div onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{
+                  position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+                  cursor: "pointer", display: "flex", alignItems: "center",
+                }}>
+                  {showConfirmPwd
+                    ? <EyeOff size={18} strokeWidth={IW} color={"var(--c-s400)"} />
+                    : <Eye size={18} strokeWidth={IW} color={"var(--c-s400)"} />}
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div style={{
+                fontSize: 12, color: "var(--c-err)", textAlign: "center", padding: "8px 12px",
+                background: "var(--c-errL)", borderRadius: 8, marginBottom: 4,
+              }}>{error}</div>
+            )}
+
+            {/* Verify message */}
+            {verifyMessage && (
+              <div style={{
+                fontSize: 12, color: "var(--c-info)", textAlign: "center", padding: "8px 12px",
+                background: "var(--c-infoL)", borderRadius: 8, marginBottom: 4,
+              }}>{verifyMessage}</div>
+            )}
+
+            {/* Action button */}
+            <button
+              onClick={isRegister ? handleRegister : handleCredentialLogin}
+              disabled={loading}
+              style={{
+            width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
+            background: "var(--c-p800)", color: "#fff", fontSize: 15, fontWeight: 600,
+            cursor: loading ? "wait" : "pointer", marginTop: 8,
+            fontFamily: "var(--zh-font), sans-serif", transition: "background 0.2s",
+            opacity: loading ? 0.7 : 1,
+          }}
+        >
+          {loading
+            ? (isRegister ? "注册中..." : "登录中...")
+            : (isRegister ? "创建账号" : "登录")}
+        </button>
+          </>
+        )}
+
+        {/* Mode toggle */}
+        <div style={{ textAlign: "center", margin: "16px 0" }}>
+          <span style={{ fontSize: 13, color: "var(--c-s400)" }}>
+            {isRegister ? "已有账号？" : "还没有账号？"}
+          </span>
+          <span onClick={switchMode} style={{
+            fontSize: 13, color: "var(--c-p600)", fontWeight: 600, cursor: "pointer", marginLeft: 4,
+          }}>{isRegister ? "立即登录" : "创建账号"}</span>
+        </div>
+
+        {/* Footer */}
+        <div style={{ textAlign: "center", marginTop: "auto", paddingBottom: 28, paddingTop: 20 }}>
+          <span style={{ fontSize: 11, color: "var(--c-s300)" }}>
+            {isRegister ? "注册" : "登录"}即表示同意
+          </span>
+          <span style={{ fontSize: 11, color: "var(--c-p500)", cursor: "pointer" }}> 服务条款</span>
+          <span style={{ fontSize: 11, color: "var(--c-s300)" }}> 和 </span>
+          <span style={{ fontSize: 11, color: "var(--c-p500)", cursor: "pointer" }}>隐私政策</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage;
