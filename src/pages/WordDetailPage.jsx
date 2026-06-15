@@ -574,32 +574,27 @@ const WordDetailPage = ({ wordData }) => {
           </div>
         )}
         {wd.learner_associations && wd.learner_associations.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {wd.learner_associations.map((item, i) => (
-              <Card key={i} style={{
-                padding: 14,
-                background: "color-mix(in srgb, var(--c-info) 2%, transparent)",
-                border: `1px solid ${"color-mix(in srgb, var(--c-info) 9%, transparent)"}`,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: 6,
-                    background: `linear-gradient(135deg, ${"var(--c-info)"}, ${"var(--c-teal)"})`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <Sparkles size={12} strokeWidth={IW} color="#fff" />
-                  </div>
-                  <span style={{
-                    fontSize: 13, fontWeight: 600, color: "var(--c-p800)",
-                    fontFamily: "var(--th-font), sans-serif",
-                  }}>{item.word}</span>
+          <Card style={{ padding: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: `linear-gradient(135deg, ${"var(--c-info)"}, ${"var(--c-teal)"})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Sparkles size={12} strokeWidth={IW} color="#fff" />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-p800)" }}>{"学习者建议"}</span>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {wd.learner_associations.map((item, i) => (
+                <div key={i} onClick={() => onWordTap && onWordTap(item.word)} style={{
+                  display: "inline-flex", alignItems: "center", padding: "5px 12px",
+                  borderRadius: 20, background: "color-mix(in srgb, var(--c-infoL) 25%, transparent)",
+                  border: `1px solid ${"color-mix(in srgb, var(--c-info) 20%, transparent)"}`,
+                  cursor: "pointer", transition: "all 0.15s",
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "var(--c-info)", fontFamily: "var(--th-font), sans-serif" }}>{item.word}</span>
+                  {item.note && <span style={{ fontSize: 11, color: "var(--c-s500)", fontWeight: 400, marginLeft: 4 }}>({item.note})</span>}
                 </div>
-                <div style={{ fontSize: 13, color: "var(--c-p700)", lineHeight: 1.7 }}>
-                  {item.note}
-                </div>
-              </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          </Card>
         ) : (
           <Card style={{ padding: 16, textAlign: "center" }}>
             <div style={{ fontSize: 13, color: "var(--c-s500)", marginBottom: 12 }}>{"暂无学习者建议数据"}</div>

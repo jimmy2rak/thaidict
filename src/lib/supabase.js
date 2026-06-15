@@ -436,6 +436,64 @@ export async function removeWordFromFolder(folderId, word) {
   return true
 }
 
+// ── Sentence Folders ──
+
+export async function getFolderSentences(folderId) {
+  if (!supabase || !folderId) return []
+  const { data, error } = await supabase
+    .from('user_folder_sentences')
+    .select('*, sentences(*)')
+    .eq('folder_id', folderId)
+    .order('created_at', { ascending: false })
+  if (error) { console.error('[supabase] getFolderSentences:', error.message); return [] }
+  return data || []
+}
+
+export async function addSentenceToFolder(folderId, sentenceId) {
+  if (!supabase || !folderId) return null
+  const { data, error } = await supabase
+    .from('user_folder_sentences')
+    .upsert({ folder_id: folderId, sentence_id: sentenceId }, { onConflict: 'folder_id,sentence_id' })
+    .select()
+    .single()
+  if (error) { console.error('[supabase] addSentenceToFolder:', error.message); return null }
+  return data
+}
+
+export async function removeSentenceFromFolder(folderId, sentenceId) {
+  if (!supabase || !folderId) return false
+  const { error } = await supabase
+    .from('user_folder_sentences')
+    .delete()
+    .eq('folder_id', folderId)
+    .eq('sentence_id', sentenceId)
+  if (error) { console.error('[supabase] removeSentenceFromFolder:', error.message); return false }
+  return true
+}
+
+export async function createDefaultFolders(userId) {
+  if (!supabase || !userId) return null
+  // Call RPC function if available, otherwise insert manually
+  try {
+    const { data, error } = await supabase.rpc('create_default_folders', { p_user_id: userId })
+    if (error) {
+      // Fallback: manual insert
+      await supabase.from('user_folders').upsert([
+        { user_id: userId, name: '我的单词', color: '#5B8C7E', folder_type: 'word' },
+        { user_id: userId, name: '我的句子', color: '#C4993D', folder_type: 'sentence' },
+      ], { onConflict: 'user_id,name' })
+    }
+  } catch (e) {
+    // RPC not available yet — manual insert
+    await supabase.from('user_folders').upsert([
+      { user_id: userId, name: '我的单词', color: '#5B8C7E', folder_type: 'word' },
+      { user_id: userId, name: '我的句子', color: '#C4993D', folder_type: 'sentence' },
+    ], { onConflict: 'user_id,name' })
+  }
+  // Refresh folders
+  return getFolders(userId)
+}
+
 // ── Learning Plans ──
 
 export async function getLearningPlan(userId) {

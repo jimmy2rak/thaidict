@@ -164,7 +164,7 @@ export const tooltipArrowStyle = (position, bgColor = "var(--c-p800)") => {
   return { ...base, top: -6, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderBottom: `6px solid ${bgColor}` };
 };
 
-/* Reusable word token span with inline tooltip + arrow + dynamic above/below positioning */
+/* Reusable word token span with FIXED-position tooltip + arrow + dynamic above/below positioning */
 export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bgColor = "var(--c-p800)" }) => {
   const handleClick = (e) => {
     e.stopPropagation();
@@ -175,25 +175,54 @@ export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bg
     onTipChange({ id: tipId, text: seg.text, pos: seg.pos, meaning: seg.meaning, rect, position });
   };
 
+  // Calculate fixed-position coordinates for the tooltip
+  let tooltipStyle = {};
+  let arrowStyleBase = {};
+  if (activeTip?.id === tipId && activeTip?.rect) {
+    const { rect, position } = activeTip;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const wordCenterX = rect.left + rect.width / 2;
+    // Clamp tooltip center so it doesn't go off-screen edges
+    const clampedCenter = Math.max(80, Math.min(wordCenterX, vw - 80));
+    if (position === "above") {
+      tooltipStyle = {
+        position: "fixed",
+        top: rect.top - 12,
+        left: clampedCenter,
+        transform: "translateX(-50%) translateY(-100%)",
+      };
+      arrowStyleBase = { bottom: -6, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: `6px solid ${bgColor}` };
+    } else {
+      tooltipStyle = {
+        position: "fixed",
+        top: rect.bottom + 12,
+        left: clampedCenter,
+        transform: "translateX(-50%)",
+      };
+      arrowStyleBase = { top: -6, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderBottom: `6px solid ${bgColor}` };
+    }
+  }
+
   return (
     <span style={{ position: "relative", display: "inline" }}>
       <span onClick={handleClick} style={{
         cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
         textUnderlineOffset: 3, color: "var(--c-p900)",
       }}>{seg.text}</span>
-      {activeTip?.id === tipId && (
+      {activeTip?.id === tipId && activeTip?.rect && (
         <div onClick={(e) => e.stopPropagation()} style={{
-          position: "absolute",
-          ...(activeTip.position === "above"
-            ? { bottom: "100%", marginBottom: 8 }
-            : { top: "100%", marginTop: 8 }
-          ),
-          left: "50%", transform: "translateX(-50%)",
+          ...tooltipStyle,
           background: bgColor, color: "#fff", padding: "6px 10px", borderRadius: 8,
-          fontSize: 11, whiteSpace: "nowrap", zIndex: 50,
+          fontSize: 11, whiteSpace: "nowrap", zIndex: 1000,
           boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          maxWidth: window.innerWidth - 16,
         }}>
-          <div style={tooltipArrowStyle(activeTip.position, bgColor)} />
+          <div style={{
+            position: "absolute", width: 0, height: 0,
+            left: "50%", transform: "translateX(-50%)",
+            ...arrowStyleBase,
+          }} />
           <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
           {seg.meaning || seg.text}
           <div onClick={(ev) => { ev.stopPropagation(); onTipChange(null); onDetail(seg.text); }} style={{
@@ -208,5 +237,5 @@ export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bg
 /* Fixed-position dismiss overlay for tooltips — renders at component level */
 export const TooltipDismissOverlay = ({ active, onDismiss }) => {
   if (!active) return null;
-  return <div onClick={onDismiss} style={{ position: "fixed", inset: 0, zIndex: 999 }} />;
+  return <div onClick={onDismiss} style={{ position: "fixed", inset: 0, zIndex: 990 }} />;
 };
