@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
-import { Card, Btn, SectionTitle, ProgressBar } from "../components/UIComponents";
+import { Card, Btn, SectionTitle, ProgressBar, WordTokenSpan, TooltipDismissOverlay } from "../components/UIComponents";
 import { exercises } from "../data/mockData";
 import {
-  getLearningPlan, getNotes,
+  getLearningPlan, getNotes, createNote, updateNote,
   getCheckinTasks, getCheckinCompletions, toggleCheckinTaskCompletion,
 } from "../lib/supabase.js";
 import {
@@ -42,6 +42,7 @@ const LearnPage = () => {
   const [noteEditorFrom, setNoteEditorFrom] = useState("main");
   const [selectedPhrase, setSelectedPhrase] = useState(null);
   const [phraseWordTip, setPhraseWordTip] = useState(null);
+  const [editingNote, setEditingNote] = useState(null);
   const [planData, setPlanData] = useState(null);
   const [notesData, setNotesData] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
@@ -79,6 +80,14 @@ const LearnPage = () => {
     getNotes(userId).then(setNotesData);
     fetchTodayTasks();
   }, [userId]); // eslint-disable-line
+
+  /* ── Scroll dismissal for word tooltip ── */
+  useEffect(() => {
+    if (!phraseWordTip) return;
+    const dismiss = () => setPhraseWordTip(null);
+    window.addEventListener('scroll', dismiss, true);
+    return () => window.removeEventListener('scroll', dismiss, true);
+  }, [phraseWordTip]);
 
   const toggleTask = async (taskId) => {
     const prev = todayTasks.find(t => t.id === taskId);
@@ -121,8 +130,33 @@ const LearnPage = () => {
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           {section === "adjustPlan" && <AdjustPlanSection />}
-          {section === "notesDetail" && <NotesDetailSection onEditNote={() => { setNoteEditorFrom("notesDetail"); setSection("noteEditor"); }} notes={notesData} />}
-          {section === "noteEditor" && <NoteEditorSection />}
+          {section === "notesDetail" && <NotesDetailSection
+            onEditNote={() => { setEditingNote(null); setNoteEditorFrom("notesDetail"); setSection("noteEditor"); }}
+            onEditNoteWith={(note) => { setEditingNote(note); setNoteEditorFrom("notesDetail"); setSection("noteEditor"); }}
+            notes={notesData}
+          />}
+          {section === "noteEditor" && <NoteEditorSection
+            noteId={editingNote?.id}
+            initialTitle={editingNote?.title}
+            initialContent={editingNote?.content}
+            initialColor={editingNote?.color}
+            onSaveSuccess={async (data, existingId) => {
+              try {
+                if (existingId) {
+                  await updateNote(existingId, data);
+                } else {
+                  await createNote(userId, data.title, data.content, data.color);
+                }
+              } catch (e) {
+                console.error("[onSaveSuccess]", e);
+              }
+              // Refresh notes list
+              const refreshed = await getNotes(userId);
+              setNotesData(refreshed);
+              setEditingNote(null);
+              setSection(noteEditorFrom);
+            }}
+          />}
           {section === "morphology" && <MorphologySection />}
           {section === "stats" && <StatsSection />}
           {section === "phrases" && <PhrasesSection onSelectPhrase={(p) => { setSelectedPhrase(p); setSection("phraseDetail"); }} />}
@@ -267,7 +301,7 @@ const LearnPage = () => {
         </Card>
 
         {/* Add new note button */}
-        <div onClick={() => { setNoteEditorFrom("main"); setSection("noteEditor"); }} style={{
+        <div onClick={() => { setNoteEditorFrom("main"); setEditingNote(null); setSection("noteEditor"); }} style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           padding: "12px 0", marginBottom: 10, borderRadius: 12,
           border: `1.5px dashed ${"var(--c-p300)"}`, background: "var(--c-surface)",
@@ -295,7 +329,17 @@ const LearnPage = () => {
                 return new Date(note.created_at).toLocaleDateString();
               })() : "";
               return (
-              <Card key={note.id || i} style={{ padding: 16 }} onClick={() => { setNoteEditorFrom("main"); setSection("noteEditor"); }}>
+              <Card key={note.id || i} style={{ padding: 16 }} onClick={() => {
+                if (note.id) {
+                  setEditingNote(note);
+                  setNoteEditorFrom("main");
+                  setSection("noteEditor");
+                } else {
+                  setEditingNote(null);
+                  setNoteEditorFrom("main");
+                  setSection("noteEditor");
+                }
+              }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <div style={{ width: 4, height: 48, borderRadius: 2, background: noteColor, flexShrink: 0, marginTop: 2 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -362,28 +406,10 @@ const LearnPage = () => {
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{"\u5E38\u7528\u8BED"}</div>
                 <div style={{ fontSize: 14, fontFamily: "var(--th-font), sans-serif", display: "flex", flexWrap: "wrap", gap: 0, lineHeight: 1.8 }}>
                   {PHRASE_PREVIEW.segmented.map((seg, i) => (
-                    <span key={i} style={{ position: "relative", display: "inline" }}>
-                      <span onClick={(e) => { e.stopPropagation(); setPhraseWordTip(phraseWordTip?.id === `lp-${i}` ? null : { id: `lp-${i}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
-                        cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
-                        textUnderlineOffset: 3, color: "var(--c-p900)",
-                      }}>{seg.text}</span>
-                      {phraseWordTip?.id === `lp-${i}` && (
-                        <div onClick={(e) => e.stopPropagation()} style={{
-                          position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
-                          background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
-                          fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                        }}>
-                          <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
-                          {seg.meaning}
-                          <div onClick={(ev) => { ev.stopPropagation(); setPhraseWordTip(null); handleWordTap(seg.text); }} style={{
-                            marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
-                          }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
-                        </div>
-                      )}
-                    </span>
+                    <WordTokenSpan key={i} seg={seg} tipId={`lp-${i}`} activeTip={phraseWordTip} onTipChange={setPhraseWordTip} onDetail={handleWordTap} />
                   ))}
                 </div>
+                <TooltipDismissOverlay active={phraseWordTip} onDismiss={() => setPhraseWordTip(null)} />
                 <div style={{ fontSize: 12, color: "var(--c-p600)", marginTop: 2 }}>{PHRASE_PREVIEW.zh}</div>
               </div>
             </div>

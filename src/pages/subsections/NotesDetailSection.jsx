@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const IW = 1.5;
 
-const NotesDetailSection = ({ onEditNote, notes = [] }) => {
+const NotesDetailSection = ({ onEditNote, onEditNoteWith, notes = [] }) => {
   useAppContext();
   const [monthIdx, setMonthIdx] = useState(0);
   const months = ["2025\u5E746\u6708", "2025\u5E745\u6708", "2025\u5E744\u6708"];
@@ -57,7 +57,13 @@ const NotesDetailSection = ({ onEditNote, notes = [] }) => {
             {/* Date label */}
             <div style={{ fontSize: 11, color: "var(--c-s300)", marginBottom: 6, fontWeight: 500 }}>{note.date}</div>
             {/* Note card */}
-            <Card style={{ padding: 14 }} onClick={onEditNote}>
+            <Card style={{ padding: 14 }} onClick={() => {
+              if (onEditNoteWith && notes[i]) {
+                onEditNoteWith(notes[i]);
+              } else {
+                onEditNote();
+              }
+            }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <div style={{ width: 4, height: 40, borderRadius: 2, background: note.color, flexShrink: 0, marginTop: 2 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>

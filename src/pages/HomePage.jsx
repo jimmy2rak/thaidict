@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Search, Mic, X, Play, RefreshCw, Sparkles, ChevronRight, Bookmark, CalendarCheck } from "lucide-react";
-import { Card, Badge, StatCard, SectionTitle } from "../components/UIComponents";
+import { Card, Badge, StatCard, SectionTitle, WordTokenSpan, TooltipDismissOverlay } from "../components/UIComponents";
 import {
   isSupabaseConfigured,
   loadDailyPick, refreshDailyPick, getRecentWords,
@@ -74,6 +74,14 @@ const HomePage = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, [query]);
+
+  /* ── Scroll dismissal for word tooltip ── */
+  useEffect(() => {
+    if (!sentenceWordTip) return;
+    const dismiss = () => setSentenceWordTip(null);
+    window.addEventListener('scroll', dismiss, true);
+    return () => window.removeEventListener('scroll', dismiss, true);
+  }, [sentenceWordTip]);
 
   /* ── Display helpers ── */
   const dw = dailyData;
@@ -258,56 +266,19 @@ const HomePage = () => {
                     const dss = Array.isArray(dailySentenceEnriched.segmented) && dailySentenceEnriched.segmented.length > 0 ? dailySentenceEnriched.segmented : null;
                     if (dss) {
                       return dss.map((seg, j) => (
-                        <span key={j} style={{ position: "relative", display: "inline" }}>
-                          <span onClick={(e) => { e.stopPropagation(); setSentenceWordTip(sentenceWordTip?.id === `ds-${j}` ? null : { id: `ds-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
-                            cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
-                            textUnderlineOffset: 3, color: "var(--c-p900)",
-                          }}>{seg.text}</span>
-                          {sentenceWordTip?.id === `ds-${j}` && (
-                            <div onClick={(e) => e.stopPropagation()} style={{
-                              position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
-                              background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
-                              fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                            }}>
-                              <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
-                              {seg.meaning}
-                              <div onClick={(ev) => { ev.stopPropagation(); setSentenceWordTip(null); handleWordTap(seg.text); }} style={{
-                                marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
-                              }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
-                            </div>
-                          )}
-                        </span>
+                        <WordTokenSpan key={j} seg={seg} tipId={`ds-${j}`} activeTip={sentenceWordTip} onTipChange={setSentenceWordTip} onDetail={handleWordTap} />
                       ));
                     }
                     const segFallback = thaiSegment(dailySentenceEnriched.text);
                     if (segFallback.length > 1) {
                       return segFallback.map((seg, j) => (
-                        <span key={j} style={{ position: "relative", display: "inline" }}>
-                          <span onClick={(e) => { e.stopPropagation(); setSentenceWordTip(sentenceWordTip?.id === `ds-${j}` ? null : { id: `ds-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
-                            cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
-                            textUnderlineOffset: 3, color: "var(--c-p900)",
-                          }}>{seg.text}</span>
-                          {sentenceWordTip?.id === `ds-${j}` && (
-                            <div onClick={(e) => e.stopPropagation()} style={{
-                              position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
-                              background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
-                              fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                            }}>
-                              <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
-                              {seg.meaning || seg.text}
-                              <div onClick={(ev) => { ev.stopPropagation(); setSentenceWordTip(null); handleWordTap(seg.text); }} style={{
-                                marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
-                              }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
-                            </div>
-                          )}
-                        </span>
+                        <WordTokenSpan key={j} seg={seg} tipId={`ds-${j}`} activeTip={sentenceWordTip} onTipChange={setSentenceWordTip} onDetail={handleWordTap} />
                       ));
                     }
                     return <span>{dailySentenceEnriched.text}</span>;
                   })()}
                 </div>
+                <TooltipDismissOverlay active={sentenceWordTip} onDismiss={() => setSentenceWordTip(null)} />
                 <div onClick={(e) => { e.stopPropagation(); speak(dailySentenceEnriched.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
                   <Play size={14} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
                 </div>

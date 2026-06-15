@@ -22,7 +22,7 @@ export default function App() {
     page, setPage,
     detailWord, setDetailWord,
     unknownWord, setUnknownWord,
-    selectedSentence,
+    selectedSentence, setSelectedSentence,
     generatedWords, dbWordData, detailLoading,
     navForward, goBack, goForward, resetNav,
     handleWordTap,

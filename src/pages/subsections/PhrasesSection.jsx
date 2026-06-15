@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAppContext } from "../../context/AppContext";
-import { Card } from "../../components/UIComponents";
+import { Card, WordTokenSpan, TooltipDismissOverlay } from "../../components/UIComponents";
 import {
   isSupabaseConfigured,
   getSentencesByCategory,
@@ -49,6 +49,7 @@ const PhrasesSection = ({ onSelectPhrase }) => {
             literal: r.literal_meaning || '',
             actual: r.actual_meaning || '',
             tip: r.learner_tip || '',
+            tags: Array.isArray(r.tags) ? r.tags : [],
             dbId: r.id,
             category: r.category,
           };
@@ -68,6 +69,14 @@ const PhrasesSection = ({ onSelectPhrase }) => {
       setBookmarks(bm);
     });
   }, [userId]);
+
+  /* ── Scroll dismissal for word tooltip ── */
+  useEffect(() => {
+    if (!wordTip) return;
+    const dismiss = () => setWordTip(null);
+    window.addEventListener('scroll', dismiss, true);
+    return () => window.removeEventListener('scroll', dismiss, true);
+  }, [wordTip]);
 
   // Use DB data with fallback to hardcoded
   const list = dbSentences[cat] || phraseData[cat] || [];
@@ -122,28 +131,10 @@ const PhrasesSection = ({ onSelectPhrase }) => {
               <div onClick={() => onSelectPhrase(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                 <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", lineHeight: 1.5 }}>
                   {p.segmented && p.segmented.length > 0 ? p.segmented.map((seg, j) => (
-                    <span key={j} style={{ position: "relative", display: "inline" }}>
-                      <span onClick={(e) => { e.stopPropagation(); setWordTip(wordTip?.id === `${p.id}-${j}` ? null : { id: `${p.id}-${j}`, text: seg.text, pos: seg.pos, meaning: seg.meaning }); }} style={{
-                        cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
-                        textUnderlineOffset: 3, color: "var(--c-p900)",
-                      }}>{seg.text}</span>
-                      {wordTip?.id === `${p.id}-${j}` && (
-                        <div style={{
-                          position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
-                          background: "var(--c-p800)", color: "#fff", padding: "6px 10px", borderRadius: 8,
-                          fontSize: 11, whiteSpace: "nowrap", zIndex: 50, marginBottom: 4,
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                        }}>
-                          <span style={{ color: "var(--c-gold)", fontStyle: "italic", marginRight: 6 }}>{seg.pos}</span>
-                          {seg.meaning}
-                          <div onClick={(e) => { e.stopPropagation(); setWordTip(null); handleWordTap(seg.text); }} style={{
-                            marginTop: 4, fontSize: 10, color: "var(--c-teal)", cursor: "pointer", textAlign: "center",
-                          }}>{"\u67E5\u770B\u8BE6\u60C5 \u203A"}</div>
-                        </div>
-                      )}
-                    </span>
+                    <WordTokenSpan key={j} seg={seg} tipId={`${p.id}-${j}`} activeTip={wordTip} onTipChange={setWordTip} onDetail={handleWordTap} />
                   )) : <span>{p.text}</span>}
                 </div>
+                <TooltipDismissOverlay active={wordTip} onDismiss={() => setWordTip(null)} />
                 <div style={{ fontSize: 13, color: "var(--c-s500)", lineHeight: 1.4, marginTop: 4 }}>{p.zh}</div>
               </div>
               {/* Action buttons */}

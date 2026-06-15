@@ -1,112 +1,163 @@
-import { useState, useRef } from "react";
-import { useAppContext } from "../../context/AppContext";
+import { useState, useRef, useEffect } from "react";
 import { Card, Btn } from "../../components/UIComponents";
-import { Upload } from "lucide-react";
-import { createNote } from "../../lib/supabase.js";
+import { Bold, Italic, Strikethrough, Heading1, Heading2, List, Quote, Code, Upload, Image } from "lucide-react";
+import { createNote, updateNote } from "../../lib/supabase.js";
 
 const IW = 1.5;
 
-const NoteEditorSection = ({ webdavConnected }) => {
-  const { userId, goBack } = useAppContext();
-  const [noteTitle, setNoteTitle] = useState("泰语动词时态笔记");
-  const [noteContent, setNoteContent] = useState("\u6CF0\u8BED\u6CA1\u6709\u4F20\u7EDF\u610F\u4E49\u7684\u65F6\u6001\u53D8\u5316\uFF0C\u800C\u662F\u901A\u8FC7\u52A9\u8BCD\u6765\u8868\u8FBE\u65F6\u95F4\u6982\u5FF5\u3002\n\n\u73B0\u5728\u65F6\uFF1A\u57FA\u672C\u5F62\u5F0F\n\u8FC7\u53BB\u65F6\uFF1A\u4F7F\u7528\u52A9\u8BCD \u0E44\u0E14\u0E49 (dai) \u8868\u793A\u52A8\u4F5C\u5DF2\u5B8C\u6210\u3002\n\n\u5E38\u7528\u65F6\u6001\u52A9\u8BCD\uFF1A\n- \u0E44\u0E14\u0E49 (dai) \u2014 \u8FC7\u53BB/\u5B8C\u6210\n- \u0E01\u0E33\u0E25\u0E31\u0E07 (gam-lang) \u2014 \u6B63\u5728\u8FDB\u884C\n- \u0E08\u0E30 (ja) \u2014 \u5C06\u6765/\u5C06\u8981\n- \u0E41\u0E25\u0E49\u0E27 (laew) \u2014 \u5DF2\u7ECF\u5B8C\u6210");
-  const [noteColor, setNoteColor] = useState("var(--c-info)");
+/* Markdown formatting toolbar button */
+const MdBtn = ({ icon: Icon, label, onClick, active }) => (
+  <div onClick={onClick} style={{
+    width: 32, height: 32, borderRadius: 8,
+    background: active ? "color-mix(in srgb, var(--c-teal) 12%, transparent)" : "var(--c-surfaceAlt)",
+    border: `1px solid ${active ? "var(--c-teal)" : "var(--c-p100)"}`,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer", transition: "all 0.15s",
+  }}>
+    {Icon ? <Icon size={14} strokeWidth={IW} color={active ? "var(--c-teal)" : "var(--c-p700)"} /> : <span style={{ fontSize: 11, fontWeight: 600, color: active ? "var(--c-teal)" : "var(--c-p700)" }}>{label}</span>}
+  </div>
+);
+
+const NoteEditorSection = ({ noteId, initialTitle, initialContent, initialColor, onSaveSuccess }) => {
+  const [noteTitle, setNoteTitle] = useState(initialTitle || "");
+  const [noteContent, setNoteContent] = useState(initialContent || "");
+  const [noteColor, setNoteColor] = useState(initialColor || "#5B7E9E");
   const [savingNote, setSavingNote] = useState(false);
+  const textareaRef = useRef(null);
   const noteImageRef = useRef(null);
+
+  const COLORS = ["#5B7E9E", "#C4993D", "#D4845A", "#5B8C7E", "#B56576", "#6B8F5E"];
+
+  /* Insert markdown syntax into textarea at cursor position */
+  const insertMarkdown = (prefix, suffix = "", block = false) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = noteContent.slice(start, end);
+    const before = noteContent.slice(0, start);
+    const after = noteContent.slice(end);
+    let insertion;
+    if (block) {
+      // Block-level: insert on new line
+      const needNewline = before.length > 0 && !before.endsWith("\n");
+      insertion = `${needNewline ? "\n" : ""}${prefix}${selected}${suffix}\n`;
+    } else {
+      insertion = `${prefix}${selected || "文字"}${suffix}`;
+    }
+    const newContent = before + insertion + after;
+    setNoteContent(newContent);
+    // Set cursor position after insertion
+    setTimeout(() => {
+      const cursorPos = block ? start + insertion.length : start + prefix.length + (selected ? selected.length : 2);
+      textarea.focus();
+      textarea.setSelectionRange(cursorPos, cursorPos + (selected ? 0 : 2));
+    }, 0);
+  };
+
+  const mdActions = [
+    { icon: Bold, action: () => insertMarkdown("**", "**") },
+    { icon: Italic, action: () => insertMarkdown("*", "*") },
+    { icon: Strikethrough, action: () => insertMarkdown("~", "~") },
+    { icon: Heading1, action: () => insertMarkdown("# ", "", true) },
+    { icon: Heading2, action: () => insertMarkdown("## ", "", true) },
+    { icon: List, action: () => insertMarkdown("- ", "", true) },
+    { icon: Quote, action: () => insertMarkdown("> ", "", true) },
+    { icon: Code, action: () => insertMarkdown("```\n", "\n```", true) },
+    { icon: Image, action: () => noteImageRef.current?.click() },
+  ];
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!webdavConnected) {
-      alert("请先在「我的」页面配置 WebDAV 后再上传图片");
-      e.target.value = "";
-      return;
-    }
+    // For now, insert markdown image placeholder
+    // Future: implement actual upload to Supabase storage
     const imgMarkdown = `\n![${file.name}](pending-upload)\n`;
-    setNoteContent(prev => prev + imgMarkdown);
+    insertMarkdown(imgMarkdown, "", true);
     e.target.value = "";
   };
 
   const handleSaveNote = async () => {
-    if (!userId || userId === 'anonymous') { goBack && goBack(); return; }
     if (!noteTitle.trim()) return;
     setSavingNote(true);
     try {
-      await createNote(userId, noteTitle, noteContent, noteColor);
+      // Let parent handle both create and update + navigation + refresh
+      await onSaveSuccess?.({ title: noteTitle, content: noteContent, color: noteColor }, noteId);
     } catch (e) {
-      console.error("[createNote]", e);
+      console.error("[saveNote]", e);
     }
     setSavingNote(false);
-    goBack && goBack();
   };
 
+  /* Auto-focus title on mount for new notes */
+  useEffect(() => {
+    if (!noteId && !initialTitle) {
+      // New note — focus is ready
+    }
+  }, []);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 16px" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "0 16px 16px" }}>
       {/* Title */}
       <input
         value={noteTitle}
         onChange={e => setNoteTitle(e.target.value)}
+        placeholder={"输入笔记标题..."}
         style={{
           fontSize: 22, fontWeight: 700, color: "var(--c-p800)", fontFamily: "var(--zh-font), serif",
           padding: "4px 0", border: "none", background: "transparent", outline: "none",
-          width: "100%",
+          width: "100%", flexShrink: 0,
         }}
       />
 
-      {/* Toolbar */}
-      <div style={{
-        display: "flex", gap: 6, padding: "8px 0",
-        borderBottom: `1px solid ${"var(--c-p100)"}`, flexWrap: "wrap",
-        alignItems: "center",
-      }}>
-        {[
-          { label: "B", style: { fontWeight: 700 } },
-          { label: "I", style: { fontStyle: "italic" } },
-          { label: "H1", style: { fontWeight: 700, fontSize: 11 } },
-          { label: "H2", style: { fontWeight: 600, fontSize: 11 } },
-          { label: "\u2022", style: { fontSize: 16 } },
-          { label: "\u201C", style: { fontSize: 16, fontWeight: 600 } },
-          { label: "{}", style: { fontFamily: "monospace", fontSize: 11 } },
-        ].map((btn, i) => (
-          <div key={i} style={{
-            width: 28, height: 28, borderRadius: 6,
-            background: "var(--c-surfaceAlt)", border: `1px solid ${"var(--c-p100)"}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", fontSize: 13, color: "var(--c-p700)", ...btn.style,
-          }}>{btn.label}</div>
-        ))}
-        <input ref={noteImageRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} />
-        <div onClick={() => noteImageRef.current?.click()} style={{
-          width: 28, height: 28, borderRadius: 6,
-          background: "var(--c-surfaceAlt)", border: `1px solid ${"var(--c-p100)"}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer", marginLeft: "auto",
-        }}>
-          <Upload size={14} strokeWidth={IW} color={"var(--c-p700)"} />
-        </div>
-      </div>
-
-      {/* Editor area - editable content */}
-      <Card style={{ padding: 18, flex: 1, minHeight: 320 }}>
+      {/* Editor textarea — this is the main editing area */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 8 }}>
         <textarea
+          ref={textareaRef}
           value={noteContent}
           onChange={e => setNoteContent(e.target.value)}
-          placeholder={"\u5728\u8FD9\u91CC\u8F93\u5165\u7B14\u8BB0\u5185\u5BB9..."}
+          placeholder={"在这里输入笔记内容... (支持 Markdown 格式)"}
           style={{
-            width: "100%", minHeight: 280, border: "none", outline: "none",
+            flex: 1, width: "100%", minHeight: 160, border: "none", outline: "none",
             background: "transparent", resize: "none",
             fontSize: 14, color: "var(--c-p700)", lineHeight: 1.8,
             fontFamily: "var(--zh-font), sans-serif",
+            padding: 0,
           }}
         />
-      </Card>
+      </div>
 
-      {/* Bottom bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {/* Markdown toolbar + image upload — BELOW textarea, follows IME */}
+      <div style={{
+        display: "flex", gap: 4, padding: "10px 0 6px", flexWrap: "wrap",
+        alignItems: "center", borderTop: `1px solid ${"var(--c-p100)"}`, flexShrink: 0,
+      }}>
+        {mdActions.map((btn, i) => (
+          <MdBtn key={i} icon={btn.icon} onClick={btn.action} />
+        ))}
+        {/* Hidden file input for image upload */}
+        <input ref={noteImageRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} />
+      </div>
+
+      {/* Color picker */}
+      <div style={{ display: "flex", gap: 8, padding: "6px 0", alignItems: "center", flexShrink: 0 }}>
+        <span style={{ fontSize: 12, color: "var(--c-s500)", marginRight: 4 }}>{"颜色"}</span>
+        {COLORS.map(c => (
+          <div key={c} onClick={() => setNoteColor(c)} style={{
+            width: 22, height: 22, borderRadius: 6, background: c,
+            border: noteColor === c ? `2px solid ${c}` : `1px solid var(--c-p200)`,
+            cursor: "pointer", transition: "all 0.15s",
+            boxShadow: noteColor === c ? `0 0 0 2px var(--c-surface), 0 0 0 4px ${c}` : "none",
+          }} />
+        ))}
+      </div>
+
+      {/* Save button */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, paddingTop: 4 }}>
         <Btn variant="primary" onClick={handleSaveNote} style={{ flex: 1, opacity: savingNote ? 0.6 : 1 }}>
-          {savingNote ? "\u4FDD\u5B58\u4E2D..." : "\u4FDD\u5B58"}
+          {savingNote ? "保存中..." : "保存"}
         </Btn>
-        <span style={{ fontSize: 11, color: "var(--c-s300)", marginLeft: 12 }}>Markdown {"\u683C\u5F0F"}</span>
+        <span style={{ fontSize: 11, color: "var(--c-s300)", marginLeft: 12 }}>Markdown 格式</span>
       </div>
     </div>
   );
