@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
-import { Search, ChevronRight, Star, BookOpen, Plus, Check, X, Folder, Pencil, Trash2, Bookmark, ChevronDown, XCircle } from "lucide-react";
+import { ChevronRight, Star, BookOpen, Plus, Check, X, Pencil, Trash2, Bookmark, ChevronDown, XCircle } from "lucide-react";
 import { Card, Badge, ProgressBar } from "../components/UIComponents";
 import { wordBooks } from "../data/mockData";
 import {
   isSupabaseConfigured,
-  getUserRecentWords, getBookmarks, getFolders,
+  getUserRecentWords, getFolders,
   createFolder, renameFolder, deleteFolder,
   createDefaultFolders,
-  getBookmarkedSentences,
-  getFolderWords, addWordToFolder, removeWordFromFolder,
-  getFolderSentences, addSentenceToFolder, removeSentenceFromFolder,
-  transformSearchResult,
+  getFolderWords, removeWordFromFolder,
+  getFolderSentences, removeSentenceFromFolder,
+  transformSearchResult, getWordsByThaiList,
 } from "../lib/supabase.js";
 
 const IW = 1.5;
@@ -38,7 +37,7 @@ const WordBookPage = () => {
     if (!userId || userId === 'anonymous') return;
     if (!isSupabaseConfigured) return;
     getUserRecentWords(userId, 20).then(rows => {
-      setRecentData((rows || []).map(transformSearchResult).filter(Boolean));
+      setRecentData(rows || []); // getUserRecentWords already transforms internally
     });
     // Create default folders if none exist, then fetch
     getFolders(userId).then(rows => {
@@ -115,8 +114,17 @@ const WordBookPage = () => {
     setExpandedId(folderId);
     if (isSupabaseConfigured) {
       if (folderType === 'word') {
-        getFolderWords(folderId).then(words => {
-          setFolderContents(prev => ({ ...prev, [folderId]: (words || []).map(transformSearchResult).filter(Boolean) }));
+        getFolderWords(folderId).then(async words => {
+          const wordTexts = (words || []).map(w => w.word);
+          if (wordTexts.length === 0) {
+            setFolderContents(prev => ({ ...prev, [folderId]: [] }));
+            return;
+          }
+          // Fetch full dictionary data for all words in this folder
+          const dictData = await getWordsByThaiList(wordTexts);
+          const dictMap = new Map(dictData.map(r => [r.word, r]));
+          const enriched = wordTexts.map(w => dictMap.get(w) || { word: w, meaning: '', pos: '', sense_count: 0 });
+          setFolderContents(prev => ({ ...prev, [folderId]: enriched }));
         });
       } else {
         getFolderSentences(folderId).then(rows => {

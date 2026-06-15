@@ -125,6 +125,19 @@ export async function getWordByThai(word) {
 }
 
 /**
+ * Fetch dictionary data for multiple Thai words at once
+ */
+export async function getWordsByThaiList(words) {
+  if (!supabase || !words || words.length === 0) return []
+  const { data, error } = await supabase
+    .from('dictionary_full')
+    .select('*')
+    .in('word', words)
+  if (error) { console.error('[supabase] getWordsByThaiList:', error.message); return [] }
+  return (data || []).map(transformSearchResult).filter(Boolean)
+}
+
+/**
  * Get daily word (random enriched entry)
  */
 export async function getDailyWord() {
@@ -1055,7 +1068,7 @@ export async function getDailySentence(category = null) {
 /**
  * Get sentences by category
  */
-export async function getSentencesByCategory(category, limit = 50) {
+export async function getSentencesByCategory(category, limit = 1000) {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('sentences')

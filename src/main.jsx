@@ -60,12 +60,35 @@ function AuthProvider({ children }) {
   )
 }
 
+/* ── Error Boundary to prevent white screen crashes ── */
+class ErrorBoundary extends React.Component {
+  state = { hasError: false, error: null }
+  static getDerivedStateFromError(error) { return { hasError: true, error } }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center', color: '#5B3A29', fontFamily: 'system-ui' }}>
+          <h2 style={{ fontSize: 18 }}>页面出现错误</h2>
+          <p style={{ fontSize: 13, color: '#999' }}>{this.state.error?.message || '未知错误'}</p>
+          <button onClick={() => this.setState({ hasError: false, error: null })} style={{
+            padding: '10px 20px', borderRadius: 8, background: '#5B8C7E', color: '#fff',
+            border: 'none', cursor: 'pointer', fontSize: 14,
+          }}>重新加载</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <AppProvider>
-        <App />
-      </AppProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <App />
+        </AppProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 )

@@ -29,6 +29,7 @@ const HomePage = () => {
   const [streak, setStreak] = useState(0);
   const [dictCount, setDictCount] = useState(null);
   const [sentenceWordTip, setSentenceWordTip] = useState(null);
+  const [sentenceFlipped, setSentenceFlipped] = useState(false);
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [monthlyCheckinDays, setMonthlyCheckinDays] = useState(0);
 
@@ -243,70 +244,91 @@ const HomePage = () => {
           )}
         </Card>
 
-        {/* Daily Sentence */}
-        <Card onClick={() => { if (dailySentenceEnriched && setSelectedSentence) setSelectedSentence(dailySentenceEnriched); }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <Badge bg={"color-mix(in srgb, var(--c-teal) 15%, transparent)"} fg={"var(--c-teal)"}>{"\u6BCF\u65E5\u4E00\u53E5"}</Badge>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {dailySentenceEnriched?.category && (
-                <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>
-                  {dailySentenceEnriched.category === "idioms" ? "俗语" : dailySentenceEnriched.category === "buddhist" ? "佛教用语" : "日常用语"}
-                </Badge>
-              )}
-              <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}>
-                <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: sentenceRefreshing ? "spin 0.8s linear infinite" : "none" }} />
+        {/* Daily Sentence — flip card style */}
+        {dailySentenceEnriched && (
+          <div style={{ position: "relative" }}>
+            <div onClick={() => { if (setSelectedSentence) setSelectedSentence(dailySentenceEnriched); }} style={{
+              perspective: 600, cursor: "pointer", minHeight: 90,
+            }}>
+              <div style={{
+                position: "relative", width: "100%", minHeight: 90,
+                transformStyle: "preserve-3d", transition: "transform 0.5s ease",
+                transform: sentenceFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+              }}>
+                {/* Front: Thai text */}
+                <div style={{
+                  position: "absolute", inset: 0, backfaceVisibility: "hidden",
+                  background: "var(--c-surface)", borderRadius: 16,
+                  border: `1px solid ${"var(--c-p100)"}`, padding: 20,
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 4 }}>
+                    <Badge bg={"color-mix(in srgb, var(--c-teal) 15%, transparent)"} fg={"var(--c-teal)"}>{"每日一句"}</Badge>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {dailySentenceEnriched?.category && (
+                        <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>
+                          {dailySentenceEnriched.category === "idioms" ? "俗语" : dailySentenceEnriched.category === "buddhist" ? "佛教用语" : "日常用语"}
+                        </Badge>
+                      )}
+                      <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{ cursor: "pointer", display: "flex" }}>
+                        <RefreshCw size={14} strokeWidth={IW} color={"var(--c-s400)"} style={{ animation: sentenceRefreshing ? "spin 0.8s linear infinite" : "none" }} />
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: 18, fontWeight: 600, color: "var(--c-p900)",
+                    fontFamily: "var(--th-font), sans-serif", textAlign: "center", lineHeight: 1.5,
+                  }}>{dailySentenceEnriched.text}</span>
+                  <div onClick={(e) => { e.stopPropagation(); setSentenceFlipped(f => !f); }} style={{
+                    fontSize: 11, color: "var(--c-s300)", cursor: "pointer",
+                    padding: "3px 10px", borderRadius: 8, background: "var(--c-surfaceAlt)",
+                  }}>翻转查看释义 ↻</div>
+                </div>
+                {/* Back: Chinese meaning */}
+                <div style={{
+                  position: "absolute", inset: 0, backfaceVisibility: "hidden",
+                  transform: "rotateY(180deg)",
+                  background: "color-mix(in srgb, var(--c-gold) 6%, var(--c-surface))",
+                  borderRadius: 16, border: `1px solid ${"color-mix(in srgb, var(--c-gold) 15%, transparent)"}`,
+                  padding: 20, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+                }}>
+                  <Badge bg={"color-mix(in srgb, var(--c-gold) 15%, transparent)"} fg={"var(--c-gold)"}>{"释义"}</Badge>
+                  <span style={{
+                    fontSize: 16, fontWeight: 600, color: "var(--c-p800)",
+                    fontFamily: "var(--zh-font), sans-serif", textAlign: "center", lineHeight: 1.5,
+                  }}>{dailySentenceEnriched.actual_meaning || dailySentenceEnriched.literal_meaning || ''}</span>
+                  <div onClick={(e) => { e.stopPropagation(); setSentenceFlipped(f => !f); }} style={{
+                    fontSize: 11, color: "var(--c-s300)", cursor: "pointer",
+                    padding: "3px 10px", borderRadius: 8, background: "var(--c-surfaceAlt)",
+                  }}>翻转 ↻</div>
+                </div>
+              </div>
+            </div>
+            {/* Action buttons overlay */}
+            <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 4, zIndex: 5 }}>
+              <div onClick={(e) => { e.stopPropagation(); speak(dailySentenceEnriched.text, "th-TH", 0.85); }} style={{
+                width: 28, height: 28, borderRadius: 8, background: "var(--c-surfaceAlt)",
+                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+              }}>
+                <Play size={13} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
               </div>
             </div>
           </div>
-          {dailySentenceEnriched ? (
-            <>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", flex: 1, lineHeight: 1.8 }}>
-                  {(() => {
-                    const dss = Array.isArray(dailySentenceEnriched.segmented) && dailySentenceEnriched.segmented.length > 0 ? dailySentenceEnriched.segmented : null;
-                    if (dss) {
-                      return dss.map((seg, j) => (
-                        <WordTokenSpan key={j} seg={seg} tipId={`ds-${j}`} activeTip={sentenceWordTip} onTipChange={setSentenceWordTip} onDetail={handleWordTap} />
-                      ));
-                    }
-                    const segFallback = thaiSegment(dailySentenceEnriched.text);
-                    if (segFallback.length > 1) {
-                      return segFallback.map((seg, j) => (
-                        <WordTokenSpan key={j} seg={seg} tipId={`ds-${j}`} activeTip={sentenceWordTip} onTipChange={setSentenceWordTip} onDetail={handleWordTap} />
-                      ));
-                    }
-                    return <span>{dailySentenceEnriched.text}</span>;
-                  })()}
-                </div>
-                <TooltipDismissOverlay active={sentenceWordTip} onDismiss={() => setSentenceWordTip(null)} />
-                <div onClick={(e) => { e.stopPropagation(); speak(dailySentenceEnriched.text, "th-TH", 0.85); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, marginTop: 2 }}>
-                  <Play size={14} strokeWidth={IW} color={"var(--c-teal)"} fill={"var(--c-teal)"} />
-                </div>
-              </div>
-              {dailySentenceEnriched.actual_meaning && (
-                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentenceEnriched.actual_meaning}</div>
-              )}
-              {!dailySentenceEnriched.actual_meaning && dailySentenceEnriched.literal_meaning && (
-                <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 8, lineHeight: 1.5 }}>{dailySentenceEnriched.literal_meaning}</div>
-              )}
-            </>
-          ) : (
-            <div style={{ padding: "12px 0", textAlign: "center" }}>
-              <div style={{ fontSize: 13, color: "var(--c-s300)", marginBottom: 8, lineHeight: 1.5 }}>
-                {"每日推荐尚未生成"}
-              </div>
-              <div onClick={(e) => { e.stopPropagation(); loadRandomSentence(); }} style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 18px", borderRadius: 10, cursor: "pointer",
-                background: "color-mix(in srgb, var(--c-teal) 12%, transparent)",
-                border: `1px dashed ${"var(--c-teal)"}`,
-              }}>
-                <Sparkles size={12} strokeWidth={IW} color={"var(--c-teal)"} />
-                <span style={{ fontSize: 12, color: "var(--c-teal)", fontWeight: 600 }}>{"生成今日推荐"}</span>
-              </div>
+        )}
+        {!dailySentenceEnriched && (
+          <Card style={{ padding: 20, textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: "var(--c-s300)", marginBottom: 8 }}>{"每日推荐尚未生成"}</div>
+            <div onClick={() => loadRandomSentence()} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 18px", borderRadius: 10, cursor: "pointer",
+              background: "color-mix(in srgb, var(--c-teal) 12%, transparent)",
+              border: `1px dashed ${"var(--c-teal)"}`,
+            }}>
+              <Sparkles size={12} strokeWidth={IW} color={"var(--c-teal)"} />
+              <span style={{ fontSize: 12, color: "var(--c-teal)", fontWeight: 600 }}>{"生成今日推荐"}</span>
             </div>
-          )}
-        </Card>
+          </Card>
+        )}
 
         {/* Recent words from Supabase */}
         {recentData.length > 0 && (
