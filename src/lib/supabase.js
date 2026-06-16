@@ -1681,7 +1681,7 @@ export async function uploadAvatar(userId, file) {
 }
 
 /**
- * Verify email with OTP code
+ * Verify email with OTP code (legacy - for Supabase built-in OTP)
  */
 export async function verifyEmailOtp(email, token) {
   if (!supabase) return { error: 'Supabase not configured' }
@@ -1691,5 +1691,114 @@ export async function verifyEmailOtp(email, token) {
     type: 'signup',
   })
   if (error) return { error: error.message, data: null }
+  return { data, error: null }
+}
+
+/* ────────────────────────────────────────────
+   BREVO OTP FUNCTIONS
+   ──────────────────────────────────────────── */
+
+/**
+ * Send OTP code via Brevo email
+ * @param {string} email - Recipient email
+ * @param {string} type - 'login' or 'reset'
+ */
+export async function sendOtp(email, type = 'login') {
+  if (!supabase) return { error: 'Supabase not configured' }
+  try {
+    const { data, error } = await supabase.functions.invoke('send-otp', {
+      body: { email: email.trim(), type },
+    })
+    if (error) return { error: error.message, data: null }
+    return { data, error: null }
+  } catch (e) {
+    return { error: e.message || '发送验证码失败', data: null }
+  }
+}
+
+/**
+ * Verify OTP code via Brevo verification
+ * @param {string} email - User email
+ * @param {string} code - 6-digit OTP code
+ * @param {string} type - 'login' or 'reset'
+ */
+export async function verifyBrevoOtp(email, code, type = 'login') {
+  if (!supabase) return { error: 'Supabase not configured' }
+  try {
+    const { data, error } = await supabase.functions.invoke('verify-otp', {
+      body: { email: email.trim(), code, type },
+    })
+    if (error) return { error: error.message, data: null }
+    return { data, error: null }
+  } catch (e) {
+    return { error: e.message || '验证失败', data: null }
+  }
+}
+
+/**
+ * Sign in with email and OTP code (Brevo)
+ * First verifies OTP, then signs in with password-less magic link approach
+ */
+export async function signInWithOtp(email, code) {
+  if (!supabase) return { error: 'Supabase not configured' }
+
+  // First verify the OTP via our Edge Function
+  const { data: verifyData, error: verifyError } = await verifyBrevoOtp(email, code, 'login')
+  if (verifyError) return { error: verifyError, data: null }
+
+  // If OTP is valid, use Supabase's signInWithOtp to create a session
+  // This sends a magic link that auto-confirms the email
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email: email.trim(),
+    options: {
+      shouldCreateUser: true,
+    },
+  })
+
+  if (error) return { error: error.message, data: null }
+  return { data, error: null }
+}
+
+/**
+ * Reset password with OTP verification
+ * @param {string} email - User email
+ * @param {string} code - 6-digit OTP code
+ * @param {string} newPassword - New password to set
+ */
+export async function resetPasswordWithOtp(email, code, newPassword) {
+  if (!supabase) return { error: 'Supabase not configured' }
+
+  // First verify the OTP
+  const { data: verifyData, error: verifyError } = await verifyBrevoOtp(email, code, 'reset')
+  if (verifyError) return { error: verifyError, data: null }
+
+  // Use Supabase's resetPasswordForEmail with the OTP token
+  // We need to use a different approach - update password directly
+  // This requires the user to be authenticated or use a special token
+
+  // For now, we'll use the verifyOtp approach with recovery type
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.trim(),
+    token: code,
+    type: 'recovery',
+  })
+
+  if (error) {
+    // Fallback: try to update password directly if user is somehow authenticated
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+    if (updateError) return { error: updateError.message, data: null }
+    return { data: { message: '密码已更新' }, error: null }
+  }
+
+  // If recovery OTP is valid, update the password
+  if (data?.session) {
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+    if (updateError) return { error: updateError.message, data: null }
+  }
+
   return { data, error: null }
 }

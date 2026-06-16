@@ -1,5 +1,5 @@
 import { useAppContext, AppProvider } from "./context/AppContext.jsx";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Logo, PalmLeafBook, LotusLamp, BuddhaHead } from "./icons/CulturalIcons.jsx";
 import { Card } from "./components/UIComponents.jsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -11,6 +11,7 @@ import UnknownWordPage from "./pages/UnknownWordPage.jsx";
 import LearnPage from "./pages/LearnPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import SentenceDetail from "./components/SentenceDetail.jsx";
 
 const IW = 1.5;
@@ -27,6 +28,9 @@ export default function App() {
     navForward, goBack, goForward, resetNav,
     handleWordTap,
   } = useAppContext();
+
+  // Auth page state: "login" | "reset-password"
+  const [authPage, setAuthPage] = useState("login");
 
   /* ── Dynamic viewport height for bottom address bar adaptation ── */
   useEffect(() => {
@@ -60,7 +64,12 @@ export default function App() {
     );
   }
 
-  if (!isLoggedIn) return <LoginPage />;
+  if (!isLoggedIn) {
+    if (authPage === "reset-password") {
+      return <ResetPasswordPage onNavigate={(page) => setAuthPage(page)} />;
+    }
+    return <LoginPage onNavigate={(page) => setAuthPage(page)} />;
+  }
 
   const hasOverlay = !!unknownWord || !!detailWord || !!selectedSentence;
 
