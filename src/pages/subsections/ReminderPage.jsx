@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppContext } from "../../context/AppContext";
 import { Card, Btn } from "../../components/UIComponents";
 import {
@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight,
   Bell, BellOff, Mail, Clock, Send, Check,
   BookOpen, PenTool, FileText, Volume2, MessageCircle, PlusCircle,
-  Sparkles, AlertCircle, CheckCircle2,
+  AlertCircle, CheckCircle2,
 } from "lucide-react";
 
 const IW = 1.5;
@@ -24,30 +24,6 @@ const TASK_TYPE_META = {
   "写作": { icon: PenTool, color: "var(--c-err)" },
   "自定义": { icon: PlusCircle, color: "var(--c-p500)" },
 };
-
-const EMAIL_TEMPLATES = [
-  {
-    id: "classic",
-    name: "经典简洁",
-    desc: "干净清爽，信息一目了然",
-    color: "var(--c-teal)",
-    icon: Mail,
-  },
-  {
-    id: "warm",
-    name: "温暖柔和",
-    desc: "温馨配色，柔和的提醒",
-    color: "var(--c-gold)",
-    icon: Sparkles,
-  },
-  {
-    id: "modern",
-    name: "现代极简",
-    desc: "深色表头，现代设计感",
-    color: "var(--c-p700)",
-    icon: Bell,
-  },
-];
 
 const TIME_OPTIONS = [];
 for (let h = 0; h < 24; h++) {
@@ -76,12 +52,12 @@ const ReminderPage = ({ onBack }) => {
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderEmail, setReminderEmail] = useState("");
   const [reminderTime, setReminderTime] = useState("08:00");
-  const [reminderTemplate, setReminderTemplate] = useState("modern");
   const [todayTasks, setTodayTasks] = useState([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const defaultEmail = supaUser?.email || "";
 
@@ -92,17 +68,17 @@ const ReminderPage = ({ onBack }) => {
         if (s.reminder_enabled !== undefined) setReminderEnabled(s.reminder_enabled);
         if (s.reminder_email) setReminderEmail(s.reminder_email);
         if (s.reminder_time) setReminderTime(s.reminder_time);
-        if (s.reminder_template) setReminderTemplate(s.reminder_template);
       }
+      setSettingsLoaded(true);
     });
     fetchTodayTasks();
   }, [userId]);
 
   useEffect(() => {
-    if (!reminderEmail && defaultEmail) {
+    if (settingsLoaded && !reminderEmail && defaultEmail) {
       setReminderEmail(defaultEmail);
     }
-  }, [defaultEmail]);
+  }, [defaultEmail, settingsLoaded]);
 
   const fetchTodayTasks = async () => {
     if (!userId || userId === "anonymous") {
@@ -131,31 +107,26 @@ const ReminderPage = ({ onBack }) => {
     setTasksLoading(false);
   };
 
-  const saveSetting = (key, value) => {
+  const saveAllSettings = (updates) => {
     if (userId && userId !== "anonymous") {
-      saveUserSettings(userId, { [key]: value });
+      saveUserSettings(userId, updates);
     }
   };
 
   const handleToggle = (val) => {
     setReminderEnabled(val);
-    saveSetting("reminder_enabled", val);
+    saveAllSettings({ reminder_enabled: val });
   };
 
   const handleEmailChange = (val) => {
     setReminderEmail(val);
-    saveSetting("reminder_email", val);
+    saveAllSettings({ reminder_email: val });
   };
 
   const handleTimeChange = (val) => {
     setReminderTime(val);
     setShowTimePicker(false);
-    saveSetting("reminder_time", val);
-  };
-
-  const handleTemplateChange = (val) => {
-    setReminderTemplate(val);
-    saveSetting("reminder_template", val);
+    saveAllSettings({ reminder_time: val });
   };
 
   const handleTestSend = async () => {
@@ -169,7 +140,7 @@ const ReminderPage = ({ onBack }) => {
     try {
       const result = await sendReminder({
         email: reminderEmail.trim(),
-        template: reminderTemplate,
+        template: "modern",
         tasks: todayTasks.map((t) => ({
           name: t.task_name,
           type: t.task_type,
@@ -300,7 +271,7 @@ const ReminderPage = ({ onBack }) => {
                   padding: "10px 14px", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   borderBottom: "1px solid var(--c-p100)",
-                  background: reminderTime === opt.value ? "var(--c-teal)08" : "transparent",
+                  background: reminderTime === opt.value ? "color-mix(in srgb, var(--c-teal) 5%, transparent)" : "transparent",
                   transition: "background 0.15s",
                 }}
               >
@@ -315,56 +286,6 @@ const ReminderPage = ({ onBack }) => {
             ))}
           </div>
         )}
-      </Card>
-
-      {/* Email Template Selection */}
-      <Card style={{ padding: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <Sparkles size={16} strokeWidth={IW} color="var(--c-p500)" />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)" }}>邮件样式</span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {EMAIL_TEMPLATES.map((tpl) => {
-            const Icon = tpl.icon;
-            const active = reminderTemplate === tpl.id;
-            return (
-              <div
-                key={tpl.id}
-                onClick={() => handleTemplateChange(tpl.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "14px 16px", borderRadius: 12, cursor: "pointer",
-                  border: active ? `2px solid ${tpl.color}` : "1.5px solid var(--c-p100)",
-                  background: active ? `color-mix(in srgb, ${tpl.color} 6%, transparent)` : "var(--c-surface)",
-                  transition: "all 0.2s",
-                }}
-              >
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  background: `color-mix(in srgb, ${tpl.color} 12%, transparent)`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  <Icon size={16} strokeWidth={IW} color={tpl.color} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: active ? "var(--c-p800)" : "var(--c-p700)" }}>
-                    {tpl.name}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--c-s500)", marginTop: 2 }}>{tpl.desc}</div>
-                </div>
-                {active && (
-                  <div style={{
-                    width: 22, height: 22, borderRadius: "50%", background: tpl.color,
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <Check size={12} strokeWidth={2} color="#fff" />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
       </Card>
 
       {/* Today's Tasks Preview */}
