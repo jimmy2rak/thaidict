@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   signInWithEmail, signUpWithEmail, signInWithOAuth, verifyEmailOtp,
-  sendOtp, verifyBrevoOtp, signInWithOtp,
+  sendOtp, sendMagicLink,
 } from "../lib/supabase.js";
 import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react";
 import { GoogleBrandIcon, GitHubBrandIcon } from "../icons/BrandIcons";
@@ -11,7 +11,7 @@ const IW = 1.5;
 
 const LoginPage = ({ onNavigate }) => {
   const [loginMode, setLoginMode] = useState("login"); // "login" | "register"
-  const [loginMethod, setLoginMethod] = useState("password"); // "password" | "otp"
+  const [loginMethod, setLoginMethod] = useState("password"); // "password" | "magiclink"
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -23,23 +23,16 @@ const LoginPage = ({ onNavigate }) => {
   const [verifyMessage, setVerifyMessage] = useState("");
   const [registerStep, setRegisterStep] = useState("form"); // "form" | "verify"
   const [verifyCode, setVerifyCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const isRegister = loginMode === "register";
 
-  // Countdown timer for OTP resend
-  useEffect(() => {
-    if (otpCountdown > 0) {
-      const timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [otpCountdown]);
+  // Magic link sent state is handled by magicLinkSent state
 
   const switchMode = () => {
     setLoginMode(isRegister ? "login" : "register");
     setError(""); setVerifyMessage(""); setConfirmPwd("");
-    setRegisterStep("form"); setVerifyCode(""); setOtpSent(false);
+    setRegisterStep("form"); setVerifyCode(""); setMagicLinkSent(false);
     setLoginMethod("password");
   };
 
@@ -63,40 +56,38 @@ const LoginPage = ({ onNavigate }) => {
     setLoading(false);
   };
 
-  const handleSendOtp = async () => {
+  const handleSendMagicLink = async () => {
     setError(""); setVerifyMessage("");
     if (!email.trim()) { setError("请先输入邮箱地址"); return; }
     setLoading(true);
     try {
-      const { data, error: err } = await sendOtp(email, "login");
+      const { data, error: err } = await sendMagicLink(email);
       if (err) {
         setError(err);
       } else {
-        setOtpSent(true);
-        setVerifyMessage("验证码已发送到您的邮箱，请查收");
-        setOtpCountdown(60); // 60 second cooldown
+        setMagicLinkSent(true);
+        setVerifyMessage("登录链接已发送到您的邮箱，请查收并点击链接登录");
       }
     } catch (e) {
-      setError("发送验证码失败，请重试");
+      setError("发送登录链接失败，请重试");
     }
     setLoading(false);
   };
 
-  const handleOtpLogin = async () => {
+  const handleMagicLinkLogin = async () => {
     setError(""); setVerifyMessage("");
-    if (!email.trim() || !verifyCode.trim()) { setError("请填写邮箱和验证码"); return; }
+    if (!email.trim()) { setError("请先输入邮箱地址"); return; }
     setLoading(true);
     try {
-      // Use signInWithOtp which verifies OTP then sends magic link
-      const { data, error: err } = await signInWithOtp(email, verifyCode);
+      const { data, error: err } = await sendMagicLink(email);
       if (err) {
         setError(err);
       } else {
-        // Success - show message to check email for login link
-        setVerifyMessage(data?.message || "验证成功，请查收邮箱中的登录链接");
+        setMagicLinkSent(true);
+        setVerifyMessage("登录链接已发送到您的邮箱，请查收并点击链接登录");
       }
     } catch (e) {
-      setError("登录失败，请重试");
+      setError("发送登录链接失败，请重试");
     }
     setLoading(false);
   };
@@ -192,28 +183,7 @@ const LoginPage = ({ onNavigate }) => {
     transition: "border-color 0.2s",
   };
 
-  const otpInputStyle = {
-    ...inputStyle,
-    textAlign: "center",
-    fontSize: 20,
-    letterSpacing: 8,
-    fontWeight: 700,
-  };
 
-  const sendOtpButtonStyle = {
-    padding: "8px 16px",
-    borderRadius: 8,
-    border: "1px solid var(--c-p400)",
-    background: "var(--c-surface)",
-    color: "var(--c-p600)",
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: otpCountdown > 0 || loading ? "not-allowed" : "pointer",
-    opacity: otpCountdown > 0 || loading ? 0.6 : 1,
-    fontFamily: "var(--zh-font), sans-serif",
-    transition: "all 0.2s",
-    whiteSpace: "nowrap",
-  };
 
   return (
     <div style={containerStyle}>
@@ -321,7 +291,7 @@ const LoginPage = ({ onNavigate }) => {
             {!isRegister && (
               <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                 <button
-                  onClick={() => { setLoginMethod("password"); setError(""); setVerifyMessage(""); }}
+                  onClick={() => { setLoginMethod("password"); setError(""); setVerifyMessage(""); setMagicLinkSent(false); }}
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
                     background: loginMethod === "password" ? "var(--c-p800)" : "var(--c-surface)",
@@ -333,16 +303,16 @@ const LoginPage = ({ onNavigate }) => {
                   密码登录
                 </button>
                 <button
-                  onClick={() => { setLoginMethod("otp"); setError(""); setVerifyMessage(""); }}
+                  onClick={() => { setLoginMethod("magiclink"); setError(""); setVerifyMessage(""); setMagicLinkSent(false); }}
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
-                    background: loginMethod === "otp" ? "var(--c-p800)" : "var(--c-surface)",
-                    color: loginMethod === "otp" ? "#fff" : "var(--c-p600)",
+                    background: loginMethod === "magiclink" ? "var(--c-p800)" : "var(--c-surface)",
+                    color: loginMethod === "magiclink" ? "#fff" : "var(--c-p600)",
                     fontSize: 13, fontWeight: 600, cursor: "pointer",
                     fontFamily: "var(--zh-font), sans-serif", transition: "all 0.2s",
                   }}
                 >
-                  验证码登录
+                  邮箱链接登录
                 </button>
               </div>
             )}
@@ -400,30 +370,46 @@ const LoginPage = ({ onNavigate }) => {
               </div>
             )}
 
-            {/* OTP input (OTP mode) */}
-            {!isRegister && loginMethod === "otp" && (
+            {/* Magic link button (magiclink mode) */}
+            {!isRegister && loginMethod === "magiclink" && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={verifyCode}
-                    onChange={e => setVerifyCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="请输入6位验证码"
-                    onKeyDown={e => e.key === "Enter" && handleOtpLogin()}
-                    style={{ ...inputStyle, flex: 1 }}
-                    onFocus={e => e.target.style.borderColor = "var(--c-p400)"}
-                    onBlur={e => e.target.style.borderColor = "var(--c-p200)"}
-                  />
+                {magicLinkSent ? (
+                  <div style={{
+                    padding: "12px 16px", borderRadius: 10, background: "var(--c-infoL)",
+                    textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 13, color: "var(--c-info)", fontWeight: 500 }}>
+                      登录链接已发送到 <strong>{email}</strong>
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--c-s400)", marginTop: 4 }}>
+                      请查收邮箱并点击链接登录
+                    </div>
+                    <div style={{ marginTop: 12 }}>
+                      <span
+                        onClick={handleSendMagicLink}
+                        style={{
+                          fontSize: 12, color: "var(--c-p600)", cursor: "pointer", fontWeight: 600,
+                        }}
+                      >
+                        重新发送
+                      </span>
+                    </div>
+                  </div>
+                ) : (
                   <button
-                    onClick={handleSendOtp}
-                    disabled={otpCountdown > 0 || loading || !email.trim()}
-                    style={sendOtpButtonStyle}
+                    onClick={handleSendMagicLink}
+                    disabled={loading || !email.trim()}
+                    style={{
+                      width: "100%", padding: "12px 0", borderRadius: 10, border: "1px solid var(--c-p400)",
+                      background: "var(--c-surface)", color: "var(--c-p600)", fontSize: 14, fontWeight: 600,
+                      cursor: loading || !email.trim() ? "not-allowed" : "pointer",
+                      fontFamily: "var(--zh-font), sans-serif", transition: "all 0.2s",
+                      opacity: loading || !email.trim() ? 0.6 : 1,
+                    }}
                   >
-                    {otpCountdown > 0 ? `${otpCountdown}s` : "发送验证码"}
+                    {loading ? "发送中..." : "发送登录链接"}
                   </button>
-                </div>
+                )}
               </div>
             )}
 
@@ -485,21 +471,22 @@ const LoginPage = ({ onNavigate }) => {
             <button
               onClick={
                 isRegister ? handleRegister :
-                loginMethod === "otp" ? handleOtpLogin :
+                loginMethod === "magiclink" ? handleMagicLinkLogin :
                 handleCredentialLogin
               }
-              disabled={loading}
+              disabled={loading || (loginMethod === "magiclink" && magicLinkSent)}
               style={{
                 width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
                 background: "var(--c-p800)", color: "#fff", fontSize: 15, fontWeight: 600,
-                cursor: loading ? "wait" : "pointer", marginTop: 8,
+                cursor: loading || (loginMethod === "magiclink" && magicLinkSent) ? "not-allowed" : "pointer",
+                marginTop: 8,
                 fontFamily: "var(--zh-font), sans-serif", transition: "background 0.2s",
-                opacity: loading ? 0.7 : 1,
+                opacity: loading || (loginMethod === "magiclink" && magicLinkSent) ? 0.7 : 1,
               }}
             >
               {loading
-                ? (isRegister ? "注册中..." : "登录中...")
-                : (isRegister ? "创建账号" : "登录")}
+                ? (isRegister ? "注册中..." : "发送中...")
+                : (isRegister ? "创建账号" : (loginMethod === "magiclink" ? "发送登录链接" : "登录"))}
             </button>
           </>
         )}
