@@ -15,6 +15,7 @@ import {
   Bell, Cloud, Upload, Download,
   HardDrive, FileText,
 } from "lucide-react";
+import ReminderPage from "./subsections/ReminderPage.jsx";
 
 const IW = 1.5;
 
@@ -27,6 +28,7 @@ const ProfilePage = () => {
   const [webdavConnected, setWebdavConnected] = useState(false);
   const [showColorDropdown, setShowColorDropdown] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [showReminderPage, setShowReminderPage] = useState(false);
 
   /* ── Stats state ── */
   const [streak, setStreak] = useState(0);
@@ -130,15 +132,6 @@ const ProfilePage = () => {
       saveUserSettings(userId, { zh_font: zhFont, th_font: thFont });
     }
   }, [zhFont, thFont, userId]);
-
-  const prevReminder = useRef(reminderEnabled);
-  useEffect(() => {
-    if (prevReminder.current === reminderEnabled) return;
-    prevReminder.current = reminderEnabled;
-    if (userId && userId !== 'anonymous') {
-      saveUserSettings(userId, { reminder_enabled: reminderEnabled });
-    }
-  }, [reminderEnabled, userId]);
 
   const apiTemplates = [
     { id: "openai", name: "OpenAI", color: "var(--c-p700)", baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
@@ -571,6 +564,17 @@ const ProfilePage = () => {
     );
   }
 
+  /* ── Reminder settings sub-page ── */
+  if (showReminderPage) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <ReminderPage onBack={() => setShowReminderPage(false)} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
       {/* Profile card */}
@@ -736,8 +740,14 @@ const ProfilePage = () => {
               )}
             </div>
           </SettingRow>
-          <SettingRow icon={Bell} label={"\u590D\u4E60\u63D0\u9192"} desc={"\u6BCF\u65E5\u5B9A\u65F6\u63D0\u9192"}>
-            <Toggle on={reminderEnabled} onToggle={() => setReminderEnabled(!reminderEnabled)} />
+          <SettingRow icon={Bell} label={"\u590D\u4E60\u63D0\u9192"} desc={reminderEnabled ? "\u5DF2\u5F00\u542F" : "\u6BCF\u65E5\u5B9A\u65F6\u63D0\u9192"}>
+            <div onClick={() => setShowReminderPage(true)} style={{
+              display: "flex", alignItems: "center", gap: 4, cursor: "pointer",
+              fontSize: 12, color: "var(--c-p500)", fontWeight: 500,
+            }}>
+              <span>{"\u8BBE\u7F6E"}</span>
+              <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} />
+            </div>
           </SettingRow>
           <SettingRow icon={Pencil} label="字体设置" desc={`${zhFont} / ${thFont}`}>
             <div onClick={() => setShowFontPage(true)} style={{

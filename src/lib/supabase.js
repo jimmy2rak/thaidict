@@ -1793,3 +1793,23 @@ export async function sendPasswordResetEmail(email) {
   if (error) return { error: error.message, data: null }
   return { data, error: null }
 }
+
+/* ─── Reminder Email Functions ─── */
+
+/**
+ * Send a reminder email to the user
+ * @param {object} params - { email, template, tasks, time }
+ */
+export async function sendReminder({ email, template, tasks, time }) {
+  if (!supabase) return { error: 'Supabase not configured' }
+  if (!email) return { error: '请提供邮箱地址' }
+  try {
+    const { data, error } = await supabase.functions.invoke('send-reminder', {
+      body: { email, template, tasks, time },
+    })
+    if (error) return { error: error.message, data: null }
+    return { data, error: null }
+  } catch (e) {
+    return { error: e.message || '发送提醒邮件失败', data: null }
+  }
+}
