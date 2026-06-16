@@ -1749,45 +1749,24 @@ export async function sendMagicLink(email) {
 }
 
 /**
- * Reset password with OTP verification
+ * Verify OTP for password reset
  * @param {string} email - User email
  * @param {string} code - 6-digit OTP code
- * @param {string} newPassword - New password to set
  */
-export async function resetPasswordWithOtp(email, code, newPassword) {
+export async function verifyResetOtp(email, code) {
   if (!supabase) return { error: 'Supabase not configured' }
+  return await verifyBrevoOtp(email, code, 'reset')
+}
 
-  // First verify the OTP
-  const { data: verifyData, error: verifyError } = await verifyBrevoOtp(email, code, 'reset')
-  if (verifyError) return { error: verifyError, data: null }
-
-  // Use Supabase's resetPasswordForEmail with the OTP token
-  // We need to use a different approach - update password directly
-  // This requires the user to be authenticated or use a special token
-
-  // For now, we'll use the verifyOtp approach with recovery type
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: email.trim(),
-    token: code,
-    type: 'recovery',
+/**
+ * Send password reset email via Supabase
+ * @param {string} email - User email
+ */
+export async function sendPasswordResetEmail(email) {
+  if (!supabase) return { error: 'Supabase not configured' }
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: window.location.origin,
   })
-
-  if (error) {
-    // Fallback: try to update password directly if user is somehow authenticated
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
-    })
-    if (updateError) return { error: updateError.message, data: null }
-    return { data: { message: '密码已更新' }, error: null }
-  }
-
-  // If recovery OTP is valid, update the password
-  if (data?.session) {
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
-    })
-    if (updateError) return { error: updateError.message, data: null }
-  }
-
+  if (error) return { error: error.message, data: null }
   return { data, error: null }
 }
