@@ -468,26 +468,27 @@ const LoginPage = ({ onNavigate }) => {
             )}
 
             {/* Action button */}
+            {!isRegister && loginMethod === "magiclink" ? null : (
             <button
               onClick={
                 isRegister ? handleRegister :
-                loginMethod === "magiclink" ? handleMagicLinkLogin :
                 handleCredentialLogin
               }
-              disabled={loading || (loginMethod === "magiclink" && magicLinkSent)}
+              disabled={loading}
               style={{
                 width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
                 background: "var(--c-p800)", color: "#fff", fontSize: 15, fontWeight: 600,
-                cursor: loading || (loginMethod === "magiclink" && magicLinkSent) ? "not-allowed" : "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
                 marginTop: 8,
                 fontFamily: "var(--zh-font), sans-serif", transition: "background 0.2s",
-                opacity: loading || (loginMethod === "magiclink" && magicLinkSent) ? 0.7 : 1,
+                opacity: loading ? 0.7 : 1,
               }}
             >
               {loading
-                ? (isRegister ? "注册中..." : "发送中...")
-                : (isRegister ? "创建账号" : (loginMethod === "magiclink" ? "发送登录链接" : "登录"))}
+                ? (isRegister ? "注册中..." : "登录中...")
+                : (isRegister ? "创建账号" : "登录")}
             </button>
+            )}
           </>
         )}
 

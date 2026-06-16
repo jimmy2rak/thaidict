@@ -13,6 +13,27 @@ if (isSupabaseConfigured) {
 export default supabase
 export { supabase }
 
+/** Get today's date string (YYYY-MM-DD) in China Standard Time (UTC+8) */
+export function getTodayCST() {
+  const now = new Date()
+  const cst = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000))
+  return cst.toISOString().split('T')[0]
+}
+
+/** Get a date N days ago in CST as YYYY-MM-DD string */
+function getDateCST(daysAgo = 0) {
+  const now = new Date()
+  const cstMs = now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000)
+  const target = new Date(cstMs - daysAgo * 86400000)
+  return target.toISOString().split('T')[0]
+}
+
+/** Convert a Date object to CST date string (YYYY-MM-DD) */
+function dateToCST(d) {
+  const cstMs = d.getTime() + (8 * 60 * 60 * 1000) - (d.getTimezoneOffset() * 60 * 1000)
+  return new Date(cstMs).toISOString().split('T')[0]
+}
+
 /* ────────────────────────────────────────────
    QUERY FUNCTIONS
    ──────────────────────────────────────────── */
@@ -545,13 +566,12 @@ export async function saveLearningPlan(userId, goals, schedule) {
 
 export async function getLearningProgress(userId, days = 30) {
   if (!supabase || !userId) return []
-  const since = new Date()
-  since.setDate(since.getDate() - days)
+  const sinceStr = getDateCST(days)
   const { data, error } = await supabase
     .from('user_learning_progress')
     .select('*')
     .eq('user_id', userId)
-    .gte('date', since.toISOString().split('T')[0])
+    .gte('date', sinceStr)
     .order('date', { ascending: false })
   if (error) { console.error('[supabase] getLearningProgress:', error.message); return [] }
   return data || []
@@ -580,7 +600,7 @@ export async function updateDailyProgress(userId, date, updates) {
 export async function syncUserStatsOnLogin(userId) {
   if (!supabase || !userId) return
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayCST()
 
   try {
     // 1. Ensure today's row exists (only insert if not exists, don't overwrite)
@@ -617,14 +637,14 @@ export async function syncUserStatsOnLogin(userId) {
     const dates = [...new Set((checkins || []).map(r => r.completed_date))].sort().reverse()
     let streak = 0
     if (dates.length > 0) {
-      const now = new Date()
-      const yesterday = new Date(now)
-      yesterday.setDate(yesterday.getDate() - 1)
-      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      const yesterdayStr = getDateCST(1)
       const startDate = dates.includes(today) ? today : yesterdayStr
       if (dates.includes(startDate)) {
         const cursor = new Date(startDate + 'T00:00:00')
-        while (dates.includes(cursor.toISOString().split('T')[0])) {
+        while (true) {
+          const cursorCstMs = cursor.getTime() + (8 * 60 * 60 * 1000) - (cursor.getTimezoneOffset() * 60 * 1000)
+          const dateStr = new Date(cursorCstMs).toISOString().split('T')[0]
+          if (!dates.includes(dateStr)) break
           streak++
           cursor.setDate(cursor.getDate() - 1)
         }
@@ -663,13 +683,16 @@ export async function getStreak(userId) {
 export async function getMonthlyCheckinStreak(userId) {
   if (!supabase || !userId) return { streak: 0, totalDays: 0 }
 
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() // 0-indexed
+  // Get current month in CST
+  const cstMs = Date.now() + (8 * 60 * 60 * 1000) - (new Date().getTimezoneOffset() * 60 * 1000)
+  const cstNow = new Date(cstMs)
+  const year = cstNow.getUTCFullYear()
+  const month = cstNow.getUTCMonth() // 0-indexed
 
-  // First and last day of current month
+  // First and last day of current month in CST
   const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
-  const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0]
+  const lastDayCst = new Date(Date.UTC(year, month + 1, 0) - (8 * 60 * 60 * 1000))
+  const lastDay = lastDayCst.toISOString().split('T')[0]
 
   try {
     const { data, error } = await supabase
@@ -690,10 +713,8 @@ export async function getMonthlyCheckinStreak(userId) {
     const totalDays = dates.length
 
     // Determine which day to start counting from
-    const today = now.toISOString().split('T')[0]
-    const yesterday = new Date(now)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    const today = getTodayCST()
+    const yesterdayStr = getDateCST(1)
 
     // If today has completions, start from today; otherwise start from yesterday
     const startDate = dates.includes(today) ? today : yesterdayStr
@@ -703,7 +724,8 @@ export async function getMonthlyCheckinStreak(userId) {
     let streak = 0
     const cursor = new Date(startDate + 'T00:00:00')
     while (true) {
-      const dateStr = cursor.toISOString().split('T')[0]
+      const cursorCstMs = cursor.getTime() + (8 * 60 * 60 * 1000) - (cursor.getTimezoneOffset() * 60 * 1000)
+      const dateStr = new Date(cursorCstMs).toISOString().split('T')[0]
       if (!dates.includes(dateStr)) break
       if (cursor.getMonth() !== month) break // Don't cross month boundary
       streak++
@@ -724,12 +746,15 @@ export async function getMonthlyCheckinStreak(userId) {
 export async function getMonthlyCheckinDays(userId) {
   if (!supabase || !userId) return []
 
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
+  // Get current month in CST
+  const cstMs = Date.now() + (8 * 60 * 60 * 1000) - (new Date().getTimezoneOffset() * 60 * 1000)
+  const cstNow = new Date(cstMs)
+  const year = cstNow.getUTCFullYear()
+  const month = cstNow.getUTCMonth()
 
   const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
-  const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0]
+  const lastDayCst = new Date(Date.UTC(year, month + 1, 0) - (8 * 60 * 60 * 1000))
+  const lastDay = lastDayCst.toISOString().split('T')[0]
 
   try {
     const { data, error } = await supabase
@@ -758,9 +783,7 @@ export async function getMonthlyCheckinDays(userId) {
 export async function getCheckinHeatmapData(userId, days = 35) {
   if (!supabase || !userId) return []
 
-  const since = new Date()
-  since.setDate(since.getDate() - days + 1) // +1 to include today
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = getDateCST(days - 1) // -1 to include today
 
   try {
     const { data, error } = await supabase
@@ -815,7 +838,7 @@ export async function getWeeklyStudyMinutes(userId) {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday)
     d.setDate(monday.getDate() + i)
-    dates.push(d.toISOString().split('T')[0])
+    dates.push(dateToCST(d))
   }
 
   try {
@@ -1279,7 +1302,7 @@ async function fetchSentenceById(sentenceId) {
  */
 export async function loadDailyPick() {
   if (!supabase) return { word: null, sentence: null }
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayCST()
 
   // Check existing pick for today (global, no user_id filter)
   try {
@@ -1322,7 +1345,7 @@ export async function loadDailyPick() {
  */
 export async function refreshDailyPick(type = 'both') {
   if (!supabase) return { word: null, sentence: null }
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayCST()
 
   let newWordRaw = null
   let newSentenceRaw = null

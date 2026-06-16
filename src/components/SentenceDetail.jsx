@@ -202,7 +202,7 @@ const SentenceDetail = ({ phrase, onBack }) => {
             <Card style={{ padding: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14, fontFamily: "var(--zh-font), serif" }}>{"逐词分析"}</div>
               {/* Horizontal arithmetic-style formula */}
-              <div style={{ fontSize: 16, fontFamily: "var(--th-font), sans-serif", lineHeight: 2, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0 }}>
+              <div style={{ fontSize: 18, fontFamily: "var(--th-font), sans-serif", lineHeight: 2, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
                 {spSegmented.map((seg, i) => (
                   <span key={i} style={{ display: "inline-flex", alignItems: "center" }}>
                     <WordTokenSpan seg={seg} tipId={`sd-${i}`} activeTip={wordTip} onTipChange={setWordTip} onDetail={handleWordTap} />

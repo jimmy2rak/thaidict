@@ -258,6 +258,8 @@ export const WordTokenSpan = ({ seg, tipId, activeTip, onTipChange, onDetail, bg
       <span ref={spanRef} onClick={handleClick} style={{
         cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dashed",
         textUnderlineOffset: 3, color: "var(--c-p900)",
+        background: activeTip?.id === tipId ? "color-mix(in srgb, var(--c-teal) 15%, transparent)" : "transparent",
+        borderRadius: 4, padding: "0 2px", transition: "background 0.15s",
       }}>{seg.text}</span>
       {activeTip?.id === tipId && activeTip?.rect && (
         <div onClick={(e) => e.stopPropagation()} style={{

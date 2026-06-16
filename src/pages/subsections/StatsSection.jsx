@@ -77,7 +77,8 @@ const StatsSection = () => {
         for (let i = 0; i < 7; i++) {
           const checkDate = new Date(monday);
           checkDate.setDate(monday.getDate() + i);
-          const dateStr = checkDate.toISOString().split("T")[0];
+          const cstMs = checkDate.getTime() + (8 * 60 * 60 * 1000) - (checkDate.getTimezoneOffset() * 60 * 1000);
+          const dateStr = new Date(cstMs).toISOString().split("T")[0];
           const found = heatmapData.find(d => d.date === dateStr);
           if (found && found.count > 0) {
             done[i] = true;
