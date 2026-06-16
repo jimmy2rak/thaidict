@@ -87,28 +87,14 @@ const LoginPage = ({ onNavigate }) => {
     if (!email.trim() || !verifyCode.trim()) { setError("请填写邮箱和验证码"); return; }
     setLoading(true);
     try {
-      // First verify the OTP
-      const { data: verifyData, error: verifyErr } = await verifyBrevoOtp(email, verifyCode, "login");
-      if (verifyErr) {
-        setError(verifyErr);
-        setLoading(false);
-        return;
-      }
-
-      // If OTP is valid, sign in with email/password (user needs to have a password)
-      // For passwordless login, we use signInWithOtp which sends a magic link
-      // But since we want OTP-based login, we'll use the verified state
-      const { data, error: err } = await signInWithEmail(email, password || "otp-verified");
+      // Use signInWithOtp which verifies OTP then sends magic link
+      const { data, error: err } = await signInWithOtp(email, verifyCode);
       if (err) {
-        // If password login fails, try to use the OTP verification as proof of identity
-        // This is a simplified approach - in production, you might want a more robust solution
-        if (err.includes("Invalid login") || err.includes("Email not confirmed")) {
-          setError("此邮箱未注册或密码错误");
-        } else {
-          setError(err);
-        }
+        setError(err);
+      } else {
+        // Success - show message to check email for login link
+        setVerifyMessage(data?.message || "验证成功，请查收邮箱中的登录链接");
       }
-      // On success, AuthContext handles state update automatically
     } catch (e) {
       setError("登录失败，请重试");
     }

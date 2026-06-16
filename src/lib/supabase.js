@@ -1737,7 +1737,7 @@ export async function verifyBrevoOtp(email, code, type = 'login') {
 
 /**
  * Sign in with email and OTP code (Brevo)
- * First verifies OTP, then signs in with password-less magic link approach
+ * Verifies OTP, then sends Supabase magic link to complete login
  */
 export async function signInWithOtp(email, code) {
   if (!supabase) return { error: 'Supabase not configured' }
@@ -1746,17 +1746,13 @@ export async function signInWithOtp(email, code) {
   const { data: verifyData, error: verifyError } = await verifyBrevoOtp(email, code, 'login')
   if (verifyError) return { error: verifyError, data: null }
 
-  // If OTP is valid, use Supabase's signInWithOtp to create a session
-  // This sends a magic link that auto-confirms the email
+  // If OTP is valid, send Supabase magic link to complete login
   const { data, error } = await supabase.auth.signInWithOtp({
     email: email.trim(),
-    options: {
-      shouldCreateUser: true,
-    },
   })
 
   if (error) return { error: error.message, data: null }
-  return { data, error: null }
+  return { data: { ...data, message: '验证成功，请查收邮箱中的登录链接' }, error: null }
 }
 
 /**
