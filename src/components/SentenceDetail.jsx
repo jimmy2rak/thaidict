@@ -3,7 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import { Card, TtsPlay, WordTokenSpan, TooltipDismissOverlay, Badge } from "./UIComponents";
 import { ChevronLeft, ChevronRight, Sparkles, Tag, Bookmark, Star, Check, X } from "lucide-react";
 import { thaiSegment } from "../utils/thaiSegment";
-import { bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences, isSupabaseConfigured, getFolders, getFolderSentences, addSentenceToFolder, removeSentenceFromFolder, getWordByThai, searchWords } from "../lib/supabase.js";
+import { bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences, isSupabaseConfigured, getFolders, addSentenceToFolder, removeSentenceFromFolder, batchGetWordMeanings, getFoldersContainingSentence } from "../lib/supabase.js";
 
 const IW = 1.5;
 
@@ -62,34 +62,8 @@ const SentenceDetail = ({ phrase, onBack }) => {
     if (!isSupabaseConfigured || spSegmented.length === 0) return;
     const wordsToFetch = spSegmented.map(seg => seg.text).filter(w => w && w.trim());
     if (wordsToFetch.length === 0) return;
-    const extractMeaning = (row) => {
-      if (!row) return '';
-      let senses = row.senses;
-      if (typeof senses === 'string') {
-        try { senses = JSON.parse(senses); } catch (e) { senses = []; }
-      }
-      const firstSense = Array.isArray(senses) && senses[0] ? senses[0] : {};
-      return firstSense.meaning || '';
-    };
-    Promise.all(wordsToFetch.map(async (word) => {
-      try {
-        const row = await getWordByThai(word.trim());
-        if (row) {
-          const zh = extractMeaning(row);
-          if (zh) return { word, zh };
-        }
-        const results = await searchWords(word.trim(), 3);
-        if (results.length > 0) {
-          const best = results[0];
-          const zh = extractMeaning(best);
-          if (zh) return { word, zh };
-        }
-      } catch (e) { /* ignore */ }
-      return { word, zh: '' };
-    })).then(results => {
-      const map = {};
-      results.forEach(r => { if (r && r.word) map[r.word] = r.zh; });
-      setSegMeanings(map);
+    batchGetWordMeanings(wordsToFetch).then(meaningMap => {
+      setSegMeanings(meaningMap);
     });
   }, [spSegmented.length]);
 
@@ -120,12 +94,9 @@ const SentenceDetail = ({ phrase, onBack }) => {
   useEffect(() => {
     if (!userId || userId === 'anonymous' || !sp.dbId || !isSupabaseConfigured) return;
     if (sentenceFolders.length === 0) return;
-    Promise.all(sentenceFolders.map(f =>
-      getFolderSentences(f.id).then(rows => {
-        return rows?.some(r => (r.sentence_id || r.sentences?.id) === sp.dbId) ? f.id : null;
-      })
-    )).then(results => {
-      setSentenceFoldersIn(results.filter(Boolean));
+    const folderIds = sentenceFolders.map(f => f.id);
+    getFoldersContainingSentence(userId, sp.dbId, folderIds).then(ids => {
+      setSentenceFoldersIn(ids);
     });
   }, [userId, sp.dbId, sentenceFolders.length]);
 

@@ -10,8 +10,7 @@ import {
   getFolders, createFolder, getUserSettings,
   submitWord, addBookmark, addWordToFolder, removeWordFromFolder,
   saveUserSettings, removeBookmark,
-  getFolderWords,
-  searchWords,
+  batchGetWordMeanings, getFoldersContainingWord,
 } from "../lib/supabase.js";
 import { Card, Badge, SectionTitle, ProgressBar, TtsPlay, WordTokenSpan, TooltipDismissOverlay } from "../components/UIComponents";
 import { speak } from "../utils/tts";
@@ -69,20 +68,17 @@ const WordDetailPage = ({ wordData }) => {
     });
   }, [userId]);
 
-  // When word changes or folders loaded, check which folders contain this word
+  // When word changes or folders loaded, check which folders contain this word (batch query)
   useEffect(() => {
     if (!wd?.word || !userId || userId === 'anonymous' || !isSupabaseConfigured) return;
     if (wordBookFolders.length === 0) return;
-    Promise.all(wordBookFolders.map(f =>
-      getFolderWords(f.id).then(words => {
-        return words?.some(w => w.word === wd.word) ? f.id : null;
-      })
-    )).then(results => {
-      setWordFoldersIn(results.filter(Boolean));
+    const folderIds = wordBookFolders.map(f => f.id);
+    getFoldersContainingWord(userId, wd.word, folderIds).then(ids => {
+      setWordFoldersIn(ids);
     });
   }, [wd?.word, userId, wordBookFolders.length]);
 
-  // Fetch Chinese meanings for synonyms and antonyms
+  // Fetch Chinese meanings for synonyms and antonyms (batch query)
   useEffect(() => {
     if (!wd?.word || !isSupabaseConfigured) return;
     const wordsToFetch = [
@@ -90,38 +86,8 @@ const WordDetailPage = ({ wordData }) => {
       ...(wd.antonyms || []).map(a => typeof a === 'string' ? a : a.word),
     ].filter(Boolean);
     if (wordsToFetch.length === 0) return;
-    // Helper: extract first Chinese meaning from a row (handles both dictionary_full and community_words)
-    const extractMeaning = (row) => {
-      if (!row) return '';
-      // Parse senses if it's a JSON string (community_words stores JSON text)
-      let senses = row.senses;
-      if (typeof senses === 'string') {
-        try { senses = JSON.parse(senses); } catch (e) { senses = []; }
-      }
-      const firstSense = Array.isArray(senses) && senses[0] ? senses[0] : {};
-      return firstSense.meaning || '';
-    };
-    // Fetch all in parallel
-    Promise.all(wordsToFetch.map(async (word) => {
-      try {
-        const row = await getWordByThai(word.trim());
-        if (row) {
-          const zh = extractMeaning(row);
-          if (zh) return { word, zh };
-        }
-        // Fallback: try broader search if exact match failed
-        const results = await searchWords(word.trim(), 3);
-        if (results.length > 0) {
-          const best = results[0];
-          const zh = extractMeaning(best);
-          if (zh) return { word, zh };
-        }
-      } catch (e) { /* ignore fetch errors */ }
-      return { word, zh: '' };
-    })).then(results => {
-      const map = {};
-      results.forEach(r => { if (r && r.word) map[r.word] = r.zh; });
-      setSynAntZh(prev => ({ ...prev, ...map }));
+    batchGetWordMeanings(wordsToFetch).then(meaningMap => {
+      setSynAntZh(prev => ({ ...prev, ...meaningMap }));
     });
   }, [wd?.synonyms, wd?.antonyms, wd?.word]);
 

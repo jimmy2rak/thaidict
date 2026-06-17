@@ -48,36 +48,27 @@ function dateToCST(d) {
 export async function searchWords(query, limit = 20) {
   if (!supabase) return []
 
-  // Exact match first
-  const { data: exact } = await supabase
-    .from('dictionary_full')
-    .select('*')
-    .eq('word', query)
-    .limit(5)
+  // All independent queries run in parallel
+  const [exactResult, fuzzyResult, meaningResult, textResult, communityResult] = await Promise.all([
+    // Exact match
+    supabase.from('dictionary_full').select('*').eq('word', query).limit(5),
+    // Fuzzy match on Thai word
+    supabase.from('dictionary_full').select('*').ilike('word', `%${query}%`).limit(limit),
+    // Search Chinese meaning via RPC
+    supabase.rpc('search_words_zh', { search_term: query, max_results: limit }).catch(() => ({ data: null })),
+    // Raw JSONB text search
+    supabase.rpc('search_words', { search_term: query, max_results: limit }).catch(() => ({ data: null })),
+    // Community words
+    supabase.from('community_words').select('*')
+      .or(`word.ilike.%${query}%,senses::text.ilike.%${query}%`)
+      .limit(limit).catch(() => ({ data: null })),
+  ])
 
-  // Fuzzy match on Thai word
-  const { data: fuzzy } = await supabase
-    .from('dictionary_full')
-    .select('*')
-    .ilike('word', `%${query}%`)
-    .limit(limit)
-
-  // Search Chinese meaning inside senses JSONB via RPC (fuzzy ILIKE)
-  const { data: meaning } = await supabase
-    .rpc('search_words_zh', { search_term: query, max_results: limit })
-    .then(r => r).catch(() => ({ data: null }))
-
-  // Also try raw JSONB text search for broader matching
-  const { data: textSearch } = await supabase
-    .rpc('search_words', { search_term: query, max_results: limit }).then(r => r).catch(() => ({ data: null }))
-
-  // Also search community words (user-contributed AI-generated entries)
-  const { data: communityRows } = await supabase
-    .from('community_words')
-    .select('*')
-    .or(`word.ilike.%${query}%,senses::text.ilike.%${query}%`)
-    .limit(limit)
-    .then(r => r).catch(() => ({ data: null }))
+  const exact = exactResult.data
+  const fuzzy = fuzzyResult.data
+  const meaning = meaningResult.data
+  const textSearch = textResult.data
+  const communityRows = communityResult.data
 
   // Merge and deduplicate
   const map = new Map()
@@ -158,6 +149,48 @@ export async function getWordsByThaiList(words) {
     .in('word', words)
   if (error) { console.error('[supabase] getWordsByThaiList:', error.message); return [] }
   return (data || []).map(transformSearchResult).filter(Boolean)
+}
+
+/**
+ * Batch lookup: fetch meanings for multiple Thai words in one query.
+ * Returns { word: meaning } map. Falls back to community_words if not in dictionary_full.
+ */
+export async function batchGetWordMeanings(words) {
+  if (!supabase || !words || words.length === 0) return {}
+  const unique = [...new Set(words.map(w => w.trim()).filter(Boolean))]
+  if (unique.length === 0) return {}
+
+  const extractMeaning = (row) => {
+    if (!row) return ''
+    let senses = row.senses
+    if (typeof senses === 'string') { try { senses = JSON.parse(senses) } catch { senses = [] } }
+    const first = Array.isArray(senses) && senses[0] ? senses[0] : {}
+    return first.meaning || ''
+  }
+
+  // Batch query dictionary_full
+  const { data: dictRows } = await supabase
+    .from('dictionary_full').select('word, senses').in('word', unique)
+
+  const result = {}
+  const found = new Set()
+  for (const row of (dictRows || [])) {
+    const zh = extractMeaning(row)
+    if (zh) { result[row.word] = zh; found.add(row.word) }
+  }
+
+  // Fallback: batch query community_words for missing words
+  const missing = unique.filter(w => !found.has(w))
+  if (missing.length > 0) {
+    const { data: cwRows } = await supabase
+      .from('community_words').select('word, senses').in('word', missing)
+    for (const row of (cwRows || [])) {
+      const zh = extractMeaning(row)
+      if (zh) result[row.word] = zh
+    }
+  }
+
+  return result
 }
 
 /**
@@ -485,6 +518,34 @@ export async function getFolderSentences(folderId) {
   return data || []
 }
 
+/**
+ * Batch check: which folders contain a given sentence? Returns array of folder IDs.
+ */
+export async function getFoldersContainingSentence(userId, sentenceId, folderIds) {
+  if (!supabase || !userId || !sentenceId || !folderIds?.length) return []
+  const { data, error } = await supabase
+    .from('user_folder_sentences')
+    .select('folder_id')
+    .eq('sentence_id', sentenceId)
+    .in('folder_id', folderIds)
+  if (error) return []
+  return (data || []).map(r => r.folder_id)
+}
+
+/**
+ * Batch check: which folders contain a given word? Returns array of folder IDs.
+ */
+export async function getFoldersContainingWord(userId, word, folderIds) {
+  if (!supabase || !userId || !word || !folderIds?.length) return []
+  const { data, error } = await supabase
+    .from('user_folder_words')
+    .select('folder_id')
+    .eq('word', word)
+    .in('folder_id', folderIds)
+  if (error) return []
+  return (data || []).map(r => r.folder_id)
+}
+
 export async function addSentenceToFolder(folderId, sentenceId) {
   if (!supabase || !folderId) return null
   const { data, error } = await supabase
@@ -604,28 +665,19 @@ export async function syncUserStatsOnLogin(userId) {
   const today = getTodayCST()
 
   try {
-    // 1. Ensure today's row exists (only insert if not exists, don't overwrite)
-    const { data: existing } = await supabase
+    // 1. Ensure today's row exists (upsert — no check-then-insert)
+    await supabase
       .from('user_learning_progress')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('date', today)
-      .maybeSingle()
-
-    if (!existing) {
-      await supabase
-        .from('user_learning_progress')
-        .insert({
-          user_id: userId,
-          date: today,
-          words_learned: 0,
-          words_reviewed: 0,
-          grammar_completed: 0,
-          reading_completed: 0,
-          study_minutes: 0,
-          streak_days: 0,
-        })
-    }
+      .upsert({
+        user_id: userId,
+        date: today,
+        words_learned: 0,
+        words_reviewed: 0,
+        grammar_completed: 0,
+        reading_completed: 0,
+        study_minutes: 0,
+        streak_days: 0,
+      }, { onConflict: 'user_id,date', ignoreDuplicates: true })
 
     // 2. Calculate streak from checkin_completions and update
     const { data: checkins } = await supabase

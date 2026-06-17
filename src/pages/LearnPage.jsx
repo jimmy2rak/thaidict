@@ -55,14 +55,17 @@ const LearnPage = () => {
     setTasksLoading(true);
     setTasksError(null);
     try {
-      const tasks = await getCheckinTasks(userId);
       const today = getTodayCST();
       const todayWeekday = getCSTWeekday();
+      // Parallel: tasks and completions are independent
+      const [tasks, completions] = await Promise.all([
+        getCheckinTasks(userId),
+        getCheckinCompletions(userId, today),
+      ]);
       const todaysTasks = (tasks || []).filter(t => {
         const days = t.schedule_days || [];
         return days.includes(todayWeekday);
       });
-      const completions = await getCheckinCompletions(userId, today);
       const completedIds = new Set(completions || []);
       setTodayTasks(todaysTasks.map(t => ({
         ...t,
