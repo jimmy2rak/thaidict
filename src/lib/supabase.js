@@ -15,23 +15,25 @@ export { supabase }
 
 /** Get today's date string (YYYY-MM-DD) in China Standard Time (UTC+8) */
 export function getTodayCST() {
-  const now = new Date()
-  const cst = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000))
-  return cst.toISOString().split('T')[0]
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
 }
 
 /** Get a date N days ago in CST as YYYY-MM-DD string */
 function getDateCST(daysAgo = 0) {
-  const now = new Date()
-  const cstMs = now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000)
-  const target = new Date(cstMs - daysAgo * 86400000)
-  return target.toISOString().split('T')[0]
+  const d = new Date(Date.now() - daysAgo * 86400000)
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(d)
+}
+
+/** Get weekday (1=Mon .. 7=Sun) in CST */
+export function getCSTWeekday() {
+  const day = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Shanghai', weekday: 'short' })
+  const map = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }
+  return map[day] || 1
 }
 
 /** Convert a Date object to CST date string (YYYY-MM-DD) */
 function dateToCST(d) {
-  const cstMs = d.getTime() + (8 * 60 * 60 * 1000) - (d.getTimezoneOffset() * 60 * 1000)
-  return new Date(cstMs).toISOString().split('T')[0]
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(d)
 }
 
 /* ────────────────────────────────────────────
@@ -193,7 +195,6 @@ export async function getRecentWords(limit = 10) {
     .select('*')
     .eq('enrichment_status', 'enriched')
     .gt('sense_count', 0)
-    .order('enriched_at', { ascending: false })
     .limit(limit)
   if (error) {
     console.error('[supabase] getRecentWords:', error.message)
@@ -640,13 +641,12 @@ export async function syncUserStatsOnLogin(userId) {
       const yesterdayStr = getDateCST(1)
       const startDate = dates.includes(today) ? today : yesterdayStr
       if (dates.includes(startDate)) {
-        const cursor = new Date(startDate + 'T00:00:00')
+        let cursorDate = startDate
         while (true) {
-          const cursorCstMs = cursor.getTime() + (8 * 60 * 60 * 1000) - (cursor.getTimezoneOffset() * 60 * 1000)
-          const dateStr = new Date(cursorCstMs).toISOString().split('T')[0]
-          if (!dates.includes(dateStr)) break
+          if (!dates.includes(cursorDate)) break
           streak++
-          cursor.setDate(cursor.getDate() - 1)
+          const prev = new Date(new Date(cursorDate + 'T00:00:00').getTime() - 86400000)
+          cursorDate = dateToCST(prev)
         }
       }
     }
@@ -684,15 +684,12 @@ export async function getMonthlyCheckinStreak(userId) {
   if (!supabase || !userId) return { streak: 0, totalDays: 0 }
 
   // Get current month in CST
-  const cstMs = Date.now() + (8 * 60 * 60 * 1000) - (new Date().getTimezoneOffset() * 60 * 1000)
-  const cstNow = new Date(cstMs)
-  const year = cstNow.getUTCFullYear()
-  const month = cstNow.getUTCMonth() // 0-indexed
+  const today = getTodayCST()
+  const [year, month] = today.split('-').map(Number) // month is 1-indexed
 
   // First and last day of current month in CST
-  const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
-  const lastDayCst = new Date(Date.UTC(year, month + 1, 0) - (8 * 60 * 60 * 1000))
-  const lastDay = lastDayCst.toISOString().split('T')[0]
+  const firstDay = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(Date.UTC(year, month, 0)).toISOString().split('T')[0]
 
   try {
     const { data, error } = await supabase
@@ -713,7 +710,6 @@ export async function getMonthlyCheckinStreak(userId) {
     const totalDays = dates.length
 
     // Determine which day to start counting from
-    const today = getTodayCST()
     const yesterdayStr = getDateCST(1)
 
     // If today has completions, start from today; otherwise start from yesterday
@@ -722,14 +718,15 @@ export async function getMonthlyCheckinStreak(userId) {
 
     // Count consecutive days backwards
     let streak = 0
-    const cursor = new Date(startDate + 'T00:00:00')
+    let cursorDate = startDate
     while (true) {
-      const cursorCstMs = cursor.getTime() + (8 * 60 * 60 * 1000) - (cursor.getTimezoneOffset() * 60 * 1000)
-      const dateStr = new Date(cursorCstMs).toISOString().split('T')[0]
-      if (!dates.includes(dateStr)) break
-      if (cursor.getMonth() !== month) break // Don't cross month boundary
+      if (!dates.includes(cursorDate)) break
+      const cursorMonth = parseInt(cursorDate.split('-')[1])
+      if (cursorMonth !== month) break // Don't cross month boundary
       streak++
-      cursor.setDate(cursor.getDate() - 1)
+      // Get previous day in CST
+      const prev = new Date(new Date(cursorDate + 'T00:00:00').getTime() - 86400000)
+      cursorDate = dateToCST(prev)
     }
 
     return { streak, totalDays }
@@ -747,14 +744,11 @@ export async function getMonthlyCheckinDays(userId) {
   if (!supabase || !userId) return []
 
   // Get current month in CST
-  const cstMs = Date.now() + (8 * 60 * 60 * 1000) - (new Date().getTimezoneOffset() * 60 * 1000)
-  const cstNow = new Date(cstMs)
-  const year = cstNow.getUTCFullYear()
-  const month = cstNow.getUTCMonth()
+  const today = getTodayCST()
+  const [year, month] = today.split('-').map(Number)
 
-  const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
-  const lastDayCst = new Date(Date.UTC(year, month + 1, 0) - (8 * 60 * 60 * 1000))
-  const lastDay = lastDayCst.toISOString().split('T')[0]
+  const firstDay = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(Date.UTC(year, month, 0)).toISOString().split('T')[0]
 
   try {
     const { data, error } = await supabase
@@ -805,13 +799,12 @@ export async function getCheckinHeatmapData(userId, days = 35) {
 
     // Fill all dates in range with count (0 if no completions)
     const result = []
-    const cursor = new Date(sinceStr + 'T00:00:00')
-    const endDate = new Date()
-    endDate.setHours(0, 0, 0, 0)
-    while (cursor <= endDate) {
-      const dateStr = cursor.toISOString().split('T')[0]
-      result.push({ date: dateStr, count: countMap[dateStr] || 0 })
-      cursor.setDate(cursor.getDate() + 1)
+    let cursorDate = sinceStr
+    const today = getTodayCST()
+    while (cursorDate <= today) {
+      result.push({ date: cursorDate, count: countMap[cursorDate] || 0 })
+      const next = new Date(new Date(cursorDate + 'T00:00:00').getTime() + 86400000)
+      cursorDate = dateToCST(next)
     }
     return result
   } catch (e) {
@@ -827,17 +820,15 @@ export async function getCheckinHeatmapData(userId, days = 35) {
 export async function getWeeklyStudyMinutes(userId) {
   if (!supabase || !userId) return []
 
-  const now = new Date()
-  const dayOfWeek = now.getDay() // 0=Sun
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-  monday.setHours(0, 0, 0, 0)
+  const today = getTodayCST()
+  const todayDate = new Date(today + 'T00:00:00')
+  const dayOfWeek = todayDate.getDay() // 0=Sun
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
 
   const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
   const dates = []
   for (let i = 0; i < 7; i++) {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
+    const d = new Date(todayDate.getTime() - (mondayOffset - i) * 86400000)
     dates.push(dateToCST(d))
   }
 
@@ -1251,7 +1242,7 @@ export async function saveCommunityWord(wordData, userId = null, zhHint = '') {
  * Returns transformed word data or null.
  */
 async function fetchWordByText(wordText) {
-  if (!supabase || !wordText) return null
+  if (!supabase || !wordText) { console.warn('[每日推荐] fetchWordByText: 参数为空', wordText); return null }
   try {
     const { data, error } = await supabase
       .from('dictionary_full')
@@ -1259,18 +1250,19 @@ async function fetchWordByText(wordText) {
       .eq('word', wordText)
       .single()
     if (error || !data) {
-      // Try community_words as fallback
+      console.warn('[每日推荐] dictionary_full 未找到:', wordText, error?.message)
       const { data: cw } = await supabase
         .from('community_words')
         .select('*')
         .eq('word', wordText)
         .single()
-      if (cw) return transformWordData(cw)
+      if (cw) { console.log('[每日推荐] 从 community_words 找到:', wordText); return transformWordData(cw) }
+      console.warn('[每日推荐] community_words 也未找到:', wordText)
       return null
     }
     return transformWordData(data)
   } catch (e) {
-    console.error('[supabase] fetchWordByText:', e)
+    console.error('[每日推荐] fetchWordByText 异常:', e)
     return null
   }
 }
@@ -1280,17 +1272,17 @@ async function fetchWordByText(wordText) {
  * Returns sentence data or null.
  */
 async function fetchSentenceById(sentenceId) {
-  if (!supabase || !sentenceId) return null
+  if (!supabase || !sentenceId) { console.warn('[每日推荐] fetchSentenceById: 参数为空', sentenceId); return null }
   try {
     const { data, error } = await supabase
       .from('sentences')
       .select('*')
       .eq('id', sentenceId)
       .single()
-    if (error || !data) return null
+    if (error || !data) { console.warn('[每日推荐] sentences 表未找到 ID:', sentenceId, error?.message); return null }
     return data
   } catch (e) {
-    console.error('[supabase] fetchSentenceById:', e)
+    console.error('[每日推荐] fetchSentenceById 异常:', e)
     return null
   }
 }
@@ -1301,8 +1293,9 @@ async function fetchSentenceById(sentenceId) {
  * Picks are generated server-side (via cron or AI) or on explicit user refresh.
  */
 export async function loadDailyPick() {
-  if (!supabase) return { word: null, sentence: null }
+  if (!supabase) { console.warn('[每日推荐] Supabase 未配置'); return { word: null, sentence: null } }
   const today = getTodayCST()
+  console.log('[每日推荐] 查询日期:', today)
 
   // Check existing pick for today (global, no user_id filter)
   try {
@@ -1314,27 +1307,49 @@ export async function loadDailyPick() {
 
     if (error) {
       if (error.code === 'PGRST116') {
+        console.warn('[每日推荐] 今日无推荐记录，code:', error.code)
         return { word: null, sentence: null }
       }
       if (error.message?.includes('does not exist')) {
-        console.warn('[supabase] daily_picks table does not exist. Run daily_picks_v2.sql migration.')
+        console.warn('[每日推荐] daily_picks 表不存在，请运行 daily_picks_v2.sql')
         return { word: null, sentence: null }
       }
-      console.error('[supabase] loadDailyPick query error:', error.message)
+      console.error('[每日推荐] 查询出错:', error.message, 'code:', error.code)
       return { word: null, sentence: null }
     }
 
     if (pick) {
-      // Fetch full data by ID references (not stored inline)
+      console.log('[每日推荐] 找到今日推荐:', pick.daily_word_id, pick.daily_sentence_id)
       const [word, sentence] = await Promise.all([
         pick.daily_word_id ? fetchWordByText(pick.daily_word_id) : null,
         pick.daily_sentence_id ? fetchSentenceById(pick.daily_sentence_id) : null,
       ])
+      console.log('[每日推荐] 词条结果:', word ? word.word : 'null', '句子结果:', sentence ? sentence.id : 'null')
       return { word, sentence }
     }
+
+    console.log('[每日推荐] 今日无推荐，尝试获取最近一条...')
+    // Fallback: fetch the most recent pick if today's row is missing
+    try {
+      const { data: fallback } = await supabase
+        .from('daily_picks')
+        .select('*')
+        .order('pick_date', { ascending: false })
+        .limit(1)
+        .single()
+      if (fallback) {
+        console.log('[每日推荐] 兜底获取:', fallback.pick_date, fallback.daily_word_id)
+        const [word, sentence] = await Promise.all([
+          fallback.daily_word_id ? fetchWordByText(fallback.daily_word_id) : null,
+          fallback.daily_sentence_id ? fetchSentenceById(fallback.daily_sentence_id) : null,
+        ])
+        return { word, sentence }
+      }
+    } catch (e) { console.warn('[每日推荐] 兜底查询失败:', e.message) }
+
     return { word: null, sentence: null }
   } catch (e) {
-    console.error('[supabase] loadDailyPick exception:', e)
+    console.error('[每日推荐] 异常:', e)
     return { word: null, sentence: null }
   }
 }

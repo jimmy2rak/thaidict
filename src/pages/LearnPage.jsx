@@ -5,7 +5,7 @@ import { exercises } from "../data/mockData";
 import {
   getLearningPlan, getNotes, createNote, updateNote,
   getCheckinTasks, getCheckinCompletions, toggleCheckinTaskCompletion,
-  getTodayCST,
+  getTodayCST, getCSTWeekday,
 } from "../lib/supabase.js";
 import {
   ChevronLeft, ChevronRight, Calendar,
@@ -57,7 +57,7 @@ const LearnPage = () => {
     try {
       const tasks = await getCheckinTasks(userId);
       const today = getTodayCST();
-      const todayWeekday = new Date().getDay() === 0 ? 7 : new Date().getDay();
+      const todayWeekday = getCSTWeekday();
       const todaysTasks = (tasks || []).filter(t => {
         const days = t.schedule_days || [];
         return days.includes(todayWeekday);

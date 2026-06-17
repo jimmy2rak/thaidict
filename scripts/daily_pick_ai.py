@@ -10,20 +10,8 @@ Daily Pick AI Script for ThaiDict（AI 智能每日推荐）
   - AI 版：从候选池中智能筛选，考虑教育价值和趣味性
 
 使用方法：
-  python3 scripts/daily_pick_ai.py
-
-必需环境变量：
-  SUPABASE_URL              - Supabase 项目的 API URL
-  SUPABASE_SERVICE_ROLE_KEY - Service Role Key（绕过 RLS）
-  AI_API_KEY                - MiniCPM API 密钥（可选，默认使用免费密钥）
-
-免费 API 信息（MiniCPM 提供）：
-  Base URL: https://api.modelbest.cn/v1
-  API Key:  sk-pQ8L2zF3XmR5kY9wV4jB7hN1tC6vM0xG3aD5sH2bJ9lK4cZ8
-  Model:    MiniCPM-V-4.6-Thinking
-
-Crontab 配置示例（每天 UTC 零点执行）：
-  0 0 * * * cd /path/to/thaidict && python3 scripts/daily_pick_ai.py >> logs/daily_pick_ai.log 2>&1
+  1. 在脚本顶部的配置区填写 SUPABASE_URL 和 SUPABASE_KEY
+  2. python3 scripts/daily_pick_ai.py
 
 依赖安装：
   pip install supabase requests
@@ -34,7 +22,7 @@ import sys
 import json
 import logging
 import requests  # HTTP 请求库，用于调用 MiniCPM API
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 
 # =============================================================================
 # 日志配置
@@ -46,17 +34,28 @@ logging.basicConfig(
 )
 log = logging.getLogger("daily_pick_ai")
 
+# =============================================================================
+# CST 日期工具（与前端 getTodayCST() 保持一致）
+# =============================================================================
+CST = timezone(timedelta(hours=8))
+
+def today_cst():
+    """返回中国标准时间（UTC+8）当天日期，确保与前端查询一致。"""
+    return datetime.now(CST).date()
+
 
 # =============================================================================
 # 配置常量
 # =============================================================================
 
+# ========== 请在下方填写你的 Supabase 配置 ==========
+SUPABASE_URL = ""   # 项目 API URL，例如 "https://xxx.supabase.co"
+SUPABASE_KEY = ""   # Service Role Key，从 Supabase Dashboard 获取
+# ====================================================
+
 # MiniCPM API 配置（OpenAI 兼容格式）
 AI_API_BASE = "https://api.modelbest.cn/v1"                # API 基础 URL
-AI_API_KEY = os.environ.get(                                # API 密钥（环境变量优先）
-    "AI_API_KEY",
-    "sk-pQ8L2zF3XmR5kY9wV4jB7hN1tC6vM0xG3aD5sH2bJ9lK4cZ8"  # 免费公开密钥
-)
+AI_API_KEY = "sk-pQ8L2zF3XmR5kY9wV4jB7hN1tC6vM0xG3aD5sH2bJ9lK4cZ8"  # API 密钥
 AI_MODEL = "MiniCPM-V-4.6-Thinking"                        # 模型 ID
 AI_MAX_TOKENS = 800                                         # 最大输出 token 数
 AI_TEMPERATURE = 0.7                                        # 生成温度（0=确定，1=随机）
@@ -73,17 +72,14 @@ def get_supabase_client():
     try:
         from supabase import create_client
     except ImportError:
-        log.error("supabase-py is not installed. Run: pip install supabase")
+        log.error("缺少 supabase-py，请运行: pip install supabase")
         sys.exit(1)
 
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-
-    if not url or not key:
-        log.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        log.error("请在脚本顶部的配置区填写 SUPABASE_URL 和 SUPABASE_KEY")
         sys.exit(1)
 
-    return create_client(url, key)
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 # =============================================================================
@@ -105,7 +101,7 @@ def fetch_candidate_words(client, limit=CANDIDATE_WORDS):
             .execute()
         )
         if not hasattr(resp, "data") or not resp.data:
-            log.warning("No enriched words found in dictionary_full")
+            log.warning("dictionary_full 中未找到已充实的词条")
             return []
 
         # 随机打乱并截取 limit 条
@@ -136,10 +132,10 @@ def fetch_candidate_words(client, limit=CANDIDATE_WORDS):
                     "pos": pos,
                 })
 
-        log.info(f"Fetched {len(candidates)} candidate words")
+        log.info(f"获取到 {len(candidates)} 个候选词条")
         return candidates
     except Exception as e:
-        log.error(f"Error fetching candidate words: {e}")
+        log.error(f"获取候选词条出错: {e}")
         return []
 
 
@@ -160,7 +156,7 @@ def fetch_candidate_sentences(client, limit=CANDIDATE_SENTENCES):
             .execute()
         )
         if not hasattr(resp, "data") or not resp.data:
-            log.warning("No sentences found in sentences table")
+            log.warning("sentences 表中未找到句子")
             return []
 
         import random
@@ -177,10 +173,10 @@ def fetch_candidate_sentences(client, limit=CANDIDATE_SENTENCES):
                 "actual_meaning": row.get("actual_meaning", ""),
             })
 
-        log.info(f"Fetched {len(candidates)} candidate sentences")
+        log.info(f"获取到 {len(candidates)} 个候选句子")
         return candidates
     except Exception as e:
-        log.error(f"Error fetching candidate sentences: {e}")
+        log.error(f"获取候选句子出错: {e}")
         return []
 
 
@@ -236,7 +232,7 @@ def ask_ai_to_pick(candidate_words, candidate_sentences):
 {"word_id": "选中的词条word文本", "sentence_id": 选中的句子id数字, "reason": "简短推荐理由（中文，20字以内）"}"""
 
     # --- 用户消息（候选列表 + 指令）---
-    user_prompt = f"""今天是 {date.today().strftime('%Y年%m月%d日')}，请从以下候选内容中各选一个作为今日推荐：
+    user_prompt = f"""今天是 {today_cst().strftime('%Y年%m月%d日')}，请从以下候选内容中各选一个作为今日推荐：
 
 【候选词条】（共{len(candidate_words)}个）
 {words_text}
@@ -262,7 +258,7 @@ def ask_ai_to_pick(candidate_words, candidate_sentences):
     }
 
     try:
-        log.info(f"Calling {AI_MODEL} API to pick daily word & sentence...")
+        log.info(f"正在调用 {AI_MODEL} API 选取每日一词一句...")
         resp = requests.post(
             f"{AI_API_BASE}/chat/completions",
             headers=headers,
@@ -274,14 +270,14 @@ def ask_ai_to_pick(candidate_words, candidate_sentences):
         result = resp.json()
         content = result["choices"][0]["message"]["content"]
 
-        log.info(f"AI response: {content[:200]}...")
+        log.info(f"AI 响应: {content[:200]}...")
 
         # --- 解析 AI 返回的 JSON ---
         # AI 可能在 JSON 前后加了说明文字，需要提取出 JSON 部分
         json_start = content.find("{")
         json_end = content.rfind("}") + 1
         if json_start == -1 or json_end == 0:
-            log.error(f"AI did not return valid JSON: {content}")
+            log.error(f"AI 未返回有效 JSON: {content}")
             return None
 
         json_str = content[json_start:json_end]
@@ -292,20 +288,20 @@ def ask_ai_to_pick(candidate_words, candidate_sentences):
         reason = pick.get("reason", "")
 
         if not word_id or not sentence_id:
-            log.error(f"AI returned incomplete pick: {pick}")
+            log.error(f"AI 返回的选取结果不完整: {pick}")
             return None
 
-        log.info(f"AI selected: word={word_id}, sentence_id={sentence_id}, reason={reason}")
+        log.info(f"AI 选取结果: 词条={word_id}, 句子 ID={sentence_id}, 原因={reason}")
         return {"word_id": word_id, "sentence_id": sentence_id, "reason": reason}
 
     except requests.exceptions.Timeout:
-        log.error("AI API request timed out (60s)")
+        log.error("AI API 请求超时（60秒）")
         return None
     except requests.exceptions.RequestException as e:
-        log.error(f"AI API request failed: {e}")
+        log.error(f"AI API 请求失败: {e}")
         return None
     except (json.JSONDecodeError, KeyError, IndexError) as e:
-        log.error(f"Failed to parse AI response: {e}")
+        log.error(f"解析 AI 响应失败: {e}")
         return None
 
 
@@ -316,7 +312,7 @@ def ask_ai_to_pick(candidate_words, candidate_sentences):
 def upsert_daily_pick(client, pick_date, word_id, sentence_id):
     """
     写入（或更新）今日的每日推荐记录。
-    daily_picks v2 表：UNIQUE(pick_date)，只有一条全局记录。
+    daily_picks v3 表：UNIQUE(pick_date)，只有一条全局记录。
     """
     row = {
         "pick_date": pick_date,
@@ -330,11 +326,11 @@ def upsert_daily_pick(client, pick_date, word_id, sentence_id):
             .execute()
         )
         if hasattr(resp, "error") and resp.error:
-            log.error(f"Upsert failed: {resp.error}")
+            log.error(f"写入失败: {resp.error}")
             return False
         return True
     except Exception as e:
-        log.error(f"Upsert exception: {e}")
+        log.error(f"写入异常: {e}")
         return False
 
 
@@ -346,7 +342,7 @@ def fallback_random_pick(client):
     """
     当 AI API 不可用时，退回到纯随机选取（与 daily_pick_cron.py 逻辑一致）。
     """
-    log.warning("AI API unavailable, falling back to random selection...")
+    log.warning("AI API 不可用，降级为随机选取...")
 
     try:
         # 随机词条（兼容 SETOF 返回：data 可能是列表或单对象）
@@ -364,13 +360,13 @@ def fallback_random_pick(client):
         sentence_id = row.get("id") if row else None
 
         if word_id:
-            log.info(f"Fallback word: {word_id}")
+            log.info(f"  兜底词条: {word_id}")
         if sentence_id:
-            log.info(f"Fallback sentence_id: {sentence_id}")
+            log.info(f"  兜底句子 ID: {sentence_id}")
 
         return {"word_id": word_id, "sentence_id": sentence_id, "reason": "随机选取（AI 不可用）"}
     except Exception as e:
-        log.error(f"Fallback random pick also failed: {e}")
+        log.error(f"随机选取兜底也失败了: {e}")
         return None
 
 
@@ -387,20 +383,20 @@ def main():
     4. 写入 daily_picks 表
     """
     log.info("=" * 60)
-    log.info("Daily Pick AI — starting")
-    log.info(f"Date: {date.today().isoformat()}")
-    log.info(f"Model: {AI_MODEL}")
+    log.info("每日推荐 AI — 启动")
+    log.info(f"日期: {today_cst().isoformat()}")
+    log.info(f"模型: {AI_MODEL}")
 
     # 步骤 1：连接数据库
     client = get_supabase_client()
-    today_str = date.today().isoformat()
+    today_str = today_cst().isoformat()
 
     # 步骤 2：获取候选池
     candidate_words = fetch_candidate_words(client)
     candidate_sentences = fetch_candidate_sentences(client)
 
     if not candidate_words or not candidate_sentences:
-        log.error("Insufficient candidates. Aborting.")
+        log.error("候选内容不足，终止执行。")
         sys.exit(1)
 
     # 步骤 3：AI 智能选取（失败时降级到随机选取）
@@ -412,7 +408,7 @@ def main():
         pick = fallback_random_pick(client)
 
     if not pick or (not pick.get("word_id") and not pick.get("sentence_id")):
-        log.error("Failed to pick daily content. Aborting.")
+        log.error("未能选取每日推荐内容，终止执行。")
         sys.exit(1)
 
     # 步骤 4：写入 daily_picks 表
@@ -424,12 +420,12 @@ def main():
     )
 
     if ok:
-        log.info(f"Done: daily pick saved for {today_str}")
+        log.info(f"完成: 每日推荐已保存，日期 {today_str}")
         log.info(f"  word_id: {pick.get('word_id') or '(none)'}")
         log.info(f"  sentence_id: {pick.get('sentence_id') or '(none)'}")
         log.info(f"  reason: {pick.get('reason', '(none)')}")
     else:
-        log.error("Failed to save daily pick.")
+        log.error("保存每日推荐失败。")
         sys.exit(1)
 
     log.info("=" * 60)

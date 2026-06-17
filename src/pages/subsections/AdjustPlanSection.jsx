@@ -5,7 +5,7 @@ import {
   getCheckinTasks, createCheckinTask,
   updateCheckinTask, deleteCheckinTask,
   toggleCheckinTaskCompletion, getCheckinCompletions,
-  getMonthlyCheckinStreak,
+  getMonthlyCheckinStreak, getTodayCST, getCSTWeekday,
   callAiProxy, getUserSettings, getApiKeys,
 } from "../../lib/supabase.js";
 import {
@@ -87,14 +87,14 @@ const AdjustPlanSection = () => {
   const [addingTasks, setAddingTasks] = useState(false);
 
   // Streak calculation
-  const today = new Date().toISOString().split("T")[0];
-  const dayOfWeek = new Date().getDay(); // 0=Sun → map to 7
-  const todayWeekday = dayOfWeek === 0 ? 7 : dayOfWeek;
+  const today = getTodayCST();
+  const todayWeekday = getCSTWeekday();
   const dateStr = new Date().toLocaleDateString("zh-CN", {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "long",
+    timeZone: "Asia/Shanghai",
   });
 
   const fetchTasks = async () => {

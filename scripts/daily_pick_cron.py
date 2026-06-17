@@ -1,26 +1,20 @@
 #!/usr/bin/env python3
 """
-Daily Pick Cron Script for ThaiDict v2（每日推荐定时任务 v2）
+Daily Pick Cron Script for ThaiDict v3（每日推荐定时任务 v3）
 ============================================================
 功能：每天从 dictionary_full 表随机选取一个词条，从 sentences 表随机选取一个句子，
       将词条的 word 文本和句子的 id 写入 daily_picks 表（全局统一，不分用户）。
       配合 crontab 定时任务，每天 UTC 零点自动执行。
 
-v2 变更：
+v3 变更：
   - 去掉 user_id，全局统一推送（所有用户看到相同的每日一词/一句）
   - 只存 daily_word_id（词条文本）和 daily_sentence_id（句子 ID）
   - 前端通过 ID 关联查询完整数据，避免 JSONB 冗余
   - 不再需要发现用户列表，简化执行流程
 
 使用方法：
-  python3 scripts/daily_pick_cron.py
-
-必需环境变量：
-  SUPABASE_URL              - Supabase 项目的 API URL
-  SUPABASE_SERVICE_ROLE_KEY - Service Role Key（绕过 RLS 的服务端密钥）
-
-Crontab 配置示例（每天 UTC 零点执行）：
-  0 0 * * * cd /path/to/thaidict && SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=eyJ... python3 scripts/daily_pick_cron.py >> logs/daily_pick.log 2>&1
+  1. 在脚本顶部的配置区填写 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY
+  2. python3 scripts/daily_pick_cron.py
 
 依赖安装：
   pip install supabase
@@ -29,7 +23,7 @@ Crontab 配置示例（每天 UTC 零点执行）：
 import os          # 读取环境变量
 import sys         # sys.exit() 异常退出
 import logging     # 结构化日志输出
-from datetime import date  # 获取当前日期
+from datetime import date, datetime, timezone, timedelta
 
 # =============================================================================
 # 日志配置
@@ -40,6 +34,15 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger("daily_pick_cron")
+
+# =============================================================================
+# CST 日期工具（与前端 getTodayCST() 保持一致）
+# =============================================================================
+CST = timezone(timedelta(hours=8))
+
+def today_cst():
+    """返回中国标准时间（UTC+8）当天日期，确保与前端查询一致。"""
+    return datetime.now(CST).date()
 
 
 # =============================================================================
@@ -54,14 +57,16 @@ def get_supabase_client():
     try:
         from supabase import create_client
     except ImportError:
-        log.error("supabase-py is not installed. Run: pip install supabase")
+        log.error("缺少 supabase-py，请运行: pip install supabase")
         sys.exit(1)
 
-    url = os.environ.get("SUPABASE_URL")                    # 项目 API URL
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")       # 服务端密钥
+    # ========== 请在下方填写你的 Supabase 配置 ==========
+    url = ""   # 项目 API URL，例如 "https://xxx.supabase.co"
+    key = ""   # Service Role Key，从 Supabase Dashboard 获取
+    # ====================================================
 
     if not url or not key:
-        log.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.")
+        log.error("请在脚本顶部的配置区填写 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY")
         sys.exit(1)
 
     return create_client(url, key)
@@ -92,12 +97,12 @@ def fetch_random_word_id(client):
             row = resp.data[0] if isinstance(resp.data, list) else resp.data
             word = row.get("word", "")
             if word:
-                log.info(f"  Selected word: {word}")
+                log.info(f"  已选取词条: {word}")
                 return word
-        log.warning("get_random_word RPC returned no data or empty word")
+        log.warning("get_random_word RPC 未返回数据或词条为空")
         return None
     except Exception as e:
-        log.error(f"Error fetching random word: {e}")
+        log.error(f"获取随机词条出错: {e}")
         return None
 
 
@@ -127,19 +132,19 @@ def fetch_random_sentence_id(client):
             text_preview = (row.get("text", "") or "")[:50]
             cat = row.get("category", "?")
             if sid:
-                log.info(f"  Selected sentence [{cat}]: {text_preview}...")
+                log.info(f"  已选取句子 [{cat}]: {text_preview}...")
                 return sid
-        log.warning("get_random_sentence RPC returned no data or empty id")
+        log.warning("get_random_sentence RPC 未返回数据或句子 ID 为空")
         return None
     except Exception as e:
-        log.error(f"Error fetching random sentence: {e}")
+        log.error(f"获取随机句子出错: {e}")
         return None
 
 
 # =============================================================================
 # 写入 daily_picks 表（全局唯一，按日期 upsert）
 # =============================================================================
-# daily_picks v2 表结构：
+# daily_picks v3 表结构：
 #   pick_date DATE UNIQUE  — 每天只有一条
 #   daily_word_id TEXT     — 词条文本（dictionary_full.word）
 #   daily_sentence_id BIGINT — 句子 ID（sentences.id）
@@ -170,11 +175,11 @@ def upsert_daily_pick(client, pick_date, word_id, sentence_id):
             .execute()
         )
         if hasattr(resp, "error") and resp.error:
-            log.error(f"  Upsert failed: {resp.error}")
+            log.error(f"  写入失败: {resp.error}")
             return False
         return True
     except Exception as e:
-        log.error(f"  Upsert exception: {e}")
+        log.error(f"  写入异常: {e}")
         return False
 
 
@@ -190,13 +195,13 @@ def main():
     4. 写入 daily_picks 表（upsert by date）
     """
     log.info("=" * 60)
-    log.info("Daily Pick Cron v2 — starting")
-    log.info(f"Date: {date.today().isoformat()}")
+    log.info("每日推荐 Cron v3 — 启动")
+    log.info(f"日期: {today_cst().isoformat()}")
 
     # 步骤 1：连接数据库（Service Role Key 绕过 RLS）
     client = get_supabase_client()
 
-    today_str = date.today().isoformat()  # 当天日期，如 "2026-06-15"
+    today_str = today_cst().isoformat()  # 当天日期，如 "2026-06-15"
 
     # 步骤 2：随机选取词条，只取 word 文本
     word_id = fetch_random_word_id(client)
@@ -206,18 +211,18 @@ def main():
 
     # 如果两者都获取失败，终止执行
     if not word_id and not sentence_id:
-        log.error("Failed to fetch both word and sentence. Aborting.")
+        log.error("词条和句子均获取失败，终止执行。")
         sys.exit(1)
 
     # 步骤 4：写入 daily_picks 表（全局一条，按日期 upsert）
     ok = upsert_daily_pick(client, today_str, word_id, sentence_id)
 
     if ok:
-        log.info(f"Done: daily pick saved for {today_str}")
+        log.info(f"完成: 每日推荐已保存，日期 {today_str}")
         log.info(f"  word_id: {word_id or '(none)'}")
         log.info(f"  sentence_id: {sentence_id or '(none)'}")
     else:
-        log.error("Failed to save daily pick.")
+        log.error("保存每日推荐失败。")
         sys.exit(1)
 
     log.info("=" * 60)

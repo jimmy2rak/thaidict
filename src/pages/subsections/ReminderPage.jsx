@@ -3,7 +3,7 @@ import { useAppContext } from "../../context/AppContext";
 import { Card, Btn } from "../../components/UIComponents";
 import {
   getUserSettings, saveUserSettings,
-  getCheckinTasks, getCheckinCompletions, getTodayCST,
+  getCheckinTasks, getCheckinCompletions, getTodayCST, getCSTWeekday,
   sendReminder,
 } from "../../lib/supabase.js";
 import {
@@ -88,7 +88,7 @@ const ReminderPage = ({ onBack }) => {
     try {
       const tasks = await getCheckinTasks(userId);
       const today = getTodayCST();
-      const todayWeekday = new Date().getDay() === 0 ? 7 : new Date().getDay();
+      const todayWeekday = getCSTWeekday();
       const todaysTasks = (tasks || []).filter((t) => {
         const days = t.schedule_days || [];
         return days.includes(todayWeekday);

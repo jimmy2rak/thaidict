@@ -28,7 +28,9 @@
 
 import os, re, sys, json, time, random, argparse, logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+CST = timezone(timedelta(hours=8))
 
 import requests
 from supabase import create_client
@@ -36,7 +38,7 @@ from supabase import create_client
 # ─── 日志 ───
 LOG_DIR = Path(__file__).parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
-LOG_FILE = LOG_DIR / f"import_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+LOG_FILE = LOG_DIR / f"import_{datetime.now(CST).strftime('%Y%m%d_%H%M%S')}.log"
 
 logging.basicConfig(
     level=logging.INFO,

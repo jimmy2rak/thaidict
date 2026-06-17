@@ -3,6 +3,7 @@ import { useAppContext } from "../../context/AppContext";
 import { Card, SectionTitle, HeatCell } from "../../components/UIComponents";
 import {
   getMonthlyCheckinStreak, getCheckinHeatmapData, getWeeklyStudyMinutes,
+  getTodayCST, getCSTWeekday,
 } from "../../lib/supabase.js";
 import { Flame, Clock, Check, Target } from "lucide-react";
 import {
@@ -59,27 +60,18 @@ const StatsSection = () => {
         setHeatmapLevels(heatmapData.map(d => countToLevel(d.count)));
 
         // This week's checkin (last 7 days of heatmapData)
-        const now = new Date();
-        const dayOfWeek = now.getDay(); // 0=Sun -> mapped to index 6
-        const todayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Mon=0
-
-        // The last 7 entries in heatmapData correspond to this week (Mon-Sun)
-        // But heatmapData covers 35 days ending today, so the last (todayIdx+1) entries cover Mon-today
-        // We need to align to this week's Monday
-        // Actually, simpler: use the heatmap data to determine which weekdays have checkins
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-        monday.setHours(0, 0, 0, 0);
+        const today = getTodayCST();
+        const todayWeekday = getCSTWeekday(); // 1=Mon .. 7=Sun
 
         const done = [false, false, false, false, false, false, false];
         let completedCount = 0;
 
+        // Get Monday of this week in CST
+        const mondayOffset = todayWeekday - 1; // days since Monday
         for (let i = 0; i < 7; i++) {
-          const checkDate = new Date(monday);
-          checkDate.setDate(monday.getDate() + i);
-          const cstMs = checkDate.getTime() + (8 * 60 * 60 * 1000) - (checkDate.getTimezoneOffset() * 60 * 1000);
-          const dateStr = new Date(cstMs).toISOString().split("T")[0];
-          const found = heatmapData.find(d => d.date === dateStr);
+          const d = new Date(new Date(today + 'T00:00:00').getTime() - (mondayOffset - i) * 86400000);
+          const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(d);
+          const found = heatmapData.find(dd => dd.date === dateStr);
           if (found && found.count > 0) {
             done[i] = true;
             completedCount++;

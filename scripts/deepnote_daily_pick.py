@@ -14,7 +14,7 @@ import os
 import sys
 import json
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
 
 # =============================================================================
 # 日志配置（Deepnote 中输出到 stdout，可在 notebook cell 中直接查看）
@@ -25,6 +25,15 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger("deepnote_daily_pick")
+
+# =============================================================================
+# CST 日期工具（与前端 getTodayCST() 保持一致）
+# =============================================================================
+CST = timezone(timedelta(hours=8))
+
+def today_cst():
+    """返回中国标准时间（UTC+8）当天日期，确保与前端查询一致。"""
+    return datetime.now(CST).date()
 
 # =============================================================================
 # 依赖检查与安装（Deepnote 首次运行时会自动安装）
@@ -42,7 +51,7 @@ def ensure_dependencies():
         try:
             importlib.import_module(module_name)
         except ImportError:
-            log.info(f"Installing {pip_name}...")
+            log.info(f"正在安装 {pip_name}...")
             subprocess.check_call(
                 [sys.executable, "-m", "pip", "install", pip_name, "-q"]
             )
@@ -57,25 +66,18 @@ import requests
 
 
 # =============================================================================
-# 配置（从 Deepnote 环境变量中读取）
+# 配置
 # =============================================================================
-# 在 Deepnote 项目设置 → Environment Variables 中添加以下变量：
-#   SUPABASE_URL              - Supabase 项目 URL（必填）
-#   SUPABASE_SERVICE_ROLE_KEY - Service Role Key（必填，绕过 RLS）
-#   USE_AI_PICK               - 是否启用 AI 推荐（可选，默认 "false"）
-#   AI_API_KEY                - AI API 密钥（可选，默认使用免费密钥）
+# ========== 请在下方填写你的配置 ==========
+SUPABASE_URL = ""   # 项目 API URL，例如 "https://xxx.supabase.co"
+SUPABASE_KEY = ""   # Service Role Key，从 Supabase Dashboard 获取
+USE_AI = False       # 是否启用 AI 推荐（True=AI智能选取，False=随机选取）
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-USE_AI = os.environ.get("USE_AI_PICK", "false").lower() == "true"
-
-# MiniCPM 免费 API（如果启用 AI 模式）
+# MiniCPM API（如果启用 AI 模式）
 AI_API_BASE = "https://api.modelbest.cn/v1"
-AI_API_KEY = os.environ.get(
-    "AI_API_KEY",
-    "sk-pQ8L2zF3XmR5kY9wV4jB7hN1tC6vM0xG3aD5sH2bJ9lK4cZ8"
-)
+AI_API_KEY = "sk-pQ8L2zF3XmR5kY9wV4jB7hN1tC6vM0xG3aD5sH2bJ9lK4cZ8"
 AI_MODEL = "MiniCPM-V-4.6-Thinking"
+# =========================================
 
 
 # =============================================================================
@@ -84,7 +86,7 @@ AI_MODEL = "MiniCPM-V-4.6-Thinking"
 def get_client():
     """创建 Supabase 客户端。"""
     if not SUPABASE_URL or not SUPABASE_KEY:
-        log.error("❌ 缺少环境变量！请在 Deepnote 项目设置中添加 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY")
+        log.error("请在脚本顶部的配置区填写 SUPABASE_URL 和 SUPABASE_KEY")
         sys.exit(1)
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -203,7 +205,7 @@ def ai_pick(client):
         "严格返回 JSON：{\"word_id\":\"词条word\",\"sentence_id\":句子id,\"reason\":\"理由\"}"
     )
     user = (
-        f"今天是 {date.today().strftime('%Y年%m月%d日')}，请推荐：\n\n"
+        f"今天是 {today_cst().strftime('%Y年%m月%d日')}，请推荐：\n\n"
         f"【候选词条 {len(words)}个】\n{words_text}\n\n"
         f"【候选句子 {len(sentences)}个】\n{sents_text}\n\n"
         f"返回 JSON。"
@@ -246,7 +248,7 @@ def ai_pick(client):
 def save_daily_pick(client, word_id, sentence_id):
     """Upsert 今日推荐（按 pick_date 去重）。"""
     row = {
-        "pick_date": date.today().isoformat(),
+        "pick_date": today_cst().isoformat(),
         "daily_word_id": word_id,
         "daily_sentence_id": sentence_id,
     }
@@ -266,11 +268,11 @@ def save_daily_pick(client, word_id, sentence_id):
 # =============================================================================
 def main():
     log.info("=" * 50)
-    log.info(f"🚀 Deepnote Daily Pick — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    log.info(f"🚀 Deepnote Daily Pick — {datetime.now(CST).strftime('%Y-%m-%d %H:%M:%S')}")
     log.info(f"   AI 模式: {'✅ 启用' if USE_AI else '❌ 随机'}")
 
     client = get_client()
-    today = date.today().isoformat()
+    today = today_cst().isoformat()
 
     # 检查今天是否已有推荐（避免重复执行）
     try:
