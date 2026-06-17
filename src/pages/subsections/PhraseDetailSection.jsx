@@ -3,6 +3,8 @@ import { useAppContext } from "../../context/AppContext";
 import { Card, TtsPlay, Badge, WordTokenSpan, TooltipDismissOverlay } from "../../components/UIComponents";
 import { ChevronRight, Sparkles, Tag, Bookmark } from "lucide-react";
 import { bookmarkSentence, removeSentenceBookmark, getBookmarkedSentences } from "../../lib/supabase.js";
+import { thaiSegment } from "../../utils/thaiSegment";
+import phraseData from "../../data/phraseData";
 
 const IW = 1.5;
 
@@ -31,7 +33,26 @@ const PhraseDetailSection = ({ phrase }) => {
   const { handleWordTap, userId } = useAppContext();
   const [wordTip, setWordTip] = useState(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const isIdiom = phrase.literal && phrase.actual;
+  const sp = phrase;
+
+  const spSegmented = (() => {
+    if (Array.isArray(sp.segmented) && sp.segmented.length > 0 && sp.segmented.some(s => s.meaning)) {
+      return sp.segmented;
+    }
+    for (const cat of Object.values(phraseData)) {
+      const match = cat.find(p => p.text === sp.text);
+      if (match && match.segmented && match.segmented.length > 0) {
+        return match.segmented;
+      }
+    }
+    if (Array.isArray(sp.segmented) && sp.segmented.length > 0) {
+      return sp.segmented;
+    }
+    const seg = thaiSegment(sp.text);
+    return seg.length > 1 ? seg : [];
+  })();
+
+  const isIdiom = sp.literal && sp.actual;
 
   /* ── Scroll dismissal ── */
   useEffect(() => {
@@ -86,15 +107,15 @@ const PhraseDetailSection = ({ phrase }) => {
       </Card>
 
       {/* Word-by-word analysis — horizontal arithmetic format */}
-      {phrase.segmented && phrase.segmented.length > 0 && (
+      {spSegmented.length > 0 && (
         <Card style={{ padding: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-p800)", marginBottom: 14, fontFamily: "var(--zh-font), serif" }}>{"逐词分析"}</div>
           <div style={{ fontSize: 18, fontFamily: "var(--th-font), sans-serif", lineHeight: 2, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
-            {phrase.segmented.map((seg, i) => (
+            {spSegmented.map((seg, i) => (
               <span key={i} style={{ display: "inline-flex", alignItems: "center" }}>
                 <WordTokenSpan seg={seg} tipId={`pd-${i}`} activeTip={wordTip} onTipChange={setWordTip} onDetail={handleWordTap} />
                 <span style={{ fontSize: 12, color: "var(--c-s500)", fontWeight: 400, marginLeft: 2, fontFamily: "var(--zh-font), sans-serif" }}>({seg.meaning || ''})</span>
-                {i < phrase.segmented.length - 1 && <span style={{ fontSize: 14, color: "var(--c-s300)", margin: "0 6px", fontWeight: 600 }}>+</span>}
+                {i < spSegmented.length - 1 && <span style={{ fontSize: 14, color: "var(--c-s300)", margin: "0 6px", fontWeight: 600 }}>+</span>}
               </span>
             ))}
           </div>

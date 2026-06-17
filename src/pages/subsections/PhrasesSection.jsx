@@ -9,10 +9,28 @@ import {
   removeSentenceBookmark,
 } from "../../lib/supabase.js";
 import { speak } from "../../utils/tts";
+import { thaiSegment } from "../../utils/thaiSegment";
 import { Sparkles, Volume2, Bookmark, ChevronRight } from "lucide-react";
 import phraseData from "../../data/phraseData";
 
 const IW = 1.5;
+
+const getEnrichedSegmented = (p) => {
+  if (Array.isArray(p.segmented) && p.segmented.length > 0 && p.segmented.some(s => s.meaning)) {
+    return p.segmented;
+  }
+  for (const cat of Object.values(phraseData)) {
+    const match = cat.find(item => item.text === p.text);
+    if (match && match.segmented && match.segmented.length > 0) {
+      return match.segmented;
+    }
+  }
+  if (Array.isArray(p.segmented) && p.segmented.length > 0) {
+    return p.segmented;
+  }
+  const seg = thaiSegment(p.text);
+  return seg.length > 1 ? seg : [];
+};
 
 const PhrasesSection = ({ onSelectPhrase }) => {
   const { userId, handleWordTap } = useAppContext();
@@ -124,13 +142,15 @@ const PhrasesSection = ({ onSelectPhrase }) => {
 
       {/* Phrase cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {displayList.map((p) => (
+        {displayList.map((p) => {
+          const pSeg = getEnrichedSegmented(p);
+          return (
           <Card key={p.id} style={{ padding: 14 }}>
             {/* Thai phrase + action buttons */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
               <div onClick={() => onSelectPhrase(p)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                 <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-p900)", fontFamily: "var(--th-font), sans-serif", lineHeight: 1.5 }}>
-                  {p.segmented && p.segmented.length > 0 ? p.segmented.map((seg, j) => (
+                  {pSeg.length > 0 ? pSeg.map((seg, j) => (
                     <WordTokenSpan key={j} seg={seg} tipId={`${p.id}-${j}`} activeTip={wordTip} onTipChange={setWordTip} onDetail={handleWordTap} />
                   )) : <span>{p.text}</span>}
                 </div>
@@ -139,7 +159,7 @@ const PhrasesSection = ({ onSelectPhrase }) => {
               </div>
               {/* Action buttons */}
               <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 8, marginTop: 2 }}>
-                <div onClick={(e) => { e.stopPropagation(); speak(p.segmented && p.segmented.length > 0 ? p.segmented.map(s => s.text).join("") : p.text, "th-TH", 0.85); }} style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <div onClick={(e) => { e.stopPropagation(); speak(pSeg.length > 0 ? pSeg.map(s => s.text).join("") : p.text, "th-TH", 0.85); }} style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <Volume2 size={13} strokeWidth={IW} color={"var(--c-teal)"} />
                 </div>
                 <div onClick={(e) => { e.stopPropagation(); toggleBm(p); }} style={{ width: 28, height: 28, borderRadius: 8, background: bookmarks[p.dbId ? String(p.dbId) : p.id] ? "color-mix(in srgb, var(--c-gold) 9%, transparent)" : "var(--c-surfaceAlt)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
@@ -148,9 +168,9 @@ const PhrasesSection = ({ onSelectPhrase }) => {
               </div>
             </div>
             {/* Segmented tags */}
-            {p.segmented && p.segmented.length > 0 && (
+            {pSeg.length > 0 && (
             <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-              {p.segmented.map((seg, j) => (
+              {pSeg.map((seg, j) => (
                 <span key={j} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6, background: "var(--c-surfaceAlt)", color: "var(--c-s500)", border: `1px solid ${"var(--c-p100)"}` }}>
                   {seg.text}<span style={{ color: "var(--c-s300)", marginLeft: 3 }}>{seg.meaning}</span>
                 </span>
@@ -158,7 +178,8 @@ const PhrasesSection = ({ onSelectPhrase }) => {
             </div>
             )}
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {/* 全部 button */}
