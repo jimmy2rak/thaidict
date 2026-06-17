@@ -62,9 +62,13 @@ const SentenceDetail = ({ phrase, onBack }) => {
     if (!isSupabaseConfigured || spSegmented.length === 0) return;
     const wordsToFetch = spSegmented.map(seg => seg.text).filter(w => w && w.trim());
     if (wordsToFetch.length === 0) return;
+    let cancelled = false;
     batchGetWordMeanings(wordsToFetch).then(meaningMap => {
-      setSegMeanings(meaningMap);
+      if (!cancelled) setSegMeanings(meaningMap);
+    }).catch(e => {
+      console.error('[SentenceDetail] batchGetWordMeanings failed:', e);
     });
+    return () => { cancelled = true; };
   }, [spSegmented.length]);
 
 

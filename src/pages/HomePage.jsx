@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Search, Mic, X, Play, RefreshCw, Sparkles, ChevronRight, Bookmark, CalendarCheck } from "lucide-react";
-import { Card, Badge, StatCard, SectionTitle, WordTokenSpan, TooltipDismissOverlay } from "../components/UIComponents";
+import { Card, Badge, StatCard, WordTokenSpan, TooltipDismissOverlay } from "../components/UIComponents";
 import {
   isSupabaseConfigured,
-  loadDailyPick, refreshDailyPick, getRecentWords,
+  loadDailyPick, refreshDailyPick,
   searchWords, transformWordData, transformSearchResult,
   getStreak, getDictionaryCount,
   getBookmarks, getMonthlyCheckinStreak,
@@ -25,7 +25,6 @@ const HomePage = () => {
   const [dailyRefreshing, setDailyRefreshing] = useState(false);
   const [dailySentence, setDailySentence] = useState(null);
   const [sentenceRefreshing, setSentenceRefreshing] = useState(false);
-  const [recentData, setRecentData] = useState([]);
   const [streak, setStreak] = useState(0);
   const [dictCount, setDictCount] = useState(null);
   const [sentenceWordTip, setSentenceWordTip] = useState(null);
@@ -59,7 +58,6 @@ const HomePage = () => {
       getBookmarks(userId).then(rows => setBookmarkCount((rows || []).length))
       getMonthlyCheckinStreak(userId).then(r => setMonthlyCheckinDays(r.totalDays))
     }
-    getRecentWords(8).then(rows => { setRecentData(rows.map(transformSearchResult).filter(Boolean)) })
     getDictionaryCount().then(setDictCount)
   }, [userId])
 
@@ -307,34 +305,6 @@ const HomePage = () => {
             </div>
           )}
         </Card>
-
-        {/* Recent words from Supabase */}
-        {recentData.length > 0 && (
-          <div>
-            <SectionTitle action={"\u66F4\u591A"}>{"\u6700\u8FD1\u5BCC\u5316\u8BCD\u6761"}</SectionTitle>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {recentData.map((w, i) => (
-                <div key={w.word + i} onClick={() => handleWordTap(w.word)} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 16px", borderRadius: 14, background: "var(--c-surface)",
-                  border: `1px solid ${"var(--c-p100)"}`, cursor: "pointer",
-                }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: "var(--c-teal)", fontFamily: "var(--th-font), sans-serif" }}>{w.word}</span>
-                      {w.pos && <Badge bg={"var(--c-p100)"} fg={"var(--c-p700)"} style={{ fontSize: 9 }}>{w.pos}</Badge>}
-                    </div>
-                    {w.meaning && <div style={{ fontSize: 13, color: "var(--c-p700)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.meaning}</div>}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {w.romanization && <span style={{ fontSize: 10, color: "var(--c-s300)", fontFamily: "monospace" }}>{w.romanization}</span>}
-                    <ChevronRight size={14} strokeWidth={IW} color={"var(--c-s300)"} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </>}
     </div>
   );
