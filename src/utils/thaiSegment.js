@@ -141,14 +141,20 @@ export function thaiSegment(text) {
         // Extend through vowel signs, tone marks, sara-am, final consonant
         while (i < remaining.length) {
           const ch = remaining[i];
-          // Dependent vowel signs
+          // Dependent vowel signs — take and continue
           if (/^[\u0E30-\u0E39\u0E47\u0E31]$/.test(ch)) { syllableLen++; i++; continue; }
           // Tone marks
           if (/^[\u0E48-\u0E4B]$/.test(ch)) { syllableLen++; i++; continue; }
           // sara-am (ำ)
           if (ch === "\u0E33") { syllableLen++; i++; continue; }
           // Final consonant — end of syllable
-          if (/^[\u0E01-\u0E2E]$/.test(ch)) { syllableLen++; i++; break; }
+          if (/^[\u0E01-\u0E2E]$/.test(ch)) {
+            const nextCh = remaining[i + 1];
+            if (nextCh && /^[\u0E30-\u0E39\u0E47\u0E31\u0E48-\u0E4B\u0E33]$/.test(nextCh)) {
+              syllableLen++; i++; continue;
+            }
+            syllableLen++; i++; break;
+          }
           // Any other character — end syllable here
           break;
         }
@@ -158,23 +164,36 @@ export function thaiSegment(text) {
         // Extend through vowel signs, tone marks, sara-am, final consonant
         while (i < remaining.length) {
           const ch = remaining[i];
-          // Dependent vowel signs
+          // Dependent vowel signs — take and continue to check for tone/final
           if (/^[\u0E30-\u0E39\u0E47\u0E31]$/.test(ch)) { syllableLen++; i++; continue; }
           // Tone marks
           if (/^[\u0E48-\u0E4B]$/.test(ch)) { syllableLen++; i++; continue; }
           // sara-am (ำ)
           if (ch === "\u0E33") { syllableLen++; i++; continue; }
-          // Final consonant
-          if (/^[\u0E01-\u0E2E]$/.test(ch)) {
-            // Check if next char starts a new syllable
-            const nextCh = remaining[i + 1];
-            const nextIsNewSyllable = nextCh && /^[\u0E01-\u0E2Eเแโใไ]$/.test(nextCh);
+          // อ after consonant without vowel sign — treat as vowel (e.g. ศอก, бот, กอ)
+          if (ch === "\u0E2D" && i === 1) {
+            const nextAfterA = remaining[i + 1];
+            if (nextAfterA && /^[\u0E01-\u0E2E]$/.test(nextAfterA)) {
+              // consonant + อ + final consonant (e.g. ศอก)
+              syllableLen += 2; i += 2;
+              // Check if there's a tone mark after final consonant
+              if (i < remaining.length && /^[\u0E48-\u0E4B]$/.test(remaining[i])) {
+                syllableLen++; i++;
+              }
+              break;
+            }
+            // consonant + อ without final consonant (e.g. กอ)
             syllableLen++; i++;
-            if (nextIsNewSyllable) break;
-            // If next char is a vowel/tone sign, this consonant is NOT final
-            if (nextCh && /^[\u0E30-\u0E39\u0E47\u0E31\u0E48-\u0E4B\u0E33]$/.test(nextCh)) continue;
-            // Otherwise, this consonant is likely a final consonant
             break;
+          }
+          // Final consonant — end of syllable
+          if (/^[\u0E01-\u0E2E]$/.test(ch)) {
+            // Check if next char is vowel/tone sign → this consonant is NOT final
+            const nextCh = remaining[i + 1];
+            if (nextCh && /^[\u0E30-\u0E39\u0E47\u0E31\u0E48-\u0E4B\u0E33]$/.test(nextCh)) {
+              syllableLen++; i++; continue;
+            }
+            syllableLen++; i++; break;
           }
           // Any other character — end syllable
           break;
