@@ -51,15 +51,13 @@ export async function searchWords(query, limit = 20) {
   if (!supabase) return []
 
   // All independent queries run in parallel
-  const [exactResult, fuzzyResult, meaningResult, textResult, communityResult] = await Promise.all([
+  const [exactResult, fuzzyResult, meaningResult, communityResult] = await Promise.all([
     // Exact match
     safeQuery(supabase.from('dictionary_full').select('*').eq('word', query).limit(5)),
     // Fuzzy match on Thai word
     safeQuery(supabase.from('dictionary_full').select('*').ilike('word', `%${query}%`).limit(limit)),
     // Search Chinese meaning via RPC
     safeQuery(supabase.rpc('search_words_zh', { search_term: query, max_results: limit })),
-    // Raw JSONB text search
-    safeQuery(supabase.rpc('search_words', { search_term: query, max_results: limit })),
     // Community words
     safeQuery(supabase.from('community_words').select('*')
       .or(`word.ilike.%${query}%,senses::text.ilike.%${query}%`)
@@ -69,12 +67,11 @@ export async function searchWords(query, limit = 20) {
   const exact = exactResult.data
   const fuzzy = fuzzyResult.data
   const meaning = meaningResult.data
-  const textSearch = textResult.data
   const communityRows = communityResult.data
 
   // Merge and deduplicate
   const map = new Map()
-  for (const list of [exact, fuzzy, meaning, textSearch].filter(Boolean)) {
+  for (const list of [exact, fuzzy, meaning].filter(Boolean)) {
     for (const row of (Array.isArray(list) ? list : [])) {
       if (row && row.id && !map.has(row.id)) {
         map.set(row.id, row)
