@@ -57,9 +57,9 @@ export async function searchWords(query, limit = 20) {
     // Fuzzy match on Thai word
     safeQuery(supabase.from('dictionary_full').select('*').ilike('word', `%${query}%`).limit(limit)),
     // Search Chinese meaning via RPC
-    supabase.rpc('search_words_zh', { search_term: query, max_results: limit }).catch(() => ({ data: null })),
+    safeQuery(supabase.rpc('search_words_zh', { search_term: query, max_results: limit })),
     // Raw JSONB text search
-    supabase.rpc('search_words', { search_term: query, max_results: limit }).catch(() => ({ data: null })),
+    safeQuery(supabase.rpc('search_words', { search_term: query, max_results: limit })),
     // Community words
     safeQuery(supabase.from('community_words').select('*')
       .or(`word.ilike.%${query}%,senses::text.ilike.%${query}%`)
