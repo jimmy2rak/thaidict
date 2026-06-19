@@ -45,23 +45,25 @@ function dateToCST(d) {
  * @param {string} query - Chinese or Thai search term
  * @param {number} limit - Max results
  */
+const safeQuery = async (q) => { try { return await q } catch { return { data: null } } }
+
 export async function searchWords(query, limit = 20) {
   if (!supabase) return []
 
   // All independent queries run in parallel
   const [exactResult, fuzzyResult, meaningResult, textResult, communityResult] = await Promise.all([
     // Exact match
-    supabase.from('dictionary_full').select('*').eq('word', query).limit(5).catch(() => ({ data: null })),
+    safeQuery(supabase.from('dictionary_full').select('*').eq('word', query).limit(5)),
     // Fuzzy match on Thai word
-    supabase.from('dictionary_full').select('*').ilike('word', `%${query}%`).limit(limit).catch(() => ({ data: null })),
+    safeQuery(supabase.from('dictionary_full').select('*').ilike('word', `%${query}%`).limit(limit)),
     // Search Chinese meaning via RPC
     supabase.rpc('search_words_zh', { search_term: query, max_results: limit }).catch(() => ({ data: null })),
     // Raw JSONB text search
     supabase.rpc('search_words', { search_term: query, max_results: limit }).catch(() => ({ data: null })),
     // Community words
-    supabase.from('community_words').select('*')
+    safeQuery(supabase.from('community_words').select('*')
       .or(`word.ilike.%${query}%,senses::text.ilike.%${query}%`)
-      .limit(limit).catch(() => ({ data: null })),
+      .limit(limit)),
   ])
 
   const exact = exactResult.data
