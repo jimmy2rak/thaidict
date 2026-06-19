@@ -51,9 +51,9 @@ export async function searchWords(query, limit = 20) {
   // All independent queries run in parallel
   const [exactResult, fuzzyResult, meaningResult, textResult, communityResult] = await Promise.all([
     // Exact match
-    supabase.from('dictionary_full').select('*').eq('word', query).limit(5),
+    supabase.from('dictionary_full').select('*').eq('word', query).limit(5).catch(() => ({ data: null })),
     // Fuzzy match on Thai word
-    supabase.from('dictionary_full').select('*').ilike('word', `%${query}%`).limit(limit),
+    supabase.from('dictionary_full').select('*').ilike('word', `%${query}%`).limit(limit).catch(() => ({ data: null })),
     // Search Chinese meaning via RPC
     supabase.rpc('search_words_zh', { search_term: query, max_results: limit }).catch(() => ({ data: null })),
     // Raw JSONB text search
