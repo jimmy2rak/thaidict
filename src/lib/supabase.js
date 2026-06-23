@@ -7,7 +7,11 @@ export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
 
 let supabase = null
 if (isSupabaseConfigured) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: { Prefer: 'return=representation' }
+    }
+  })
 }
 
 export default supabase
