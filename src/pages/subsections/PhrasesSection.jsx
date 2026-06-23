@@ -7,6 +7,7 @@ import {
   getBookmarkedSentences,
   bookmarkSentence,
   removeSentenceBookmark,
+  enrichSegmented,
 } from "../../lib/supabase.js";
 import { speak } from "../../utils/tts";
 import { thaiSegment } from "../../utils/thaiSegment";
@@ -50,7 +51,7 @@ const PhrasesSection = ({ onSelectPhrase }) => {
   useEffect(() => {
     if (!isSupabaseConfigured || dbSentences[cat]) return;
     setLoading(true);
-    getSentencesByCategory(cat, 50).then(rows => {
+    getSentencesByCategory(cat, 50).then(async rows => {
       if (rows.length > 0) {
         const hc = phraseData[cat] || [];
         const mapped = rows.map(r => {
@@ -72,6 +73,11 @@ const PhrasesSection = ({ onSelectPhrase }) => {
             category: r.category,
           };
         });
+        for (const m of mapped) {
+          if (m.segmented.length > 0 && m.segmented.some(s => !s.meaning)) {
+            m.segmented = await enrichSegmented(m.segmented);
+          }
+        }
         setDbSentences(prev => ({ ...prev, [cat]: mapped }));
       }
       setLoading(false);

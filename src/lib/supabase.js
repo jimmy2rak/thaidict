@@ -142,6 +142,42 @@ export async function getWordByThai(word) {
 }
 
 /**
+ * Enrich segmented array with Chinese meanings from dictionary.
+ * Batch lookups for efficiency — returns a Map<word, meaning>.
+ */
+async function batchLookupMeanings(words) {
+  if (!supabase || words.length === 0) return new Map()
+  const unique = [...new Set(words)]
+  const results = await Promise.all(
+    unique.map(w => supabase
+      .from('dictionary_full')
+      .select('word,senses')
+      .eq('word', w)
+      .limit(1)
+      .then(r => r.data?.[0] || null)
+      .catch(() => null)
+    )
+  )
+  const map = new Map()
+  unique.forEach((w, i) => {
+    const row = results[i]
+    if (row?.senses?.[0]?.meaning) map.set(w, row.senses[0].meaning)
+  })
+  return map
+}
+
+export async function enrichSegmented(segmented) {
+  if (!Array.isArray(segmented) || segmented.length === 0) return segmented
+  const missing = segmented.filter(s => s.text && !s.meaning).map(s => s.text)
+  if (missing.length === 0) return segmented
+  const meanings = await batchLookupMeanings(missing)
+  return segmented.map(s => {
+    if (!s.meaning && meanings.has(s.text)) return { ...s, meaning: meanings.get(s.text) }
+    return s
+  })
+}
+
+/**
  * Fetch dictionary data for multiple Thai words at once
  */
 export async function getWordsByThaiList(words) {
@@ -1379,6 +1415,7 @@ export async function loadDailyPick() {
         pick.daily_word_id ? fetchWordByText(pick.daily_word_id) : null,
         pick.daily_sentence_id ? fetchSentenceById(pick.daily_sentence_id) : null,
       ])
+      if (sentence?.segmented) sentence.segmented = await enrichSegmented(sentence.segmented)
       console.log('[每日推荐] 词条结果:', word ? word.word : 'null', '句子结果:', sentence ? sentence.id : 'null')
       return { word, sentence }
     }
@@ -1398,6 +1435,7 @@ export async function loadDailyPick() {
           fallback.daily_word_id ? fetchWordByText(fallback.daily_word_id) : null,
           fallback.daily_sentence_id ? fetchSentenceById(fallback.daily_sentence_id) : null,
         ])
+        if (sentence?.segmented) sentence.segmented = await enrichSegmented(sentence.segmented)
         return { word, sentence }
       }
     } catch (e) { console.warn('[每日推荐] 兜底查询失败:', e.message) }
